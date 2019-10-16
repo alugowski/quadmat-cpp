@@ -1,0 +1,2 @@
+add_executable(tests_run matrix_construction.cpp)
+target_link_libraries(tests_run)
