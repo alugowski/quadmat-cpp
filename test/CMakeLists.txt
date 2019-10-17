@@ -1,2 +1,2 @@
-add_executable(tests_run matrix_construction.cpp)
-target_link_libraries(tests_run)
+add_executable(tests_run matrix_construction.cpp tbb_present.cpp)
+target_link_libraries(tests_run tbb)
