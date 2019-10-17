@@ -7,13 +7,10 @@
 #include <iostream>
 
 namespace quadmat {
-
-    void hello() {
-        std::cout << "Hello, World!" << std::endl;
-    }
 }
 
 #include "matrix.h"
 #include "generators.h"
+#include "generators/tuple_generators.h"
 
 #endif //QUADMAT_QUADMAT_H
