@@ -14,7 +14,7 @@ TEST_CASE("Matrix Construction"){
     REQUIRE(m.get_ncol() == 20);
 }
 
-TEST_CASE("Matrix generation"){
+TEST_CASE("Matrix Generation"){
     matrix<double> m = quadmat::identity<double>(10);
     REQUIRE(m.get_nrow() == 10);
     REQUIRE(m.get_ncol() == 10);

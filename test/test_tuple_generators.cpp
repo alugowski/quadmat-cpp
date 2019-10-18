@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-TEST_CASE("Identity Tuples") {
+TEST_CASE("Tuples Generator - Identity") {
     SECTION("basic") {
         int size = 10;
         quadmat::identity_tuples_generator<double, int> gen(size);

@@ -1,2 +1,2 @@
-add_executable(tests_run matrix_construction.cpp tbb_present.cpp test_tuple_generators.cpp test_util.cpp)
+add_executable(tests_run test_matrix_construction.cpp test_tbb_present.cpp test_tuple_generators.cpp test_util.cpp)
 target_link_libraries(tests_run tbb)
