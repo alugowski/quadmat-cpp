@@ -9,6 +9,7 @@
 namespace quadmat {
 }
 
+#include "util.h"
 #include "matrix.h"
 #include "generators.h"
 #include "generators/tuple_generators.h"
