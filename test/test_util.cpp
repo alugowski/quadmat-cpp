@@ -34,9 +34,29 @@ TEST_CASE("Vector Sorting and Permutation") {
     std::sort(sorted.begin(), sorted.end(), std::less<>());
 
     // permute
-    vector<size_t> permutation = quadmat::get_sort_permutation(unsorted, std::less<>());
-    vector<int> permute_sorted = quadmat::permute(unsorted, permutation);
+    vector<size_t> permutation = quadmat::get_sort_permutation(unsorted.begin(), unsorted.end(), std::less<>());
 
-    // check
-    REQUIRE_THAT(permute_sorted, Equals(sorted));
+    SECTION("out of place permutation") {
+        vector<int> permute_sorted = quadmat::apply_permutation(unsorted, permutation);
+        REQUIRE_THAT(permute_sorted, Equals(sorted));
+    }
+    SECTION("in-place permutation") {
+        SECTION("vector") {
+            vector<int> vec(unsorted);
+            quadmat::apply_permutation_inplace(vec, permutation);
+            REQUIRE_THAT(vec, Equals(sorted));
+        }
+        SECTION("range single") {
+            vector<int> vec(unsorted);
+            quadmat::apply_permutation_inplace(permutation, vec.begin());
+            REQUIRE_THAT(vec, Equals(sorted));
+        }
+        SECTION("range multi") {
+            vector<int> vec(unsorted);
+            vector<int> vec2(unsorted);
+            quadmat::apply_permutation_inplace(permutation, vec.begin(), vec2.begin());
+            REQUIRE_THAT(vec, Equals(sorted));
+            REQUIRE_THAT(vec2, Equals(sorted));
+        }
+    }
 }

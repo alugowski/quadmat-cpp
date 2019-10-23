@@ -11,6 +11,7 @@
 using std::vector;
 
 #include "block.h"
+#include "util.h"
 
 namespace quadmat {
 
@@ -56,6 +57,7 @@ namespace quadmat {
             }
 
             col_ptr[ncols] = i;
+            sort_columns();
         }
 
         /**
@@ -99,6 +101,8 @@ namespace quadmat {
                 row_ind[offset] = std::get<0>(tup);
                 values[offset] = std::get<2>(tup);
             }
+
+            sort_columns();
         }
 
         block_size_info size() override {
@@ -109,6 +113,25 @@ namespace quadmat {
             } + block<T>::size();
         }
     protected:
+        /**
+         * Sort columns according to row number.
+         */
+        void sort_columns() {
+            for (index_t i = 0; i < col_ptr.size() - 1; i++) {
+                blocknnn_t col_nnn = col_ptr[i+1] - col_ptr[i];
+                if (col_nnn > 1) {
+                    vector<size_t> perm = get_sort_permutation(
+                            row_ind.begin() + col_ptr[i],
+                            row_ind.begin() + col_ptr[i+1],
+                            std::less<>());
+
+                    apply_permutation_inplace(perm,
+                            row_ind.begin() + col_ptr[i],
+                            values.begin() + col_ptr[i]);
+                }
+            }
+        }
+
         vector<IT, typename CONFIG::template ALLOC<IT>> row_ind;
         vector<blocknnn_t, typename CONFIG::template ALLOC<blocknnn_t>> col_ptr;
         vector<T, typename CONFIG::template ALLOC<T>> values;

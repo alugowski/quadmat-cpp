@@ -90,28 +90,106 @@ namespace quadmat {
         vector<size_t> column_widths;
     };
 
-    /**
-     * Get a permutation vector.
-     *
-     * @param vec vector to sort
-     * @param compare comparison function
-     * @return a permutation vector for vec of length `vec.size()`
-     */
-    template <typename T, typename Compare>
-    vector<size_t> get_sort_permutation(const vector<T>& vec, const Compare& compare) {
-        vector<std::size_t> perm(vec.size());
+     /**
+      * Get a permutation vector
+      *
+      * @tparam ITER iterator type
+      * @tparam Compare comparison function type
+      * @param begin beginning of range to sort
+      * @param end end of range to sort
+      * @param compare comparison function, same as used by std::sort.
+      * @return a permutation vector of size (end - begin)
+      */
+    template <typename ITER, typename Compare, typename ALLOC=std::allocator<size_t>>
+    vector<size_t> get_sort_permutation(const ITER begin, const ITER end, const Compare& compare) {
+        vector<std::size_t, ALLOC> perm(end - begin);
         std::iota(perm.begin(), perm.end(), 0);
         std::sort(perm.begin(), perm.end(),
-                  [&](size_t i, size_t j){ return compare(vec[i], vec[j]); });
+                  [&](size_t i, size_t j){ return compare(*(begin + i), *(begin + j)); });
         return perm;
     }
 
-    template <typename T>
-    vector<T> permute(const vector<T>& vec, const vector<size_t>& perm) {
-        vector<T> permuted_vec(vec.size());
+    /**
+     * Apply a permutation to a vector.
+     *
+     * @tparam T
+     * @param vec vector to permute
+     * @param perm permutation vector
+     * @return a new vector with items in `vec` permuted by `perm`.
+     */
+    template <typename T, typename ALLOC=std::allocator<T>>
+    vector<T> apply_permutation(const vector<T>& vec, const vector<size_t>& perm) {
+        vector<T, ALLOC> permuted_vec(vec.size());
         std::transform(perm.begin(), perm.end(), permuted_vec.begin(),
                        [&](std::size_t i){ return vec[i]; });
         return permuted_vec;
+    }
+
+    /**
+     * Apply a permutation to a vector inplace.
+     *
+     * @tparam T
+     * @param vec vector to permute
+     * @param perm permutation vector. This vector is modified!
+     */
+    template <typename T>
+    void apply_permutation_inplace(vector<T>& vec, vector<size_t>& perm)
+    {
+        for (size_t i = 0; i < perm.size(); i++) {
+            size_t current = i;
+            while (i != perm[current]) {
+                size_t next = perm[current];
+                std::swap(vec[current], vec[next]);
+                perm[current] = current;
+                current = next;
+            }
+            perm[current] = current;
+        }
+    }
+
+    /**
+     * Swap elements (dest_begin + a, dest_begin + b).
+     *
+     * Serves as base case for variadic version below.
+     */
+    template <typename ITER>
+    void swap_at(size_t a, size_t b, ITER dest_begin) {
+        std::swap(*(dest_begin + a), *(dest_begin + b));
+    }
+
+    /**
+     * Swap elements (dest_begin + a, dest_begin + b) and similarly for every iterator in dest_rest.
+     */
+    template <typename ITER, typename... ITERS>
+    void swap_at(size_t a, size_t b, ITER dest_begin, ITERS... dest_rest) {
+        std::swap(*(dest_begin + a), *(dest_begin + b));
+        swap_at(a, b, dest_rest...);
+    }
+
+    /**
+     * Apply a permutation to a range inplace.
+     *
+     * The permutation vector is modified so this function is variadic to support permuting multiple ranges
+     * using the same permutation vector.
+     *
+     * @tparam ITERS writable iterator types
+     * @param perm permutation vector. This vector is modified!
+     * @param dest_begins start of the range to permute. end is dest_begin + perm.size()
+     */
+    template <typename... ITERS>
+    void apply_permutation_inplace(vector<size_t>& perm, ITERS... dest_begins)
+    {
+        for (size_t i = 0; i < perm.size(); i++) {
+            size_t current = i;
+            while (i != perm[current]) {
+                size_t next = perm[current];
+                // swap the elements indexed by current and next
+                swap_at(current, next, dest_begins...);
+                perm[current] = current;
+                current = next;
+            }
+            perm[current] = current;
+        }
     }
 }
 
