@@ -21,6 +21,15 @@ namespace quadmat {
     template<typename T, typename IT>
     class triples_block: public block<T> {
     public:
+        triples_block(const index_t nrows, const index_t ncols) : block<T>(nrows, ncols) {}
+
+        block_size_info size() override {
+            return block_size_info{
+                rows.size() * sizeof(IT) + cols.size() * sizeof(IT),
+                values.size() * sizeof(T),
+                2 * sizeof(std::vector<IT>) + sizeof(std::vector<T>)
+            } + block<T>::size();
+        }
 
         /**
          * Add a triple.

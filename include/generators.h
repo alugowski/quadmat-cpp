@@ -17,7 +17,7 @@ namespace quadmat {
      */
     template <typename T>
     matrix<T> identity(index_t n) {
-        shared_ptr<triples_block<T, index_t>> accum = std::make_shared<triples_block<T, index_t> >();
+        shared_ptr<triples_block<T, index_t>> accum = std::make_shared<triples_block<T, index_t> >(n, n);
 
         for (index_t i = 0; i < n; i++) {
             accum->add(i, i, 1);
