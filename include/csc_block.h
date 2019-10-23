@@ -19,7 +19,7 @@ namespace quadmat {
      *
      * @tparam T value type, eg. double
      */
-    template<typename T, typename IT>
+    template<typename T, typename IT, typename CONFIG = basic_settings>
     class csc_block: public block<T> {
     public:
         csc_block(const index_t nrows, const index_t ncols) : block<T>(nrows, ncols) {}
@@ -69,7 +69,7 @@ namespace quadmat {
         template<typename GEN>
         csc_block(const index_t nrows, const index_t ncols, const GEN gen) : col_ptr(ncols + 1, 0), block<T>(nrows, ncols) {
             // compute number of non-nulls per column
-            vector<blocknnn_t> col_nnn(ncols, 0);
+            vector<blocknnn_t, typename CONFIG::template TEMP_ALLOC<blocknnn_t>> col_nnn(ncols, 0);
             for (auto tup : gen) {
                 IT col = std::get<1>(tup);
                 col_nnn[col]++;
@@ -109,9 +109,9 @@ namespace quadmat {
             } + block<T>::size();
         }
     protected:
-        vector<IT> row_ind;
-        vector<blocknnn_t> col_ptr;
-        vector<T> values;
+        vector<IT, typename CONFIG::template ALLOC<IT>> row_ind;
+        vector<blocknnn_t, typename CONFIG::template ALLOC<blocknnn_t>> col_ptr;
+        vector<T, typename CONFIG::template ALLOC<T>> values;
     };
 }
 

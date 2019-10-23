@@ -15,7 +15,7 @@ namespace quadmat {
      * @tparam T matrix value type
      * @param n number of rows and columns
      */
-    template <typename T>
+    template <typename T, typename CONFIG = basic_settings>
     matrix<T> identity(index_t n) {
         shared_ptr<triples_block<T, index_t>> accum = std::make_shared<triples_block<T, index_t> >(n, n);
 

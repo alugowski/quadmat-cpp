@@ -18,7 +18,7 @@ namespace quadmat {
      *
      * @tparam T value type, eg. double
      */
-    template<typename T, typename IT>
+    template<typename T, typename IT, typename CONFIG = basic_settings>
     class triples_block: public block<T> {
     public:
         triples_block(const index_t nrows, const index_t ncols) : block<T>(nrows, ncols) {}
@@ -45,9 +45,9 @@ namespace quadmat {
         }
 
     protected:
-        vector<IT> rows;
-        vector<IT> cols;
-        vector<T> values;
+        vector<IT, typename CONFIG::template ALLOC<IT>> rows;
+        vector<IT, typename CONFIG::template ALLOC<IT>> cols;
+        vector<T, typename CONFIG::template ALLOC<T>> values;
 
         template <typename Compare>
         vector<std::size_t> sort_permutation(
