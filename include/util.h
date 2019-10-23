@@ -95,10 +95,10 @@ namespace quadmat {
      *
      * @param vec vector to sort
      * @param compare comparison function
-     * @return a permuation vector for vec of length `vec.size()`
+     * @return a permutation vector for vec of length `vec.size()`
      */
     template <typename T, typename Compare>
-    vector<size_t> get_sort_permutation(const vector<T>& vec, Compare& compare) {
+    vector<size_t> get_sort_permutation(const vector<T>& vec, const Compare& compare) {
         vector<std::size_t> perm(vec.size());
         std::iota(perm.begin(), perm.end(), 0);
         std::sort(perm.begin(), perm.end(),
