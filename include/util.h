@@ -8,6 +8,7 @@
 #include <ios>
 #include <iomanip>
 #include <numeric>
+#include <random>
 #include <sstream>
 #include <tuple>
 #include <vector>
@@ -203,6 +204,15 @@ namespace quadmat {
             }
             perm[current] = current;
         }
+    }
+
+    /**
+     * Same as std::shuffle but uses a stable RNG so the results are repeatable. Useful for tests.
+     */
+    template <typename ITER>
+    void stable_shuffle(ITER begin, ITER end, int seed = 0) {
+        auto rng = std::mt19937(seed);
+        std::shuffle(begin, end, rng);
     }
 }
 

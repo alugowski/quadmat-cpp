@@ -78,6 +78,7 @@ TEST_CASE("Vector Sorting and Permutation") {
         vector<int> permute_sorted = quadmat::apply_permutation(unsorted, permutation);
         REQUIRE_THAT(permute_sorted, Equals(sorted));
     }
+
     SECTION("in-place permutation") {
         SECTION("vector") {
             vector<int> vec(unsorted);
@@ -96,5 +97,22 @@ TEST_CASE("Vector Sorting and Permutation") {
             REQUIRE_THAT(vec, Equals(sorted));
             REQUIRE_THAT(vec2, Equals(sorted));
         }
+    }
+
+    SECTION("shuffle") {
+        vector<int> vec(sorted);
+        REQUIRE_THAT(vec, Equals(sorted));
+
+        quadmat::stable_shuffle(std::begin(vec), std::end(vec));
+        REQUIRE_THAT(vec, !Equals(sorted));
+        vector<int> vec_shuffled(vec);
+
+        // re-sort to make sure nothing went missing
+        std::sort(std::begin(vec), std::end(vec), std::less<>());
+        REQUIRE_THAT(vec, Equals(sorted));
+
+        // re-shuffle to test stability
+        quadmat::stable_shuffle(std::begin(vec), std::end(vec));
+        REQUIRE_THAT(vec, Equals(vec_shuffled));
     }
 }
