@@ -2,6 +2,7 @@
 // All Rights Reserved.
 
 #include <functional>
+#include <generators/tuple_generators.h>
 
 #include "catch.hpp"
 
@@ -10,6 +11,22 @@
 using Catch::Matchers::Equals;
 
 TEST_CASE("Dense String Matrix") {
+    SECTION("empty matrix") {
+        int size = 4;
+
+        quadmat::dense_string_matrix smat(size, size);
+
+        smat.fill_tuples(quadmat::simple_tuples_generator<double, int>::EmptyMatrix());
+
+        string str = smat.to_string();
+
+        string expected = "   \n"
+                          "   \n"
+                          "   \n"
+                          "   ";
+
+        REQUIRE(str == expected);
+    }
     SECTION("small identity matrix") {
         int size = 4;
         quadmat::dense_string_matrix smat(size, size);
@@ -23,6 +40,27 @@ TEST_CASE("Dense String Matrix") {
                           "  1    \n"
                           "    1  \n"
                           "      1";
+
+        REQUIRE(str == expected);
+    }
+    SECTION("Kepner-Gilbert graph") {
+        int nrows, ncols;
+        std::tie(nrows, ncols) = quadmat::simple_tuples_generator<double, int>::KepnerGilbertGraph_dim();
+
+        quadmat::dense_string_matrix smat(nrows, ncols);
+
+        smat.fill_tuples(quadmat::simple_tuples_generator<double, int>::KepnerGilbertGraph());
+
+        string str = smat.to_string();
+
+        string expected =
+                "      1      \n"
+                "1            \n"
+                "      1   1 1\n"
+                "1           1\n"
+                "  1         1\n"
+                "    1   1    \n"
+                "  1          ";
 
         REQUIRE(str == expected);
     }
