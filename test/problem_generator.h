@@ -13,7 +13,7 @@ using quadmat::index_t;
 template <typename T, typename IT>
 struct canned_matrix {
     std::string description;
-    quadmat::shape shape;
+    quadmat::shape_t shape;
     vector<std::tuple<IT, IT, T>> sorted_tuples;
 };
 
@@ -21,11 +21,13 @@ template <typename T, typename IT>
 vector<canned_matrix<T, IT>> get_canned_matrices() {
     vector<canned_matrix<T, IT>> ret;
 
-    ret.emplace_back(canned_matrix<T, IT>{
-            .description = "empty matrix",
-            .shape = {10, 10},
-            .sorted_tuples = quadmat::simple_tuples_generator<T, IT>::EmptyMatrix()
-    });
+    {
+        ret.emplace_back(canned_matrix<T, IT>{
+                .description = "empty matrix",
+                .shape = {10, 10},
+                .sorted_tuples = quadmat::simple_tuples_generator<T, IT>::EmptyMatrix()
+        });
+    }
 
     {
         quadmat::identity_tuples_generator<T, IT> gen(10);
@@ -37,12 +39,9 @@ vector<canned_matrix<T, IT>> get_canned_matrices() {
     }
 
     {
-        int nrows, ncols;
-        std::tie(nrows, ncols) = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph_dim();
-
         ret.emplace_back(canned_matrix<T, IT>{
                 .description = "Kepner-Gilbert graph",
-                .shape = {nrows, ncols},
+                .shape = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
                 .sorted_tuples = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph()
         });
     }

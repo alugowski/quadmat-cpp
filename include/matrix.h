@@ -16,17 +16,15 @@ namespace quadmat {
     template <typename T>
     class matrix {
     public:
-        matrix(index_t nrow, index_t ncol): nrow(nrow), ncol(ncol) {}
+        matrix(const shape_t shape): shape(shape) {}
 
-        index_t get_nrow() const { return nrow; }
-        index_t get_ncol() const { return ncol; }
+        shape_t get_shape() const { return shape; }
 
         shared_ptr<block<T> > get_root() const { return shared_ptr<block<T> >(root); }
         void set_root(shared_ptr<block<T> > new_root) { root = new_root; }
 
     protected:
-        index_t nrow;
-        index_t ncol;
+        shape_t shape;
 
         shared_ptr<block<T> > root;
     };

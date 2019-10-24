@@ -23,7 +23,7 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = basic_settings>
     class csc_block: public block<T> {
     public:
-        csc_block(const index_t nrows, const index_t ncols) : block<T>(nrows, ncols) {}
+        csc_block(const shape_t shape) : block<T>(shape) {}
 
         /**
          * Create a CSC block from column-ordered tuples. Single pass.
@@ -35,7 +35,7 @@ namespace quadmat {
          * @param col_ordered_gen tuple generator. **Must return tuples ordered by column**
          */
         template<typename GEN>
-        csc_block(const index_t nrows, const index_t ncols, const blocknnn_t nnn, const GEN col_ordered_gen) : col_ptr(ncols + 1, 0), block<T>(nrows, ncols) {
+        csc_block(const shape_t shape, const blocknnn_t nnn, const GEN col_ordered_gen) : block<T>(shape), col_ptr(shape.ncols + 1, 0) {
             // reserve memory
             row_ind.reserve(nnn);
             values.reserve(nnn);
@@ -56,7 +56,7 @@ namespace quadmat {
                 i++;
             }
 
-            col_ptr[ncols] = i;
+            col_ptr[shape.ncols] = i;
             sort_columns();
         }
 
@@ -109,8 +109,9 @@ namespace quadmat {
             return block_size_info{
                     row_ind.size() * sizeof(IT) + col_ptr.size() * sizeof(blocknnn_t),
                     values.size() * sizeof(T),
-                    2 * sizeof(std::vector<IT>) + sizeof(std::vector<T>)
-            } + block<T>::size();
+                    sizeof(csc_block<T, IT, CONFIG>),
+                    values.size()
+            };
         }
     protected:
         /**

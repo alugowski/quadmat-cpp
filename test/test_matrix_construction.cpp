@@ -9,13 +9,11 @@
 using quadmat::matrix;
 
 TEST_CASE("Matrix Construction"){
-    matrix<double> m(10, 20);
-    REQUIRE(m.get_nrow() == 10);
-    REQUIRE(m.get_ncol() == 20);
+    matrix<double> m({10, 20});
+    REQUIRE(m.get_shape() == quadmat::shape_t{10, 20});
 }
 
 TEST_CASE("Matrix Generation"){
     matrix<double> m = quadmat::identity<double>(10);
-    REQUIRE(m.get_nrow() == 10);
-    REQUIRE(m.get_ncol() == 10);
+    REQUIRE(m.get_shape() == quadmat::shape_t{10, 10});
 }

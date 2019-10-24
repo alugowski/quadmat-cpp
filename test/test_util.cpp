@@ -14,7 +14,7 @@ TEST_CASE("Dense String Matrix") {
     SECTION("empty matrix") {
         int size = 4;
 
-        quadmat::dense_string_matrix smat(size, size);
+        quadmat::dense_string_matrix smat({size, size});
 
         smat.fill_tuples(quadmat::simple_tuples_generator<double, int>::EmptyMatrix());
 
@@ -29,7 +29,7 @@ TEST_CASE("Dense String Matrix") {
     }
     SECTION("small identity matrix") {
         int size = 4;
-        quadmat::dense_string_matrix smat(size, size);
+        quadmat::dense_string_matrix smat({size, size});
         quadmat::identity_tuples_generator<double, int> gen(size);
 
         smat.fill_tuples(gen);
@@ -44,10 +44,8 @@ TEST_CASE("Dense String Matrix") {
         REQUIRE(str == expected);
     }
     SECTION("Kepner-Gilbert graph") {
-        int nrows, ncols;
-        std::tie(nrows, ncols) = quadmat::simple_tuples_generator<double, int>::KepnerGilbertGraph_dim();
-
-        quadmat::dense_string_matrix smat(nrows, ncols);
+        quadmat::shape_t shape = quadmat::simple_tuples_generator<double, int>::KepnerGilbertGraph_shape();
+        quadmat::dense_string_matrix smat(shape);
 
         smat.fill_tuples(quadmat::simple_tuples_generator<double, int>::KepnerGilbertGraph());
 

@@ -7,13 +7,12 @@
 #include <algorithm>
 #include <ios>
 #include <iomanip>
-#include <numeric>
 #include <random>
 #include <sstream>
 #include <tuple>
 #include <vector>
 
-#include "config.h"
+#include "types.h"
 
 using std::size_t;
 using std::string;
@@ -26,10 +25,10 @@ namespace quadmat {
      */
     class dense_string_matrix {
     public:
-        dense_string_matrix(int nrows, int ncols) : strings(nrows), column_widths(ncols) {
+        explicit dense_string_matrix(const shape_t shape) : strings(shape.nrows), column_widths(shape.ncols) {
             // pre-fill with empty strings
             for (auto& row_v : strings) {
-                row_v.resize(ncols);
+                row_v.resize(shape.ncols);
             }
         }
 
@@ -91,27 +90,6 @@ namespace quadmat {
     private:
         vector<vector<string>> strings;
         vector<size_t> column_widths;
-    };
-
-    /**
-     * Utility type to be able to return iterator ranges usable in a foreach.
-     * @tparam ITER
-     */
-    template <typename ITER>
-    struct range {
-        ITER _begin;
-        ITER _end;
-
-        ITER begin() const { return _begin; }
-        ITER end() const { return _end; }
-    };
-
-    /**
-     * Utility type that describes the shape of a block or matrix. I.e. number of rows and columns.
-     */
-    struct shape {
-        index_t nrows;
-        index_t ncols;
     };
 
      /**

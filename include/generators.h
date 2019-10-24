@@ -17,13 +17,13 @@ namespace quadmat {
      */
     template <typename T, typename CONFIG = basic_settings>
     matrix<T> identity(index_t n) {
-        shared_ptr<triples_block<T, index_t>> accum = std::make_shared<triples_block<T, index_t> >(n, n);
+        shared_ptr<triples_block<T, index_t>> accum = std::make_shared<triples_block<T, index_t, CONFIG> >(shape_t{n, n});
 
         for (index_t i = 0; i < n; i++) {
             accum->add(i, i, 1);
         }
 
-        matrix<T> ret(n, n);
+        matrix<T> ret({n, n});
         ret.set_root(accum);
         return ret;
     }

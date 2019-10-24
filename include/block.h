@@ -16,20 +16,14 @@ namespace quadmat {
     template<typename T>
     class block {
     public:
-        explicit block(const index_t nrows, const index_t ncols) : nrows(nrows), ncols(ncols) {}
+        explicit block(const shape_t shape) : shape(shape) {}
+        virtual ~block() = default;
 
         /**
-         * @return number of rows
+         * @return this block's shape, i.e. number of rows and number of columns
          */
-        [[nodiscard]] index_t get_nrows() const {
-            return nrows;
-        }
-
-        /**
-         * @return number of columns
-         */
-        [[nodiscard]] index_t get_ncols() const {
-            return ncols;
+        [[nodiscard]] shape_t get_shape() const {
+            return shape;
         }
 
         /**
@@ -40,8 +34,7 @@ namespace quadmat {
         }
 
     protected:
-        const index_t nrows;
-        const index_t ncols;
+        const shape_t shape;
     };
 }
 

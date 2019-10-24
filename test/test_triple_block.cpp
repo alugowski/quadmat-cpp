@@ -26,11 +26,10 @@ TEST_CASE("Triples Block") {
         quadmat::stable_shuffle(begin(shuffled_tuples), end(shuffled_tuples));
 
         SECTION(problem.description) {
-            quadmat::triples_block<double, int> block(problem.shape.nrows, problem.shape.ncols);
+            quadmat::triples_block<double, int> block(problem.shape);
             block.add(shuffled_tuples);
 
-            REQUIRE(block.get_nrows() == problem.shape.nrows);
-            REQUIRE(block.get_ncols() == problem.shape.ncols);
+            REQUIRE(block.get_shape() == problem.shape);
 
             SECTION("get tuples back") {
                 vector<std::tuple<int, int, double>> v(block.begin(), block.end());

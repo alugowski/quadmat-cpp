@@ -29,7 +29,7 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = basic_settings>
     class dcsc_block: public block<T> {
     public:
-        dcsc_block(const index_t nrows, const index_t ncols) : block<T>(nrows, ncols) {}
+        explicit dcsc_block(const shape_t shape) : block<T>(shape) {}
 
         /**
          * Create a DCSC block from (column, row)-ordered tuples. Single pass.
@@ -41,7 +41,7 @@ namespace quadmat {
          * @param col_ordered_gen tuple generator. **Must return tuples ordered by column, row**
          */
         template<typename GEN>
-        dcsc_block(const index_t nrows, const index_t ncols, const blocknnn_t nnn, const GEN col_ordered_gen) : block<T>(nrows, ncols) {
+        dcsc_block(const shape_t shape, const blocknnn_t nnn, const GEN col_ordered_gen) : block<T>(shape) {
             // reserve memory
             row_ind.reserve(nnn);
             values.reserve(nnn);
@@ -122,8 +122,8 @@ namespace quadmat {
         /**
          * @return a (begin, end) tuple of iterators that iterate over values in this block and return tuples.
          */
-        range<tuple_iterator> tuples() const {
-            return range<tuple_iterator>{
+        range_t<tuple_iterator> tuples() const {
+            return range_t<tuple_iterator>{
                 tuple_iterator(*this, 0, 0),
                 tuple_iterator(*this, row_ind.size(), col_ptr.size())
             };
@@ -133,8 +133,9 @@ namespace quadmat {
             return block_size_info{
                     col_ind.size() * sizeof(IT) + col_ptr.size() * sizeof(blocknnn_t) + row_ind.size() * sizeof(IT),
                     values.size() * sizeof(T),
-                    sizeof(dcsc_block<T, IT, CONFIG>)
-            } + block<T>::size();
+                    sizeof(dcsc_block<T, IT, CONFIG>),
+                    values.size()
+            };
         }
     protected:
         vector<IT, typename CONFIG::template ALLOC<IT>> col_ind;

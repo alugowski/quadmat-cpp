@@ -23,11 +23,14 @@ namespace quadmat {
     template<typename T>
     class inner_block : public block<T> {
     public:
-        inner_block(const index_t nrows, const index_t ncols) : block<T>(nrows, ncols) {}
+        explicit inner_block(const shape_t shape) : block<T>(shape) {}
 
         block_size_info size() override {
             // sum sizes of children
-            return std::accumulate(children.begin(), children.end(), block<T>::size(),
+            return std::accumulate(children.begin(), children.end(),
+                                   block_size_info{
+                                           .overhead_bytes = sizeof(inner_block<T>),
+                                   },
                                    [&](block_size_info acc, shared_ptr<block<T>>& child) {
                                        return acc + child->size();
                                    }

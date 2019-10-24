@@ -7,6 +7,8 @@
 #include <tuple>
 #include <vector>
 
+#include "types.h"
+
 using std::tuple;
 using std::vector;
 
@@ -32,8 +34,8 @@ namespace quadmat {
          * Dimensions of the matrix for the Keptner-Gilbert Graph
          * @return
          */
-        static std::pair<int, int> KepnerGilbertGraph_dim() {
-            return std::pair(7, 7);
+        static shape_t KepnerGilbertGraph_shape() {
+            return {7, 7};
         }
 
         /**

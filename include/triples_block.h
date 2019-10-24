@@ -23,14 +23,15 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = basic_settings>
     class triples_block: public block<T> {
     public:
-        triples_block(const index_t nrows, const index_t ncols) : block<T>(nrows, ncols) {}
+        explicit triples_block(const shape_t shape) : block<T>(shape) {}
 
         block_size_info size() override {
             return block_size_info{
                 rows.size() * sizeof(IT) + cols.size() * sizeof(IT),
                 values.size() * sizeof(T),
-                2 * sizeof(std::vector<IT>) + sizeof(std::vector<T>)
-            } + block<T>::size();
+                sizeof(triples_block<T, IT, CONFIG>),
+                values.size()
+            };
         }
 
         /**
@@ -138,9 +139,9 @@ namespace quadmat {
         /**
          * @return a (begin, end) pair of tuple iterators that return tuples in order sorted by column, row.
          */
-        range<permuted_iterator> sorted_range() const {
+        range_t<permuted_iterator> sorted_range() const {
             shared_ptr<vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>> permutation = std::make_shared<vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>>(get_sort_permutation());
-            return range<permuted_iterator>{permuted_iterator(*this, permutation, 0), permuted_iterator(*this, permutation, rows.size())};
+            return range_t<permuted_iterator>{permuted_iterator(*this, permutation, 0), permuted_iterator(*this, permutation, rows.size())};
         }
 
     protected:
