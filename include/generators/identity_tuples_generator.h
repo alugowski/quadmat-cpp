@@ -30,8 +30,9 @@ namespace quadmat {
         public:
             using iterator_category = std::input_iterator_tag;
             using value_type = tuple<IT, IT, T>;
-            using pointer_type = value_type*;
-            using reference_type = value_type&;
+            using pointer = value_type*;
+            using reference = value_type&;
+            using difference_type = std::ptrdiff_t;
 
             iterator(IT row, IT col_offset) : row(row), col_offset(col_offset) {}
             iterator(const iterator& rhs) : row(rhs.row), col_offset(rhs.col_offset) {}

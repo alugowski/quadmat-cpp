@@ -13,7 +13,7 @@ namespace quadmat {
      *
      * The implementing class needs to provide:
      *   - using iterator_category = std::input_iterator_tag
-     *   - typedefs for value_type, pointer_type, reference_type
+     *   - typedefs for value_type, pointer, reference, difference_type
      *   - constructor and copy constructor
      *   - operator*()
      *   - operator++()
@@ -47,7 +47,7 @@ namespace quadmat {
      *
      * The implementing class needs to provide:
      *   - using iterator_category = std::input_iterator_tag
-     *   - typedefs for value_type, pointer_type, reference_type
+     *   - typedefs for value_type, pointer, reference, difference_type
      *   - constructor and copy constructor
      *   - operator*()
      *

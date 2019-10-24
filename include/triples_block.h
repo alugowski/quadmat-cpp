@@ -68,8 +68,9 @@ namespace quadmat {
         public:
             using iterator_category = std::input_iterator_tag;
             using value_type = std::tuple<IT, IT, T>;
-            using pointer_type = value_type*;
-            using reference_type = value_type&;
+            using pointer = value_type*;
+            using reference = value_type&;
+            using difference_type = std::ptrdiff_t;
 
             explicit iterator(
                     const triples_block<T, IT, CONFIG>& block,
@@ -91,8 +92,9 @@ namespace quadmat {
         public:
             using iterator_category = std::input_iterator_tag;
             using value_type = std::tuple<IT, IT, T>;
-            using pointer_type = value_type*;
-            using reference_type = value_type&;
+            using pointer = value_type*;
+            using reference = value_type&;
+            using difference_type = std::ptrdiff_t;
 
             explicit permuted_iterator(
                     const triples_block<T, IT, CONFIG>& block,
