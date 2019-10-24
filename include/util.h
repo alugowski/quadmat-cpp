@@ -13,6 +13,8 @@
 #include <tuple>
 #include <vector>
 
+#include "config.h"
+
 using std::size_t;
 using std::string;
 using std::vector;
@@ -102,6 +104,14 @@ namespace quadmat {
 
         ITER begin() const { return _begin; }
         ITER end() const { return _end; }
+    };
+
+    /**
+     * Utility type that describes the shape of a block or matrix. I.e. number of rows and columns.
+     */
+    struct shape {
+        index_t nrows;
+        index_t ncols;
     };
 
      /**
