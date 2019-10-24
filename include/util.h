@@ -90,6 +90,19 @@ namespace quadmat {
         vector<size_t> column_widths;
     };
 
+    /**
+     * Utility type to be able to return iterator ranges usable in a foreach.
+     * @tparam ITER
+     */
+    template <typename ITER>
+    struct range {
+        ITER _begin;
+        ITER _end;
+
+        ITER begin() const { return _begin; }
+        ITER end() const { return _end; }
+    };
+
      /**
       * Get a permutation vector
       *

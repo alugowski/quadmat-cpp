@@ -5,11 +5,13 @@
 #define QUADMAT_TRIPLES_BLOCK_H
 
 #include <numeric>
+#include <utility>
 #include <vector>
 
 using std::vector;
 
 #include "block.h"
+#include "generators/base_tuple_iterators.h"
 
 namespace quadmat {
 
@@ -39,9 +41,104 @@ namespace quadmat {
          * @param value value
          */
         void add(IT row, IT col, T value) {
-            rows.push_back(row);
-            cols.push_back(col);
-            values.push_back(value);
+            rows.emplace_back(row);
+            cols.emplace_back(col);
+            values.emplace_back(value);
+        }
+
+        /**
+         * Add many tuples
+         *
+         * @tparam GEN tuple generator template type
+         * @param gen tuple generator
+         */
+        template <typename GEN>
+        void add(const GEN gen) {
+            for (auto tup : gen) {
+                rows.emplace_back(std::get<0>(tup));
+                cols.emplace_back(std::get<1>(tup));
+                values.emplace_back(std::get<2>(tup));
+            }
+        }
+
+        /**
+         * Input Iterator type for iterating over this block's tuples
+         */
+        class iterator: public base_indexed_input_iterator<iterator> {
+        public:
+            using iterator_category = std::input_iterator_tag;
+            using value_type = std::tuple<IT, IT, T>;
+            using pointer_type = value_type*;
+            using reference_type = value_type&;
+
+            explicit iterator(
+                    const triples_block<T, IT, CONFIG>& block,
+                    size_t i) : base_indexed_input_iterator<iterator>(i), block(block) {}
+            iterator(const iterator& rhs) : base_indexed_input_iterator<iterator>(rhs.i), block(rhs.block) {}
+
+            value_type operator*() {
+                return std::tuple<IT, IT, T>(block.rows[this->i], block.cols[this->i], block.values[this->i]);
+            }
+
+        private:
+            const triples_block<T, IT, CONFIG>& block;
+        };
+
+        /**
+         * Input Iterator type for iterating over this block's tuples in permuted order
+         */
+        class permuted_iterator: public base_indexed_input_iterator<permuted_iterator> {
+        public:
+            using iterator_category = std::input_iterator_tag;
+            using value_type = std::tuple<IT, IT, T>;
+            using pointer_type = value_type*;
+            using reference_type = value_type&;
+
+            explicit permuted_iterator(
+                    const triples_block<T, IT, CONFIG>& block,
+                    shared_ptr<vector<size_t>> permutation,
+                    size_t i)
+                    : base_indexed_input_iterator<permuted_iterator>(i),
+                            permutation(std::move(permutation)),
+                            block(block) {}
+            permuted_iterator(
+                    const permuted_iterator& rhs)
+                    : base_indexed_input_iterator<permuted_iterator>(rhs.i),
+                            permutation(rhs.permutation),
+                            block(rhs.block) {}
+
+            value_type operator*() {
+                return std::tuple<IT, IT, T>(
+                        block.rows[(*permutation)[this->i]],
+                        block.cols[(*permutation)[this->i]],
+                        block.values[(*permutation)[this->i]]);
+            }
+
+        private:
+            shared_ptr<vector<size_t>> permutation;
+            const triples_block<T, IT, CONFIG>& block;
+        };
+
+        /**
+         * @return a tuple iterator pointing at the first tuple
+         */
+        iterator begin() const {
+            return iterator(*this, 0);
+        }
+
+        /**
+         * @return a one-past-the-end tuple iterator
+         */
+        iterator end() const {
+            return iterator(*this, rows.size());
+        }
+
+        /**
+         * @return a (begin, end) pair of tuple iterators that return tuples in order sorted by column, row.
+         */
+        range<permuted_iterator> sorted_range() const {
+            shared_ptr<vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>> permutation = std::make_shared<vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>>(get_sort_permutation());
+            return range<permuted_iterator>{permuted_iterator(*this, permutation, 0), permuted_iterator(*this, permutation, rows.size())};
         }
 
     protected:
@@ -49,15 +146,23 @@ namespace quadmat {
         vector<IT, typename CONFIG::template ALLOC<IT>> cols;
         vector<T, typename CONFIG::template ALLOC<T>> values;
 
-        template <typename Compare>
-        vector<std::size_t> sort_permutation(
-                const std::vector<T>& vec,
-                Compare& compare)
+        /**
+         * Get a permutation that would order the triples by column then row.
+         */
+        vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>> get_sort_permutation() const
         {
-            std::vector<std::size_t> p(vec.size());
+            std::vector<std::size_t, typename CONFIG::template TEMP_ALLOC<size_t>> p(rows.size());
             std::iota(p.begin(), p.end(), 0);
             std::sort(p.begin(), p.end(),
-                      [&](std::size_t i, std::size_t j){ return compare(vec[i], vec[j]); });
+                      [&](size_t i, size_t j) {
+                if (cols[i] != cols[j]) {
+                    return cols[i] < cols[j];
+                } else if (rows[i] != rows[j]) {
+                    return rows[i] < rows[j];
+                } else {
+                    return i < j;
+                }
+            });
             return p;
         }
     };
