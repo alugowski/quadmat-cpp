@@ -11,7 +11,7 @@ message(STATUS "Using Threading Building Blocks (TBB) version: " ${TBB_VERSION} 
 set(CMAKE_CXX_STANDARD 17)
 
 include_directories(include)
-add_library(quadmat include/quadmat.h include/matrix.h include/inner_block.h include/block.h include/config.h include/triples_block.h include/util.h include/generators.h include/generators/identity_tuples_generator.h include/generators/base_tuple_iterators.h include/generators/tuple_generators.h include/csc_block.h include/generators/simple_tuple_generator.h include/dcsc_block.h include/types.h)
+add_library(quadmat include/quadmat.h include/matrix.h include/inner_block.h include/block.h include/config.h include/triples_block.h include/util.h include/generators.h include/generators/identity_tuples_generator.h include/generators/base_tuple_iterators.h include/generators/tuple_generators.h include/csc_block.h include/generators/simple_tuple_generator.h include/dcsc_block.h include/types.h include/dcsc_accumulator.h include/block_container.h include/spa.h)
 set_target_properties(quadmat PROPERTIES LINKER_LANGUAGE CXX)
 
 #target_link_libraries(quadmat tbb)

@@ -11,6 +11,7 @@ namespace quadmat {
 
 #include "util.h"
 #include "dcsc_block.h"
+#include "dcsc_accumulator.h"
 #include "matrix.h"
 #include "generators.h"
 #include "generators/tuple_generators.h"

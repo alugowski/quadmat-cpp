@@ -114,3 +114,37 @@ TEST_CASE("Vector Sorting and Permutation") {
         REQUIRE_THAT(vec, Equals(vec_shuffled));
     }
 }
+
+TEST_CASE("Slicing") {
+    int size = GENERATE(0, 7, 10);
+    SECTION(std::string("vector size ") + std::to_string(size)) {
+
+        vector<int> original(size);
+        std::iota(original.begin(), original.end(), 0);
+
+        int num_parts = GENERATE(1, 2, 3, 20);
+        SECTION(std::to_string(num_parts) + " splits") {
+            auto ranges = quadmat::slice_ranges(num_parts, begin(original), end(original));
+
+            // make sure we have the right number of ranges
+            int expected_num_parts = (size == 0 ? 1 : std::min(size, num_parts));
+            REQUIRE(ranges.size() == expected_num_parts);
+
+            // make sure sizes are right
+            int total_range_size = std::accumulate(begin(ranges), end(ranges), 0,
+                                                   [](int sum, auto r) { return sum + r.size(); });
+            REQUIRE(total_range_size == size);
+
+            // make sure the ranges cover the right elements
+            vector<int> copy;
+            for (auto range : ranges) {
+                REQUIRE(range.size() >= size / (expected_num_parts + 1));
+                REQUIRE(range.size() * (expected_num_parts - 1) <= size);
+
+                copy.insert(copy.end(), begin(range), end(range));
+            }
+
+            REQUIRE_THAT(copy, Equals(original));
+        }
+    }
+}

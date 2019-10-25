@@ -14,12 +14,11 @@ using std::shared_ptr;
 
 namespace quadmat {
 
-    template<typename T>
-    class block_container {
-    public:
-        int num_children() const;
-    };
-
+    /**
+     * Block for inner nodes of the quad tree.
+     *
+     * @tparam T value type of leaf nodes
+     */
     template<typename T>
     class inner_block : public block<T> {
     public:

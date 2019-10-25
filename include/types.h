@@ -22,6 +22,10 @@ namespace quadmat {
 
         ITER begin() const { return _begin; }
         ITER end() const { return _end; }
+
+        auto size() const {
+            return _end - _begin;
+        }
     };
 
     /**

@@ -14,7 +14,14 @@ using std::vector;
 #include "generators/base_tuple_iterators.h"
 #include "util.h"
 
+
 namespace quadmat {
+
+    /**
+     * Forward declaration of a type that is allowed to construct dcsc_blocks
+     */
+    template <typename T, typename IT, typename CONFIG = basic_settings>
+    class dcsc_accumulator;
 
     /**
      * A Doubly-Compressed Sparse Columns block.
@@ -30,7 +37,8 @@ namespace quadmat {
     class dcsc_block: public block<T> {
     public:
         explicit dcsc_block(const shape_t shape) : block<T>(shape) {}
-
+    public:
+        friend class dcsc_accumulator<T, IT, CONFIG>;
         /**
          * Create a DCSC block from (column, row)-ordered tuples. Single pass.
          *
@@ -129,6 +137,20 @@ namespace quadmat {
             };
         }
 
+        auto rows_begin(const blocknnn_t col_idx) const {
+            return row_ind.begin() + col_ptr[col_idx];
+        }
+        auto rows_end(const blocknnn_t col_idx) const {
+            return row_ind.begin() + col_ptr[col_idx+1];
+        }
+
+        auto values_begin(const blocknnn_t col_idx) const {
+            return values.begin() + col_ptr[col_idx];
+        }
+        auto values_end(const blocknnn_t col_idx) const {
+            return values.begin() + col_ptr[col_idx+1];
+        }
+
         block_size_info size() override {
             return block_size_info{
                     col_ind.size() * sizeof(IT) + col_ptr.size() * sizeof(blocknnn_t) + row_ind.size() * sizeof(IT),
@@ -137,6 +159,7 @@ namespace quadmat {
                     values.size()
             };
         }
+
     protected:
         vector<IT, typename CONFIG::template ALLOC<IT>> col_ind;
         vector<blocknnn_t, typename CONFIG::template ALLOC<blocknnn_t>> col_ptr;

@@ -202,6 +202,38 @@ namespace quadmat {
         auto rng = std::mt19937(seed);
         std::shuffle(begin, end, rng);
     }
+
+    /**
+     * Slice up a range into n_parts ranges.
+     *
+     * @tparam ITER random access iterator
+     * @param n_parts
+     * @param start
+     * @param end
+     * @return
+     */
+    template <typename ITER>
+    auto slice_ranges(int n_parts, const ITER& start, const ITER& end) {
+        auto n_elements = end - start;
+        int size_per_slice = std::ceil((double)n_elements / n_parts);
+
+        vector<range_t<ITER>> ret;
+
+        auto cur_start = start;
+        while (end - cur_start > size_per_slice) {
+            ret.emplace_back(range_t<ITER>{
+                ._begin = cur_start,
+                ._end = cur_start + size_per_slice
+            });
+            cur_start += size_per_slice;
+        }
+        ret.emplace_back(range_t<ITER>{
+            ._begin = cur_start,
+            ._end = end
+        });
+
+        return ret;
+    }
 }
 
 #endif //QUADMAT_UTIL_H
