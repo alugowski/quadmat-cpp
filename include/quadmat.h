@@ -15,5 +15,6 @@ namespace quadmat {
 #include "matrix.h"
 #include "generators.h"
 #include "generators/tuple_generators.h"
+#include "io/simple_matrix_market.h"
 
 #endif //QUADMAT_QUADMAT_H

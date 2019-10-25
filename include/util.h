@@ -222,14 +222,14 @@ namespace quadmat {
         auto cur_start = start;
         while (end - cur_start > size_per_slice) {
             ret.emplace_back(range_t<ITER>{
-                ._begin = cur_start,
-                ._end = cur_start + size_per_slice
+                cur_start,
+                cur_start + size_per_slice
             });
             cur_start += size_per_slice;
         }
         ret.emplace_back(range_t<ITER>{
-            ._begin = cur_start,
-            ._end = end
+            cur_start,
+            end
         });
 
         return ret;

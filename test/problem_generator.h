@@ -15,13 +15,14 @@ struct canned_matrix {
     std::string description;
     quadmat::shape_t shape;
     vector<std::tuple<IT, IT, T>> sorted_tuples;
+    std::string filename; // only set if available
 };
 
 template <typename T, typename IT>
-vector<canned_matrix<T, IT>> get_canned_matrices() {
+vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
     vector<canned_matrix<T, IT>> ret;
 
-    {
+    if (!only_with_files) {
         ret.emplace_back(canned_matrix<T, IT>{
                 .description = "empty matrix",
                 .shape = {10, 10},
@@ -29,12 +30,22 @@ vector<canned_matrix<T, IT>> get_canned_matrices() {
         });
     }
 
-    {
+    if (!only_with_files) {
         quadmat::identity_tuples_generator<T, IT> gen(10);
         ret.emplace_back(canned_matrix<T, IT>{
-                .description = "n=10 identity matrix",
+                .description = "10x10 identity matrix",
                 .shape = {10, 10},
                 .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end())
+        });
+    }
+
+    {
+        quadmat::full_tuples_generator<T, IT> gen({4, 4}, 1);
+        ret.emplace_back(canned_matrix<T, IT>{
+                .description = "4x4 full matrix",
+                .shape = {4, 4},
+                .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
+                .filename = "small_full_symmetric_pattern.mtx"
         });
     }
 
@@ -42,11 +53,12 @@ vector<canned_matrix<T, IT>> get_canned_matrices() {
         ret.emplace_back(canned_matrix<T, IT>{
                 .description = "Kepner-Gilbert graph",
                 .shape = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
-                .sorted_tuples = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph()
+                .sorted_tuples = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                .filename = "kepner_gilbert_graph.mtx"
         });
     }
 
-    {
+    if (!only_with_files) {
         // same as above but with extra sparsity
         quadmat::shape_t orig_shape = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape();
 

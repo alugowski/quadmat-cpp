@@ -5,6 +5,8 @@
 #define QUADMAT_TYPES_H
 
 #include <numeric>
+#include <utility>
+#include <string>
 
 namespace quadmat {
 
@@ -17,6 +19,8 @@ namespace quadmat {
      */
     template <typename ITER>
     struct range_t {
+        range_t(ITER begin, ITER end) : _begin(begin), _end(end) {}
+
         ITER _begin;
         ITER _end;
 
@@ -32,11 +36,17 @@ namespace quadmat {
      * Utility type that describes the shape of a block or matrix. I.e. number of rows and columns.
      */
     struct shape_t {
-        const index_t nrows = 0;
-        const index_t ncols = 0;
+        index_t nrows = 0;
+        index_t ncols = 0;
 
         bool operator==(const shape_t& rhs) const {
             return nrows == rhs.nrows && ncols == rhs.ncols;
+        }
+
+        shape_t& operator=(const shape_t& rhs) {
+            nrows = rhs.nrows;
+            ncols = rhs.ncols;
+            return *this;
         }
     };
 
@@ -60,6 +70,46 @@ namespace quadmat {
                     overhead_bytes + rhs.overhead_bytes,
                     nnn + rhs.nnn};
         }
+    };
+
+    /**
+     * A simple implementation of a class that consumes errors by immediately throwing them.
+     *
+     * @tparam EX type of exception to throw. Must have a constructor that accepts a std::string
+     */
+    template <typename EX = std::invalid_argument>
+    struct throwing_error_consumer {
+        explicit throwing_error_consumer(std::string prefix = std::string()) : prefix(std::move(prefix)) {}
+
+        void set_prefix(const std::string &new_prefix) {
+            prefix = new_prefix;
+        }
+
+        void error(const std::string& e) {
+            throw EX(prefix + e);
+        }
+
+        template <typename... ARGS>
+        void error(const char* arg, ARGS... args) {
+            error(std::string(arg), args...);
+        }
+
+        template <typename... ARGS>
+        void error(const std::string& arg, ARGS... args) {
+            error(arg, args...);
+        }
+
+        template <typename ARG, typename... ARGS>
+        void error(const ARG arg, ARGS... args) {
+            error(std::to_string(arg), args...);
+        }
+
+        template <typename... ARGS>
+        void warning(ARGS... args) {
+            error(args...);
+        }
+
+        std::string prefix;
     };
 }
 

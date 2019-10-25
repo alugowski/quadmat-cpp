@@ -4,6 +4,7 @@
 #ifndef QUADMAT_TUPLE_GENERATORS_H
 #define QUADMAT_TUPLE_GENERATORS_H
 
+#include "full_tuples_generator.h"
 #include "identity_tuples_generator.h"
 #include "simple_tuple_generator.h"
 
