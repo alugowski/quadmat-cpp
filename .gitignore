@@ -29,3 +29,8 @@ cmake-build-debug/
 *.exe
 *.out
 *.app
+
+# Python
+gen/env/
+*.pyc
+
