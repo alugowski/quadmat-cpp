@@ -26,7 +26,7 @@ namespace quadmat {
         /**
          * Input Iterator type that this generator emits
          */
-        class iterator: public base_tuple_input_iterator<iterator> {
+        class iterator: public base_indexed_random_access_iterator<IT, iterator> {
         public:
             using iterator_category = std::input_iterator_tag;
             using value_type = tuple<IT, IT, T>;
@@ -34,29 +34,14 @@ namespace quadmat {
             using reference = value_type&;
             using difference_type = std::ptrdiff_t;
 
-            iterator(IT row, IT col_offset) : row(row), col_offset(col_offset) {}
-            iterator(const iterator& rhs) : row(rhs.row), col_offset(rhs.col_offset) {}
+            iterator(IT row, IT col_offset) : base_indexed_random_access_iterator<IT, iterator>(row), col_offset(col_offset) {}
+            iterator(const iterator& rhs) : base_indexed_random_access_iterator<IT, iterator>(rhs.i), col_offset(rhs.col_offset) {}
 
             value_type operator*() {
-                return tuple<IT, IT, T>(row, row+col_offset, 1);
-            }
-
-            iterator& operator++() {
-                ++row;
-                return *this;
-            }
-
-            iterator& operator+=(int n) {
-                row += n;
-                return *this;
-            }
-
-            bool operator==(iterator rhs) const {
-                return row == rhs.row;
+                return tuple<IT, IT, T>(this->i, this->i + col_offset, 1);
             }
 
         private:
-            IT row;
             const IT col_offset;
         };
 

@@ -32,13 +32,14 @@ TEST_CASE("Triples Block") {
             REQUIRE(block.get_shape() == problem.shape);
 
             SECTION("get tuples back") {
-                vector<std::tuple<int, int, double>> v(block.begin(), block.end());
+                auto original_tuples = block.original_tuples();
+                vector<std::tuple<int, int, double>> v(original_tuples.begin(), original_tuples.end());
                 REQUIRE_THAT(v, Equals(shuffled_tuples));
             }
 
             SECTION("sorted tuples") {
-                auto sorted_range = block.sorted_range();
-                vector<std::tuple<int, int, double>> v(sorted_range.begin(), sorted_range.end());
+                auto sorted_tuples = block.sorted_tuples();
+                vector<std::tuple<int, int, double>> v(sorted_tuples.begin(), sorted_tuples.end());
                 REQUIRE_THAT(v, Equals(problem.sorted_tuples));
             }
         }

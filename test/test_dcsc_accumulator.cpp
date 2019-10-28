@@ -88,7 +88,7 @@ TEST_CASE("DCSC Accumulator") {
                     tb.add(tuple_range);
 
                     auto part = std::make_shared<quadmat::dcsc_block<double, int>>(
-                            problem.shape, tuple_range.size(), tb.sorted_range());
+                            problem.shape, tuple_range.size(), tb.sorted_tuples());
 
                     accum.add(part);
                 }

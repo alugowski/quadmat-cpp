@@ -17,9 +17,9 @@ namespace quadmat {
      *
      * @tparam T
      * @tparam IT
-     * @tparam CONFIG default value in forward declaration in dcsc_block.h
+     * @tparam CONFIG
      */
-    template <typename T, typename IT, typename CONFIG>
+    template <typename T, typename IT, typename CONFIG = basic_settings>
     class dcsc_accumulator : public block<T>, public block_container<T, CONFIG> {
     public:
         explicit dcsc_accumulator(const shape_t &shape) : block<T>(shape) {}
@@ -67,42 +67,32 @@ namespace quadmat {
          */
         template <class SPA, class ADDER>
         std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse_SpA(const ADDER& adder) {
-            auto ret = std::make_shared<dcsc_block<T, IT, CONFIG>>(this->shape);
+            auto factory = dcsc_block_factory<T, IT, CONFIG>(this->shape);
 
             std::priority_queue<column_ref, std::vector<column_ref, typename CONFIG::template TEMP_ALLOC<column_ref>>, std::greater<column_ref>> column_queue;
-            SPA spa(this->shape.nrows, adder);
 
             // add all the first columns to the queue
             for (auto child : children) {
-                if (child->row_ind.size() == 0) {
-                    // empty child, ignore it
-                    continue;
+                column_ref cr{
+                    .current = child->columns_begin(),
+                    .end = child->columns_end()
+                };
+
+                if (cr.current != cr.end) {
+                    column_queue.push(cr);
                 }
-                column_queue.push(column_ref{
-                    .block = child.get(),
-                    .col = child->col_ind[0],
-                    .last_col = child->col_ind[child->col_ind.size()-1],
-                    .col_idx = 0
-                });
             }
 
-            // go column by column and collapse each column at a time
-            IT prev_col = -1;
+            // iterate columns from all blocks. For each column i sum every column i from all blocks
+            SPA spa(this->shape.nrows, adder);
             while (!column_queue.empty()) {
                 column_ref cr = column_queue.top();
                 column_queue.pop();
 
-                // copy the SpA into the result block
-                if (cr.col != prev_col && prev_col != -1) {
-                    dump_spa(prev_col, spa, ret.get());
-                    spa.clear();
-                }
-                prev_col = cr.col;
-
                 // fill the SpA with this column
-                auto rows_iter = cr.block->rows_begin(cr.col_idx);
-                auto rows_end = cr.block->rows_end(cr.col_idx);
-                auto values_iter = cr.block->values_begin(cr.col_idx);
+                auto rows_iter = cr.current.rows_begin();
+                auto rows_end = cr.current.rows_end();
+                auto values_iter = cr.current.values_begin();
 
                 while (rows_iter != rows_end) {
                     spa.update(*rows_iter, *values_iter);
@@ -111,50 +101,37 @@ namespace quadmat {
                     ++values_iter;
                 }
 
+                // if this is the last block with this column then dump the spa into the result
+                if (column_queue.empty() || column_queue.top().col() != cr.col()) {
+                    factory.add_spa(cr.col(), spa);
+                    spa.clear();
+                }
+
+                ++cr.current;
                 // if this block has more columns then put it back in the queue
-                if (cr.col < cr.last_col) {
-                    cr.col_idx++;
-                    cr.col = cr.block->col_ind[cr.col_idx];
+                if (cr.current != cr.end) {
                     column_queue.push(cr);
                 }
             }
 
-            // cap off the columns by repeating the last value
-            if (prev_col != -1) {
-                dump_spa(prev_col, spa, ret.get());
-
-                ret->col_ind.emplace_back(ret->col_ind[ret->col_ind.size() - 1]);
-                ret->col_ptr.emplace_back(ret->row_ind.size());
-            }
-
-            return ret;
-        }
-
-        /**
-         * Dump the contents of a SpA into the end of a dcsc_block.
-         */
-        template <class SPA>
-        void dump_spa(IT col, SPA& spa, dcsc_block<T, IT, CONFIG>* ret) {
-            ret->col_ind.emplace_back(col);
-            ret->col_ptr.emplace_back(ret->row_ind.size());
-
-            for (auto it : spa) {
-                ret->row_ind.emplace_back(it.first);
-                ret->values.emplace_back(it.second);
-            }
+            return factory.finish();
         }
 
         /**
          * Member of priority queue used to iterate over children's columns.
          */
         struct column_ref {
-            dcsc_block<T, IT, CONFIG>* block;
-            IT col;
-            IT last_col;
-            blocknnn_t col_idx;
+            using iter_type = typename dcsc_block<T, IT, CONFIG>::column_iterator;
+
+            iter_type current;
+            iter_type end;
+
+            IT col() const {
+                return *current;
+            }
 
             bool operator>(const column_ref& rhs) const {
-                return col > rhs.col;
+                return *current > *rhs.current;
             }
         };
     protected:
