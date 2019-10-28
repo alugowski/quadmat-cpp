@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from scipy.sparse import csc_matrix
 import scipy.io
 import os.path
 
@@ -14,7 +15,8 @@ def generate_kg_square():
     Generate a matrix that is the square of the Kepner-Gilbert graph
     """
     m = scipy.io.mmread(os.path.join(test_matrix_dir, "kepner_gilbert_graph.mtx"))
-    res = m * m
+    m = csc_matrix(m)
+    res = m.dot(m)
     scipy.io.mmwrite(os.path.join(test_matrix_dir, "kepner_gilbert_graph_squared.mtx"), res, field='integer')
 
 

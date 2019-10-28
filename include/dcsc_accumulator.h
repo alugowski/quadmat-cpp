@@ -49,12 +49,12 @@ namespace quadmat {
         /**
          * Add up all the blocks in this accumulator.
          *
-         * @tparam ADDER how to sum duplicate elements
+         * @tparam SR semiring, though only the add() is used to sum duplicate elements
          * @return a new DCSC Block that is the sum of all the blocks in this accumulator.
          */
-        template <class ADDER = std::plus<T>>
-        std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse(const ADDER& adder = ADDER()) {
-            return collapse_SpA<sparse_spa<T, IT, ADDER, CONFIG>, ADDER>(adder);
+        template <class SR = plus_times_semiring<T>>
+        std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse(const SR& semiring = SR()) {
+            return collapse_SpA<sparse_spa<IT, SR, CONFIG>, SR>(semiring);
         }
 
     protected:
@@ -62,11 +62,11 @@ namespace quadmat {
          * Add up all the blocks in this accumulator using a sparse accumulator (SpA).
          *
          * @tparam SPA type of sparse accumulator to use
-         * @tparam ADDER how to sum duplicate elements
+         * @tparam SR semiring, though only the add() is used to sum duplicate elements
          * @return a new DCSC Block that is the sum of all the blocks in this accumulator.
          */
-        template <class SPA, class ADDER>
-        std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse_SpA(const ADDER& adder) {
+        template <class SPA, class SR>
+        std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse_SpA(const SR& semiring) {
             auto factory = dcsc_block_factory<T, IT, CONFIG>(this->shape);
 
             std::priority_queue<column_ref, std::vector<column_ref, typename CONFIG::template TEMP_ALLOC<column_ref>>, std::greater<column_ref>> column_queue;
@@ -84,7 +84,7 @@ namespace quadmat {
             }
 
             // For each column i sum every column i from all children
-            SPA spa(this->shape.nrows, adder);
+            SPA spa(this->shape.nrows, semiring);
             while (!column_queue.empty()) {
                 column_ref cr = column_queue.top();
                 column_queue.pop();

@@ -73,6 +73,26 @@ namespace quadmat {
     };
 
     /**
+     * Standard mathematical plus-times semiring. The additive and multiplicative identities are never needed.
+     *
+     * @tparam T numerical type, such as double
+     */
+    template <typename T>
+    struct plus_times_semiring {
+        typedef T map_type_l;
+        typedef T map_type_r;
+        typedef T reduce_type;
+
+        reduce_type multiply(const map_type_l& lhs, const map_type_r& rhs) const {
+            return lhs * rhs;
+        }
+
+        reduce_type add(const reduce_type& lhs, const reduce_type& rhs) const {
+            return lhs + rhs;
+        }
+    };
+
+    /**
      * A simple implementation of a class that consumes errors by immediately throwing them.
      *
      * @tparam EX type of exception to throw. Must have a constructor that accepts a std::string

@@ -188,6 +188,24 @@ namespace quadmat {
             return column_iterator(this, col_ind.size());
         }
 
+        /**
+         * @return a {begin, end} pair of iterators to iterate over all the columns of this block.
+         */
+        range_t<column_iterator> columns() const {
+            return range_t<column_iterator>{column_iterator(this, 0), column_iterator(this, col_ind.size())};
+        }
+
+        /**
+         * Get an iterator to a particular column.
+         *
+         * @param col column to look up
+         * @return column iterator pointing at col, or columns_end()
+         */
+        column_iterator column(IT col) const {
+            auto pos = std::lower_bound(begin(col_ind), end(col_ind), col);
+            return column_iterator(this, pos - begin(col_ind));
+        }
+
         block_size_info size() override {
             return block_size_info{
                     col_ind.size() * sizeof(IT) + col_ptr.size() * sizeof(blocknnn_t) + row_ind.size() * sizeof(IT),

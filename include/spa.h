@@ -13,16 +13,18 @@ namespace quadmat {
     /**
      * A sparse SpA is essentially a map.
      */
-    template <typename T, typename IT, typename ADDER = std::plus<T>, typename CONFIG=basic_settings>
+    template <typename IT, typename SR, typename CONFIG=basic_settings>
     class sparse_spa {
     public:
         /**
          * @param size ignored here. Used in dense SpA.
          */
-        explicit sparse_spa(size_t size, const ADDER& adder = ADDER()) : adder(adder) {}
+        explicit sparse_spa(size_t size, const SR& semiring = SR()) : semiring(semiring) {}
 
         /**
-         * Update the SpA with an entire row.
+         * Update the SpA with (row, value) pairs, i.e. an entire column.
+         *
+         * Useful for addition.
          *
          * @tparam ROW_ITER
          * @tparam VAL_ITER
@@ -31,9 +33,31 @@ namespace quadmat {
          * @param values_iter input iterator. Start of the values range. End assumed to be values_iter + (rows_end - rows_iter)
          */
         template <typename ROW_ITER, typename VAL_ITER>
-        void update(ROW_ITER rows_iter, ROW_ITER rows_end, VAL_ITER values_iter) {
+        void update(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter) {
             while (rows_iter != rows_end) {
                 update(*rows_iter, *values_iter);
+
+                ++rows_iter;
+                ++values_iter;
+            }
+        }
+
+        /**
+         * Update the SpA with (row, value) pairs, i.e. an entire column, where each value must be multiplied by a
+         * single value first.
+         *
+         * Useful for multiplication.
+         *
+         * @tparam ROW_ITER
+         * @tparam VAL_ITER
+         * @param rows_iter input iterator. start of the rows range
+         * @param rows_end input iterator. end of the rows range
+         * @param values_iter input iterator over SR::map_type_l. Start of the values range, with end assumed to be values_iter + (rows_end - rows_iter)
+         */
+        template <typename ROW_ITER, typename VAL_ITER>
+        void update(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter, const typename SR::map_type_r& b_val) {
+            while (rows_iter != rows_end) {
+                update(*rows_iter, semiring.multiply(*values_iter, b_val));
 
                 ++rows_iter;
                 ++values_iter;
@@ -74,19 +98,19 @@ namespace quadmat {
          * @param key
          * @param value
          */
-        void update(const IT key, const T& value) {
+        void update(const IT key, const typename SR::reduce_type& value) {
             auto it = m.find(key);
             if (it == m.end()) {
                 // insert
                 m.emplace_hint(it, key, value);
             } else {
                 // replace
-                it->second = adder(it->second, value);
+                it->second = semiring.add(it->second, value);
             }
         }
 
-        const ADDER& adder;
-        std::map<IT, T, std::less<IT>, typename CONFIG::template TEMP_ALLOC<std::pair<const IT, T>>> m;
+        const SR& semiring;
+        std::map<IT, typename SR::reduce_type, std::less<IT>, typename CONFIG::template TEMP_ALLOC<std::pair<const IT, typename SR::reduce_type>>> m;
     };
 }
 

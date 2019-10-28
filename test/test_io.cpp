@@ -15,9 +15,6 @@ using Catch::Matchers::UnorderedEquals;
 static const auto canned_matrices = get_canned_matrices<double, int>(true); // NOLINT(cert-err58-cpp)
 static const int num_canned_matrices = canned_matrices.size();
 
-// TODO: figure out how to set the working directory through CMake
-static const std::string test_cwd = "/Users/enos/projects/quadmat/test/";
-
 TEST_CASE("Matrix Market Loader") {
     SECTION("simple loader") {
         // get the problem
