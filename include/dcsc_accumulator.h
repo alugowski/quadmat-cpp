@@ -71,7 +71,7 @@ namespace quadmat {
 
             std::priority_queue<column_ref, std::vector<column_ref, typename CONFIG::template TEMP_ALLOC<column_ref>>, std::greater<column_ref>> column_queue;
 
-            // add all the first columns to the queue
+            // add the first columns of each child to the queue
             for (auto child : children) {
                 column_ref cr{
                     .current = child->columns_begin(),
@@ -83,23 +83,14 @@ namespace quadmat {
                 }
             }
 
-            // iterate columns from all blocks. For each column i sum every column i from all blocks
+            // For each column i sum every column i from all children
             SPA spa(this->shape.nrows, adder);
             while (!column_queue.empty()) {
                 column_ref cr = column_queue.top();
                 column_queue.pop();
 
                 // fill the SpA with this column
-                auto rows_iter = cr.current.rows_begin();
-                auto rows_end = cr.current.rows_end();
-                auto values_iter = cr.current.values_begin();
-
-                while (rows_iter != rows_end) {
-                    spa.update(*rows_iter, *values_iter);
-
-                    ++rows_iter;
-                    ++values_iter;
-                }
+                spa.update(cr.current.rows_begin(), cr.current.rows_end(), cr.current.values_begin());
 
                 // if this is the last block with this column then dump the spa into the result
                 if (column_queue.empty() || column_queue.top().col() != cr.col()) {
@@ -131,7 +122,7 @@ namespace quadmat {
             }
 
             bool operator>(const column_ref& rhs) const {
-                return *current > *rhs.current;
+                return col() > rhs.col();
             }
         };
     protected:

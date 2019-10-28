@@ -229,10 +229,7 @@ namespace quadmat {
             ret->col_ind.emplace_back(col);
             ret->col_ptr.emplace_back(ret->row_ind.size());
 
-            for (auto it : spa) {
-                ret->row_ind.emplace_back(it.first);
-                ret->values.emplace_back(it.second);
-            }
+            spa.emplace_back_result(ret->row_ind, ret->values);
         }
 
         /**

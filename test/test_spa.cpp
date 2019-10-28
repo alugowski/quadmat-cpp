@@ -5,47 +5,57 @@
 
 #include "quadmat.h"
 
+using Catch::Matchers::Equals;
+
 TEST_CASE("SpA") {
     SECTION("sparse basic") {
         int size = 10;
-        quadmat::identity_tuples_generator<double, int> gen(size);
+
+        vector<int> original_rows(size);
+        std::iota(original_rows.begin(), original_rows.end(), 0);
+
+        vector<double> original_values(size, 1.0);
+        vector<double> doubled_values(size, 2.0);
 
         quadmat::sparse_spa<double, int> spa(size);
 
         // fill spa
-        for (auto tup : gen) {
-            spa.update(std::get<0>(tup), std::get<2>(tup));
-        }
+        spa.update(begin(original_rows), end(original_rows), begin(original_values));
 
         // test contents
-        int count = 0;
-        for (auto pair : spa) {
-            REQUIRE(pair.first == count);
-            REQUIRE(pair.second == 1);
-            count++;
+        {
+            vector<int> test_rows;
+            vector<double> test_values;
+            spa.emplace_back_result(test_rows, test_values);
+
+            REQUIRE_THAT(test_rows, Equals(original_rows));
+            REQUIRE_THAT(test_values, Equals(original_values));
         }
-        REQUIRE(count == size);
 
         // add again
-        for (auto tup : gen) {
-            spa.update(std::get<0>(tup), std::get<2>(tup));
-        }
+        spa.update(begin(original_rows), end(original_rows), begin(original_values));
 
-        // test contents
-        count = 0;
-        for (auto pair : spa) {
-            REQUIRE(pair.first == count);
-            REQUIRE(pair.second == 2);
-            count++;
+        // test contents, values should be doubled
+        {
+            vector<int> test_rows;
+            vector<double> test_values;
+            spa.emplace_back_result(test_rows, test_values);
+
+            REQUIRE_THAT(test_rows, Equals(original_rows));
+            REQUIRE_THAT(test_values, Equals(doubled_values));
         }
-        REQUIRE(count == size);
 
         // clear
         spa.clear();
-        count = 0;
-        for (auto pair : spa) {
-            count++;
+
+        // test contents, should be empty
+        {
+            vector<int> test_rows;
+            vector<double> test_values;
+            spa.emplace_back_result(test_rows, test_values);
+
+            REQUIRE(test_rows.empty());
+            REQUIRE(test_values.empty());
         }
-        REQUIRE(count == 0);
     }
 }
