@@ -8,25 +8,25 @@
 
 using std::shared_ptr;
 
-#include "block.h"
+#include "tree_nodes.h"
 #include "config.h"
 
 namespace quadmat {
 
-    template <typename T>
+    template <typename T, typename CONFIG = basic_settings>
     class matrix {
     public:
-        matrix(const shape_t shape): shape(shape) {}
+        explicit matrix(const shape_t shape): shape(shape) {}
 
-        shape_t get_shape() const { return shape; }
+        [[nodiscard]] shape_t get_shape() const { return shape; }
 
-        shared_ptr<block<T> > get_root() const { return shared_ptr<block<T> >(root); }
-        void set_root(shared_ptr<block<T> > new_root) { root = new_root; }
+        tree_node_t<T, CONFIG> get_root() const { return shared_ptr<block<T> >(root); }
+        void set_root(tree_node_t<T, CONFIG> new_root) { root = new_root; }
 
     protected:
         shape_t shape;
 
-        shared_ptr<block<T> > root;
+        tree_node_t<T, CONFIG> root;
     };
 }
 

@@ -11,9 +11,11 @@ namespace quadmat {
 
 #include "util.h"
 
-#include "dcsc_block.h"
+#include "tree_nodes.h"
+#include "tree_visitors.h"
 #include "dcsc_accumulator.h"
 #include "matrix.h"
+
 
 #include "generators.h"
 #include "generators/tuple_generators.h"

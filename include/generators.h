@@ -4,6 +4,7 @@
 #ifndef QUADMAT_GENERATORS_H
 #define QUADMAT_GENERATORS_H
 
+#include <generators/identity_tuples_generator.h>
 #include "matrix.h"
 #include "triples_block.h"
 
@@ -17,14 +18,11 @@ namespace quadmat {
      */
     template <typename T, typename CONFIG = basic_settings>
     matrix<T> identity(index_t n) {
-        shared_ptr<triples_block<T, index_t>> accum = std::make_shared<triples_block<T, index_t, CONFIG> >(shape_t{n, n});
+        identity_tuples_generator<T, index_t> gen(n);
+        quadmat::tree_node_t<T, CONFIG> node = quadmat::create_leaf<T, CONFIG>({n, n}, n, gen);
 
-        for (index_t i = 0; i < n; i++) {
-            accum->add(i, i, 1);
-        }
-
-        matrix<T> ret({n, n});
-        ret.set_root(accum);
+        matrix<T, CONFIG> ret({n, n});
+        ret.set_root(node);
         return ret;
     }
 

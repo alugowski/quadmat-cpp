@@ -43,11 +43,17 @@ namespace quadmat {
             return nrows == rhs.nrows && ncols == rhs.ncols;
         }
 
-        shape_t& operator=(const shape_t& rhs) {
-            nrows = rhs.nrows;
-            ncols = rhs.ncols;
-            return *this;
-        }
+        shape_t& operator=(const shape_t& rhs) = default;
+    };
+
+    /**
+     * Utility type to bundle passing offsets around. This is used often as leaf blocks' indices are relative
+     * to those blocks' position in the quad tree. To get the actual row, column index we must know what part
+     * of the matrix each block represents.
+     */
+    struct offset_t {
+        index_t row_offset = 0;
+        index_t col_offset = 0;
     };
 
     /**
