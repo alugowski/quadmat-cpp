@@ -10,8 +10,8 @@
 using std::array;
 using std::shared_ptr;
 
-#include "block_container.h"
-#include "tree_nodes.h"
+#include "quadmat/quadtree/block_container.h"
+#include "quadmat/quadtree/tree_nodes.h"
 
 namespace quadmat {
 

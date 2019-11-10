@@ -12,7 +12,7 @@
 #include <tuple>
 #include <vector>
 
-#include "types.h"
+#include "quadmat/util/types.h"
 
 using std::size_t;
 using std::string;

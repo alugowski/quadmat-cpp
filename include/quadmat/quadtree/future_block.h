@@ -4,7 +4,7 @@
 #ifndef QUADMAT_FUTURE_BLOCK_H
 #define QUADMAT_FUTURE_BLOCK_H
 
-#include "block.h"
+#include "quadmat/quadtree/block.h"
 
 namespace quadmat {
 

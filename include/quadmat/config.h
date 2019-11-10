@@ -9,7 +9,7 @@
 
 #include <tbb/tbb_allocator.h>
 
-#include "types.h"
+#include "quadmat/util/types.h"
 
 namespace quadmat {
 

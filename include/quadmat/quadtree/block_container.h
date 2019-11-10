@@ -4,7 +4,7 @@
 #ifndef QUADMAT_BLOCK_CONTAINER_H
 #define QUADMAT_BLOCK_CONTAINER_H
 
-#include "tree_nodes.h"
+#include "quadmat/quadtree/tree_nodes.h"
 
 namespace quadmat {
 

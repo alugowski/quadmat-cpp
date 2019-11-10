@@ -7,7 +7,7 @@
 #include <tuple>
 #include <vector>
 
-#include "quadmat/types.h"
+#include "quadmat/util/types.h"
 
 using std::tuple;
 using std::vector;

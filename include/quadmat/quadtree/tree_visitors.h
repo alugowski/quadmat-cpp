@@ -4,8 +4,8 @@
 #ifndef QUADMAT_TREE_VISITORS_H
 #define QUADMAT_TREE_VISITORS_H
 
-#include "tree_nodes.h"
-#include "inner_block.h"
+#include "quadmat/quadtree/tree_nodes.h"
+#include "quadmat/quadtree/inner_block.h"
 
 namespace quadmat {
 

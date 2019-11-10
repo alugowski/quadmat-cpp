@@ -10,7 +10,7 @@ namespace quadmat {
 }
 
 // utilities
-#include "quadmat/util.h"
+#include "quadmat/util/util.h"
 
 // quad tree
 #include "quadmat/quadtree/tree_nodes.h"

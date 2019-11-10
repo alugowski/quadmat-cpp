@@ -4,7 +4,7 @@
 #ifndef QUADMAT_SINGLE_BLOCK_CONTAINER_H
 #define QUADMAT_SINGLE_BLOCK_CONTAINER_H
 
-#include "block_container.h"
+#include "quadmat/quadtree/block_container.h"
 
 namespace quadmat {
 

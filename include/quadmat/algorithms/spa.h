@@ -6,7 +6,7 @@
 
 #include <map>
 
-#include "config.h"
+#include "quadmat/config.h"
 
 namespace quadmat {
 

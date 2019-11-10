@@ -8,7 +8,7 @@
 
 #include "quadmat/quadtree/block_container.h"
 #include "quadmat/quadtree/leaf_blocks/dcsc_block.h"
-#include "quadmat/spa.h"
+#include "quadmat/algorithms/spa.h"
 
 namespace quadmat {
 

@@ -8,7 +8,7 @@
 #include <variant>
 
 #include "quadmat/quadtree/leaf_blocks/dcsc_block.h"
-#include "future_block.h"
+#include "quadmat/quadtree/future_block.h"
 
 namespace quadmat {
 

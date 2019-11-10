@@ -11,7 +11,7 @@
 using std::vector;
 
 #include "quadmat/quadtree/block.h"
-#include "quadmat/util.h"
+#include "quadmat/util/util.h"
 
 namespace quadmat {
 

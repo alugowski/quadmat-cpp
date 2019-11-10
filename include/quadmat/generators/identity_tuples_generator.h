@@ -7,7 +7,7 @@
 #include <iterator>
 #include <tuple>
 
-#include "quadmat/base_iterators.h"
+#include "quadmat/util/base_iterators.h"
 
 using std::tuple;
 
