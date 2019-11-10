@@ -28,7 +28,7 @@ namespace quadmat {
      * @param col_ordered_gen tuple generator
      * @return
      */
-    template <typename T, typename CONFIG = basic_settings, typename GEN>
+    template <typename T, typename CONFIG = default_config, typename GEN>
     tree_node_t<T, CONFIG> create_leaf(const shape_t& shape, const blocknnn_t nnn, const GEN col_ordered_gen) {
         leaf_index_type desired_index_type = get_leaf_index_type(shape);
 
@@ -128,7 +128,7 @@ namespace quadmat {
      *
      * The callback needs to be thread safe.
      */
-    template <typename T, typename CALLBACK, typename CONFIG = basic_settings>
+    template <typename T, typename CALLBACK, typename CONFIG = default_config>
     leaf_visitor_t<T, CALLBACK, CONFIG> leaf_visitor(CALLBACK& callback) {
         return leaf_visitor_t<T, CALLBACK, CONFIG>(callback);
     }
@@ -150,7 +150,7 @@ std::visit(leaf_visitor<double>([](offset_t offsets, auto leaf) {
         }), node);
      * \endcode
      */
-    template <typename T, typename CALLBACK, typename CONFIG = basic_settings>
+    template <typename T, typename CALLBACK, typename CONFIG = default_config>
     leaf_visitor_t<T, const CALLBACK, CONFIG> leaf_visitor(const CALLBACK& callback) {
         return leaf_visitor_t<T, const CALLBACK, CONFIG>(callback);
     }

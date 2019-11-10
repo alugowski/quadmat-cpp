@@ -32,7 +32,7 @@ TEST_CASE("Multiply") {
             auto a = std::make_shared<quadmat::dcsc_block<double, int>>(problem.a_shape, problem.a_sorted_tuples.size(), problem.a_sorted_tuples);
             auto b = std::make_shared<quadmat::dcsc_block<double, int>>(problem.b_shape, problem.b_sorted_tuples.size(), problem.b_sorted_tuples);
 
-            auto result = quadmat::multiply_pair<int, int, quadmat::plus_times_semiring<double>, quadmat::sparse_spa<int, quadmat::plus_times_semiring<double>, quadmat::basic_settings>, quadmat::basic_settings>(a, b);
+            auto result = quadmat::multiply_pair<int, int, quadmat::plus_times_semiring<double>, quadmat::sparse_spa<int, quadmat::plus_times_semiring<double>, quadmat::default_config>, quadmat::default_config>(a, b);
 
             REQUIRE(result->get_shape() == problem.result_shape);
 
@@ -60,7 +60,7 @@ TEST_CASE("Multiply") {
         auto sbc = std::make_shared<quadmat::single_block_container<double>>(quadmat::shape_t{2*size, 2*size});
 
         // multiply
-        quadmat::spawn_multiply_job<quadmat::plus_times_semiring<double>> job(quadmat::pair_set_t<double, double, quadmat::basic_settings>{inner_node, inner_node}, sbc, 0, {0, 0}, quadmat::shape_t{2*size, 2*size});
+        quadmat::spawn_multiply_job<quadmat::plus_times_semiring<double>> job(quadmat::pair_set_t<double, double, quadmat::default_config>{inner_node, inner_node}, sbc, 0, {0, 0}, quadmat::shape_t{2 * size, 2 * size});
         job.run();
 
         // test the result

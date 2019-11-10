@@ -159,7 +159,7 @@ namespace quadmat {
      * @tparam SR semiring to use
      * @tparam CONFIG configuration
      */
-    template <class SR, typename CONFIG = basic_settings>
+    template <class SR, typename CONFIG = default_config>
     class spawn_multiply_job {
     public:
         using LT = typename SR::map_type_l;

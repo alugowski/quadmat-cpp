@@ -13,7 +13,7 @@ namespace quadmat {
     /**
      * A sparse SpA is essentially a map.
      */
-    template <typename IT, typename SR, typename CONFIG=basic_settings>
+    template <typename IT, typename SR, typename CONFIG=default_config>
     class sparse_spa {
     public:
         /**

@@ -19,7 +19,7 @@ namespace quadmat {
      * @tparam IT
      * @tparam CONFIG
      */
-    template <typename T, typename IT, typename CONFIG = basic_settings>
+    template <typename T, typename IT, typename CONFIG = default_config>
     class dcsc_accumulator : public block<T> {
     public:
         explicit dcsc_accumulator(const shape_t &shape) : block<T>(shape) {}

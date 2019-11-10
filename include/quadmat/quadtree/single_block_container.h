@@ -14,7 +14,7 @@ namespace quadmat {
      * @tparam T
      * @tparam CONFIG
      */
-    template<typename T, typename CONFIG = basic_settings>
+    template<typename T, typename CONFIG = default_config>
     class single_block_container : public block_container<T, CONFIG> {
     public:
         explicit single_block_container(const shape_t& shape) : shape(shape) {}

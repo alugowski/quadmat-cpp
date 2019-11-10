@@ -13,7 +13,7 @@
 namespace quadmat {
 
     // forward declaration
-    template<typename T, typename CONFIG = basic_settings>
+    template<typename T, typename CONFIG = default_config>
     class inner_block;
 
     /**
@@ -69,7 +69,7 @@ namespace quadmat {
     /**
      * All tree nodes
      */
-    template <typename T, typename CONFIG = basic_settings>
+    template <typename T, typename CONFIG = default_config>
     using tree_node_t = std::variant<
             std::monostate, // empty
             std::shared_ptr<future_block<T, CONFIG>>, // a block that will be computed later

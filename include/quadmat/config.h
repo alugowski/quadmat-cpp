@@ -13,7 +13,7 @@
 
 namespace quadmat {
 
-    class basic_settings {
+    class basic_config {
     public:
         /**
          * leaf blocks larger than this should be split
@@ -33,7 +33,7 @@ namespace quadmat {
         using TEMP_ALLOC = std::allocator<T>;
     };
 
-    class tbb_settings : public basic_settings {
+    class tbb_config : public basic_config {
         /**
          * default allocator, and for long-lived objects
          */
@@ -46,6 +46,11 @@ namespace quadmat {
         template <typename T>
         using TEMP_ALLOC = tbb::tbb_allocator<T>;
     };
+
+    /**
+     * This is the config that will be used by default unless another is explicitly specified as a template parameter.
+     */
+    using default_config = basic_config;
 }
 
 #endif //QUADMAT_CONFIG_H

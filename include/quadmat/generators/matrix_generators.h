@@ -16,7 +16,7 @@ namespace quadmat {
      * @tparam T matrix value type
      * @param n number of rows and columns
      */
-    template <typename T, typename CONFIG = basic_settings>
+    template <typename T, typename CONFIG = default_config>
     matrix<T> identity(index_t n) {
         identity_tuples_generator<T, index_t> gen(n);
         quadmat::tree_node_t<T, CONFIG> node = quadmat::create_leaf<T, CONFIG>({n, n}, n, gen);

@@ -20,7 +20,7 @@ namespace quadmat {
     /**
      * Forward declaration of a type that is allowed to construct dcsc_blocks
      */
-    template <typename T, typename IT, typename CONFIG = basic_settings>
+    template <typename T, typename IT, typename CONFIG = default_config>
     class dcsc_block_factory;
 
     /**
@@ -33,7 +33,7 @@ namespace quadmat {
      * @tparam IT index type
      * @tparam CONFIG storage configuration options
      */
-    template<typename T, typename IT, typename CONFIG = basic_settings>
+    template<typename T, typename IT, typename CONFIG = default_config>
     class dcsc_block: public block<T> {
     public:
         explicit dcsc_block(const shape_t shape) : block<T>(shape) {}

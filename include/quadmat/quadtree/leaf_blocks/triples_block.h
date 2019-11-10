@@ -20,7 +20,7 @@ namespace quadmat {
      *
      * @tparam T value type, eg. double
      */
-    template<typename T, typename IT, typename CONFIG = basic_settings>
+    template<typename T, typename IT, typename CONFIG = default_config>
     class triples_block: public block<T> {
     public:
         explicit triples_block(const shape_t shape) : block<T>(shape) {}

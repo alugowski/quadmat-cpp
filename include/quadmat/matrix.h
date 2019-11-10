@@ -13,7 +13,7 @@ using std::shared_ptr;
 
 namespace quadmat {
 
-    template <typename T, typename CONFIG = basic_settings>
+    template <typename T, typename CONFIG = default_config>
     class matrix {
     public:
         explicit matrix(const shape_t shape): shape(shape) {}
