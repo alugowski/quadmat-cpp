@@ -5,26 +5,8 @@
 
 #include "quadmat.h"
 
-using quadmat::index_t;
+#include "testing_utilities.h"
 
-template <typename T>
-class tuple_dumper {
-public:
-    explicit tuple_dumper(vector<std::tuple<index_t, index_t, double>> &tuples) : tuples(tuples) {}
-
-    template <typename LEAF>
-    void operator()(quadmat::offset_t offsets, const std::shared_ptr<LEAF>& leaf) const {
-        for (auto tup : leaf->tuples()) {
-            tuples.emplace_back(
-                    std::get<0>(tup) + offsets.row_offset,
-                    std::get<1>(tup) + offsets.col_offset,
-                    std::get<2>(tup)
-            );
-        }
-    }
-protected:
-    vector<std::tuple<index_t, index_t, double>>& tuples;
-};
 
 TEST_CASE("Tree Nodes") {
     SECTION("index size determination") {
@@ -85,8 +67,8 @@ TEST_CASE("Tree Nodes") {
 
         // use the same block in both NW and SE positions because they are identical in an identity matrix
         quadmat::tree_node_t<double> node = quadmat::create_leaf<double>({size, size}, size, gen);
-        inner->set_child(quadmat::inner_block<double>::NW, node);
-        inner->set_child(quadmat::inner_block<double>::SE, node);
+        inner->set_child(quadmat::NW, node);
+        inner->set_child(quadmat::SE, node);
 
         // dump the tuples
         vector<std::tuple<index_t, index_t, double>> tuples;

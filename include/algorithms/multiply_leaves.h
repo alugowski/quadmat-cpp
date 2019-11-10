@@ -1,8 +1,8 @@
 // Copyright (C) 2019 Adam Lugowski
 // All Rights Reserved.
 
-#ifndef QUADMAT_MULTIPLY_H
-#define QUADMAT_MULTIPLY_H
+#ifndef QUADMAT_MULTIPLY_LEAVES_H
+#define QUADMAT_MULTIPLY_LEAVES_H
 
 #include <cassert>
 
@@ -62,4 +62,4 @@ namespace quadmat {
     }
 }
 
-#endif //QUADMAT_MULTIPLY_H
+#endif //QUADMAT_MULTIPLY_LEAVES_H

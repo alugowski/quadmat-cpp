@@ -20,7 +20,7 @@ namespace quadmat {
      * @tparam CONFIG
      */
     template <typename T, typename IT, typename CONFIG = basic_settings>
-    class dcsc_accumulator : public block<T>, public block_container<T, CONFIG> {
+    class dcsc_accumulator : public block<T> {
     public:
         explicit dcsc_accumulator(const shape_t &shape) : block<T>(shape) {}
 
@@ -29,13 +29,7 @@ namespace quadmat {
          * @param new_block
          */
         void add(std::shared_ptr<dcsc_block<T, IT, CONFIG>> new_block) {
-            assert(new_block->get_shape() == this->shape);
-
             children.push_back(new_block);
-        }
-
-        [[nodiscard]] size_t num_children() const override {
-            return children.size();
         }
 
         auto begin() const {

@@ -148,3 +148,17 @@ TEST_CASE("Slicing") {
         }
     }
 }
+
+TEST_CASE("Numeric Utilities") {
+    SECTION("clear_all_except_msb") {
+        REQUIRE(quadmat::clear_all_except_msb(0) == 0);
+        REQUIRE(quadmat::clear_all_except_msb(1) == 1);
+        REQUIRE(quadmat::clear_all_except_msb(2) == 2);
+        REQUIRE(quadmat::clear_all_except_msb(3) == 2);
+        REQUIRE(quadmat::clear_all_except_msb(0b100111000) == 0b100000000);
+        REQUIRE(quadmat::clear_all_except_msb(0b111111000) == 0b100000000);
+        REQUIRE(quadmat::clear_all_except_msb(0b111111111) == 0b100000000);
+        REQUIRE(quadmat::clear_all_except_msb((1ul << 63ul) - 1ul) == (1ul << 62ul));
+        REQUIRE(quadmat::clear_all_except_msb(std::numeric_limits<quadmat::index_t>::max()) == (1ul << 62ul));
+    }
+}

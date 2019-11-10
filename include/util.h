@@ -234,6 +234,23 @@ namespace quadmat {
 
         return ret;
     }
+
+    /**
+     * Get the number with only the most significant bit set.
+     */
+    inline index_t clear_all_except_msb(index_t n) {
+        if (n == 0) {
+            return 0;
+        }
+
+        unsigned msb = 0;
+        while (n != 1) {
+            n = n / 2;
+            msb++;
+        }
+
+        return (1ul << msb);
+    }
 }
 
 #endif //QUADMAT_UTIL_H

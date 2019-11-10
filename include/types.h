@@ -7,6 +7,7 @@
 #include <numeric>
 #include <utility>
 #include <string>
+#include <exception>
 
 namespace quadmat {
 
@@ -136,6 +137,24 @@ namespace quadmat {
         }
 
         std::string prefix;
+    };
+
+    /**
+     * Temporary exception that is thrown when control reaches areas that are not yet implemented.
+     *
+     * All instances of this will be removed in the future.
+     */
+    class not_implemented : public std::invalid_argument {
+    public:
+        explicit not_implemented(const std::string &s) : invalid_argument(std::string("not implemented: ") + s) {}
+    };
+
+    /**
+     * Thrown when incompatible nodes are pair-computed. For example, two leaf blocks with different sized indices.
+     */
+    class node_type_mismatch : public std::invalid_argument {
+    public:
+        node_type_mismatch() : invalid_argument("node mismatch") {}
     };
 }
 

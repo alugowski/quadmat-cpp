@@ -141,8 +141,8 @@ namespace quadmat {
             using reference = value_type&;
             using difference_type = std::ptrdiff_t;
 
-            column_iterator(const dcsc_block<T, IT, CONFIG>* block, blocknnn_t i) : base_indexed_random_access_iterator<IT, column_iterator>(i), block(block) {}
-            column_iterator(const column_iterator& rhs) : base_indexed_random_access_iterator<IT, column_iterator>(rhs.i), block(rhs.block) {}
+            column_iterator(const dcsc_block<T, IT, CONFIG>* block, blocknnn_t i) : base_indexed_random_access_iterator<blocknnn_t, column_iterator>(i), block(block) {}
+            column_iterator(const column_iterator& rhs) : base_indexed_random_access_iterator<blocknnn_t, column_iterator>(rhs.i), block(rhs.block) {}
 
             value_type operator*() const {
                 return block->col_ind[this->i];

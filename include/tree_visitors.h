@@ -12,8 +12,8 @@ namespace quadmat {
     /**
      * Helper class for writing std::variant visitors using lambdas.
      */
-    template<class... Ts> struct lambda_visitor : Ts... { using Ts::operator()...; };
-    template<class... Ts> lambda_visitor(Ts...) -> lambda_visitor<Ts...>;
+    template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+    template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
     /**
      * Create a leaf block of the desired shape and tuples.
@@ -32,11 +32,11 @@ namespace quadmat {
     tree_node_t<T, CONFIG> create_leaf(const shape_t& shape, const blocknnn_t nnn, const GEN col_ordered_gen) {
         leaf_index_type desired_index_type = get_leaf_index_type(shape);
 
-        return std::visit(lambda_visitor{
-            [&](int64_t dim) -> tree_node_t<T, CONFIG> { return leaf64_t<T, CONFIG>(std::make_shared<dcsc_block<T, int64_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
-            [&](int32_t dim) -> tree_node_t<T, CONFIG> { return leaf32_t<T, CONFIG>(std::make_shared<dcsc_block<T, int32_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
-            [&](int16_t dim) -> tree_node_t<T, CONFIG> { return leaf16_t<T, CONFIG>(std::make_shared<dcsc_block<T, int16_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
-            }, desired_index_type);
+        return std::visit(overloaded{
+                [&](int64_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(std::make_shared<dcsc_block<T, int64_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
+                [&](int32_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(std::make_shared<dcsc_block<T, int32_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
+                [&](int16_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(std::make_shared<dcsc_block<T, int16_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
+        }, desired_index_type);
     }
 
     /**
@@ -63,10 +63,16 @@ namespace quadmat {
         }
 
         /**
+         * Reached a future block. Nothing to do.
+         */
+        void operator()(const std::shared_ptr<future_block<T, CONFIG>>& fb) {
+        }
+
+        /**
          * Reached an inner block. Recurse on children and modify offsets accordingly.
          */
-        void operator()(std::shared_ptr<inner_block<T, CONFIG>> inner) {
-            for (auto pos : inner_block<T, CONFIG>::all_positions) {
+        void operator()(const std::shared_ptr<inner_block<T, CONFIG>> inner) {
+            for (auto pos : all_inner_positions) {
                 auto child = inner->get_child(pos);
 
                 if (std::holds_alternative<std::monostate>(child)) {
@@ -81,21 +87,21 @@ namespace quadmat {
         /**
          * Reached a leaf block category. Visit this variant to get the actual leaf.
          */
-        void operator()(const leaf64_t<T, CONFIG>& leaf) {
+        void operator()(const leaf_category_t<T, int64_t, CONFIG>& leaf) {
             std::visit(*this, leaf);
         }
 
         /**
          * Reached a leaf block category. Visit this variant to get the actual leaf.
          */
-        void operator()(const leaf32_t<T, CONFIG>& leaf) {
+        void operator()(const leaf_category_t<T, int32_t, CONFIG>& leaf) {
             std::visit(*this, leaf);
         }
 
         /**
          * Reached a leaf block category. Visit this variant to get the actual leaf.
          */
-        void operator()(const leaf16_t<T, CONFIG>& leaf) {
+        void operator()(const leaf_category_t<T, int16_t, CONFIG>& leaf) {
             std::visit(*this, leaf);
         }
 

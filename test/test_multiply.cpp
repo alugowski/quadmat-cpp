@@ -6,8 +6,10 @@
 #include "quadmat.h"
 
 #include "problem_generator.h"
+#include "testing_utilities.h"
 
 using Catch::Matchers::Equals;
+using Catch::Matchers::UnorderedEquals;
 
 std::ostream& operator<<(std::ostream& os, const std::tuple<int, int, double>& tup ) {
     os << "<" << std::get<0>(tup) << ", " << std::get<1>(tup) << ", " << std::get<2>(tup) << ">";
@@ -40,6 +42,36 @@ TEST_CASE("Multiply") {
                 vector <std::tuple<int, int, double>> v(sorted_range.begin(), sorted_range.end());
                 REQUIRE_THAT(v, Equals(problem.result_sorted_tuples));
             }
+        }
+    }
+    SECTION("Simple tree") {
+        int size = 8;
+        quadmat::identity_tuples_generator<double, int> gen(size);
+
+        auto inner = std::make_shared<quadmat::inner_block<double>>(quadmat::shape_t{2*size, 2*size}, 8);
+        auto inner_node = quadmat::tree_node_t<double>(inner);
+
+        // use the same block in both NW and SE positions because they are identical in an identity matrix
+        quadmat::tree_node_t<double> node = quadmat::create_leaf<double>({size, size}, size, gen);
+        inner->set_child(quadmat::NW, node);
+        inner->set_child(quadmat::SE, node);
+
+        // create the result
+        auto sbc = std::make_shared<quadmat::single_block_container<double>>(quadmat::shape_t{2*size, 2*size});
+
+        // multiply
+        quadmat::spawn_multiply_job<quadmat::plus_times_semiring<double>> job(quadmat::pair_set_t<double, double, quadmat::basic_settings>{inner_node, inner_node}, sbc, 0, {0, 0}, quadmat::shape_t{2*size, 2*size});
+        job.run();
+
+        // test the result
+        {
+            vector<std::tuple<index_t, index_t, double>> v;
+            std::visit(quadmat::leaf_visitor<double>(tuple_dumper<double>(v)), inner_node);
+
+            // construct the expected result
+            quadmat::identity_tuples_generator<double, index_t> gen2(2*size);
+            vector<std::tuple<index_t, index_t, double>> result_sorted_tuples(gen2.begin(), gen2.end());
+            REQUIRE_THAT(v, UnorderedEquals(result_sorted_tuples));
         }
     }
 }
