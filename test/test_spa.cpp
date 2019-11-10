@@ -3,7 +3,7 @@
 
 #include "catch.hpp"
 
-#include "quadmat.h"
+#include "quadmat/quadmat.h"
 
 using Catch::Matchers::Equals;
 

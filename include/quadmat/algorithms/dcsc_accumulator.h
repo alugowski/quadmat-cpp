@@ -6,9 +6,9 @@
 
 #include <queue>
 
-#include "block_container.h"
-#include "dcsc_block.h"
-#include "spa.h"
+#include "quadmat/quadtree/block_container.h"
+#include "quadmat/quadtree/leaf_blocks/dcsc_block.h"
+#include "quadmat/spa.h"
 
 namespace quadmat {
 

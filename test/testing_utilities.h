@@ -4,7 +4,7 @@
 #ifndef QUADMAT_TESTING_UTILITIES_H
 #define QUADMAT_TESTING_UTILITIES_H
 
-#include "quadmat.h"
+#include "quadmat/quadmat.h"
 
 using quadmat::index_t;
 

@@ -8,7 +8,7 @@
 
 using std::shared_ptr;
 
-#include "tree_nodes.h"
+#include "quadmat/quadtree/tree_nodes.h"
 #include "config.h"
 
 namespace quadmat {

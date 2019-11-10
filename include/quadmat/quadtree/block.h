@@ -4,7 +4,7 @@
 #ifndef QUADMAT_BLOCK_H
 #define QUADMAT_BLOCK_H
 
-#include "config.h"
+#include "quadmat/config.h"
 
 namespace quadmat {
 

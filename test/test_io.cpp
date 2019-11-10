@@ -3,7 +3,7 @@
 
 #include "catch.hpp"
 
-#include "quadmat.h"
+#include "quadmat/quadmat.h"
 
 #include "problem_generator.h"
 

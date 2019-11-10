@@ -5,8 +5,8 @@
 #define QUADMAT_MULTIPLY_TREES_H
 
 #include <type_traits>
-#include "tree_visitors.h"
-#include "algorithms/multiply_leaves.h"
+#include "quadmat/quadtree/tree_visitors.h"
+#include "multiply_leaves.h"
 
 namespace quadmat {
 

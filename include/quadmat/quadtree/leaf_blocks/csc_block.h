@@ -10,8 +10,8 @@
 
 using std::vector;
 
-#include "block.h"
-#include "util.h"
+#include "quadmat/quadtree/block.h"
+#include "quadmat/util.h"
 
 namespace quadmat {
 

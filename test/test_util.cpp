@@ -2,11 +2,10 @@
 // All Rights Reserved.
 
 #include <functional>
-#include <generators/tuple_generators.h>
 
 #include "catch.hpp"
 
-#include "quadmat.h"
+#include "quadmat/quadmat.h"
 
 using Catch::Matchers::Equals;
 

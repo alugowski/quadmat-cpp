@@ -1,8 +1,8 @@
 // Copyright (C) 2019 Adam Lugowski
 // All Rights Reserved.
 
-#ifndef QUADMAT_BASE_TUPLE_ITERATORS_H
-#define QUADMAT_BASE_TUPLE_ITERATORS_H
+#ifndef QUADMAT_BASE_ITERATORS_H
+#define QUADMAT_BASE_ITERATORS_H
 
 #include <iterator>
 
@@ -170,4 +170,4 @@ namespace quadmat {
     };
 
 }
-#endif //QUADMAT_BASE_TUPLE_ITERATORS_H
+#endif //QUADMAT_BASE_ITERATORS_H

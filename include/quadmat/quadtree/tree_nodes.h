@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <variant>
 
-#include "dcsc_block.h"
+#include "quadmat/quadtree/leaf_blocks/dcsc_block.h"
 #include "future_block.h"
 
 namespace quadmat {

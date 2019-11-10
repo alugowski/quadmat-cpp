@@ -8,8 +8,8 @@
 #include <sstream>
 #include <vector>
 
-#include "generators/base_tuple_iterators.h"
-#include "types.h"
+#include "quadmat/base_iterators.h"
+#include "quadmat/types.h"
 
 namespace quadmat {
 

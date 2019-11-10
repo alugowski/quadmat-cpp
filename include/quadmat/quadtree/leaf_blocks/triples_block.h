@@ -10,8 +10,8 @@
 
 using std::vector;
 
-#include "block.h"
-#include "generators/base_tuple_iterators.h"
+#include "quadmat/quadtree/block.h"
+#include "quadmat/base_iterators.h"
 
 namespace quadmat {
 

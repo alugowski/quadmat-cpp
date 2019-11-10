@@ -1,12 +1,12 @@
 // Copyright (C) 2019 Adam Lugowski
 // All Rights Reserved.
 
-#ifndef QUADMAT_GENERATORS_H
-#define QUADMAT_GENERATORS_H
+#ifndef QUADMAT_MATRIX_GENERATORS_H
+#define QUADMAT_MATRIX_GENERATORS_H
 
-#include <generators/identity_tuples_generator.h>
-#include "matrix.h"
-#include "triples_block.h"
+#include <quadmat/generators/identity_tuples_generator.h>
+#include "quadmat/matrix.h"
+#include "quadmat/quadtree/leaf_blocks/triples_block.h"
 
 namespace quadmat {
 
@@ -28,4 +28,4 @@ namespace quadmat {
 
 }
 
-#endif //QUADMAT_GENERATORS_H
+#endif //QUADMAT_MATRIX_GENERATORS_H

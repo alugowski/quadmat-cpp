@@ -6,7 +6,7 @@
 
 #include <vector>
 
-#include "util.h"
+#include "quadmat/util.h"
 
 using quadmat::index_t;
 
