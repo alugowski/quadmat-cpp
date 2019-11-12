@@ -35,7 +35,11 @@ namespace quadmat {
     template<typename T, typename CONFIG>
     class inner_block : public block<T>, public block_container<T, CONFIG> {
     public:
-        explicit inner_block(const shape_t& shape, const index_t discriminating_bit) : block<T>(shape), discriminating_bit(discriminating_bit) {}
+        explicit inner_block(const shape_t& shape, const index_t discriminating_bit) : block<T>(shape), discriminating_bit(discriminating_bit) {
+            if (discriminating_bit == 0 || clear_all_except_msb(discriminating_bit) != discriminating_bit) {
+                throw std::invalid_argument("invalid discriminating bit");
+            }
+        }
 
         [[nodiscard]] size_t num_children() const override {
             return all_inner_positions.size();
@@ -56,29 +60,31 @@ namespace quadmat {
             return ret;
         }
 
-        [[nodiscard]] offset_t get_offsets(inner_position child_pos, const offset_t& my_offset) const {
+        [[nodiscard]] offset_t get_offsets(int child_pos, const offset_t& my_offset) const override {
             switch (child_pos) {
                 case NW:
                     return my_offset;
                 case NE:
                     return {
                             .row_offset = my_offset.row_offset,
-                            .col_offset = my_offset.col_offset << 1 | discriminating_bit // NOLINT(hicpp-signed-bitwise)
+                            .col_offset = my_offset.col_offset | discriminating_bit // NOLINT(hicpp-signed-bitwise)
                     };
                 case SW:
                     return {
-                            .row_offset = my_offset.row_offset << 1 | discriminating_bit, // NOLINT(hicpp-signed-bitwise),
+                            .row_offset = my_offset.row_offset | discriminating_bit, // NOLINT(hicpp-signed-bitwise),
                             .col_offset = my_offset.col_offset
                     };
                 case SE:
                     return {
-                            .row_offset = my_offset.row_offset << 1 | discriminating_bit, // NOLINT(hicpp-signed-bitwise),
-                            .col_offset = my_offset.col_offset << 1 | discriminating_bit // NOLINT(hicpp-signed-bitwise)
+                            .row_offset = my_offset.row_offset | discriminating_bit, // NOLINT(hicpp-signed-bitwise),
+                            .col_offset = my_offset.col_offset | discriminating_bit // NOLINT(hicpp-signed-bitwise)
                     };
+                default:
+                    throw std::invalid_argument("invalid child position");
             }
         }
 
-        [[nodiscard]] shape_t get_child_shape(inner_position child_pos, const shape_t& my_shape) const {
+        [[nodiscard]] shape_t get_child_shape(int child_pos, const shape_t& my_shape) const override {
             shape_t nw_shape = {
                     .nrows = std::min(discriminating_bit, my_shape.nrows),
                     .ncols = std::min(discriminating_bit, my_shape.ncols)
@@ -102,6 +108,8 @@ namespace quadmat {
                             .nrows = my_shape.nrows - nw_shape.nrows,
                             .ncols = my_shape.ncols - nw_shape.ncols
                     };
+                default:
+                    throw std::invalid_argument("invalid child position");
             }
         }
 

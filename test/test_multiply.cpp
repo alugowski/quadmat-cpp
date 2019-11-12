@@ -1,6 +1,8 @@
 // Copyright (C) 2019 Adam Lugowski
 // All Rights Reserved.
 
+#define CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
+
 #include "catch.hpp"
 
 #include "quadmat/quadmat.h"
@@ -11,7 +13,7 @@
 using Catch::Matchers::Equals;
 using Catch::Matchers::UnorderedEquals;
 
-std::ostream& operator<<(std::ostream& os, const std::tuple<int, int, double>& tup ) {
+std::ostream& operator<<(std::ostream& os, const std::tuple<index_t, index_t, double>& tup ) {
     os << "<" << std::get<0>(tup) << ", " << std::get<1>(tup) << ", " << std::get<2>(tup) << ">";
     return os;
 }
@@ -19,34 +21,79 @@ std::ostream& operator<<(std::ostream& os, const std::tuple<int, int, double>& t
 /**
  * Canned matrices
  */
-static const auto multiply_problems =  get_multiply_problems<double, int>(); // NOLINT(cert-err58-cpp)
+static const auto multiply_problems =  get_multiply_problems<double, index_t>(); // NOLINT(cert-err58-cpp)
 static const int num_multiply_problems = multiply_problems.size();
 
 TEST_CASE("Multiply") {
     SECTION("DCSC Block Pair") {
         // get the problem
         int problem_num = GENERATE(range(0, num_multiply_problems));
-        const multiply_problem<double, int>& problem = multiply_problems[problem_num];
+        const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
         SECTION(problem.description) {
-            auto a = std::make_shared<quadmat::dcsc_block<double, int>>(problem.a_shape, problem.a_sorted_tuples.size(), problem.a_sorted_tuples);
-            auto b = std::make_shared<quadmat::dcsc_block<double, int>>(problem.b_shape, problem.b_sorted_tuples.size(), problem.b_sorted_tuples);
+            auto a = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.a_shape, problem.a_sorted_tuples.size(), problem.a_sorted_tuples);
+            auto b = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.b_shape, problem.b_sorted_tuples.size(), problem.b_sorted_tuples);
 
-            auto result = quadmat::multiply_pair<int, int, quadmat::plus_times_semiring<double>, quadmat::sparse_spa<int, quadmat::plus_times_semiring<double>, quadmat::default_config>, quadmat::default_config>(a, b);
+            auto result = quadmat::multiply_pair<index_t, index_t, quadmat::plus_times_semiring<double>, quadmat::sparse_spa<index_t, quadmat::plus_times_semiring<double>, quadmat::default_config>, quadmat::default_config>(a, b);
 
             REQUIRE(result->get_shape() == problem.result_shape);
 
             // test the result tuples
             {
                 auto sorted_range = result->tuples();
-                vector <std::tuple<int, int, double>> v(sorted_range.begin(), sorted_range.end());
+                vector <std::tuple<index_t, index_t, double>> v(sorted_range.begin(), sorted_range.end());
                 REQUIRE_THAT(v, Equals(problem.result_sorted_tuples));
+            }
+        }
+    }
+    SECTION("Single inner_block * Single inner_block") {
+        // get the problem
+        int problem_num = GENERATE(range(0, num_multiply_problems));
+        const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
+
+        SECTION(problem.description) {
+            auto a = matrix_from_tuples<double>(problem.a_shape, problem.a_sorted_tuples.size(), problem.a_sorted_tuples);
+            auto b = matrix_from_tuples<double>(problem.b_shape, problem.b_sorted_tuples.size(), problem.b_sorted_tuples);
+
+            // make sure the matrices look how this test assumes they do
+            REQUIRE(is_leaf(a.get_root_bc()->get_child(0)));
+            REQUIRE(is_leaf(b.get_root_bc()->get_child(0)));
+
+            // subdivide
+            subdivide_leaf(a.get_root_bc(), 0, a.get_shape());
+            subdivide_leaf(b.get_root_bc(), 0, b.get_shape());
+
+            // test subdivision
+            {
+                auto result_tuples = dump_tuples(a);
+                REQUIRE_THAT(result_tuples, UnorderedEquals(problem.a_sorted_tuples));
+            }
+            {
+                auto result_tuples = dump_tuples(b);
+                REQUIRE_THAT(result_tuples, UnorderedEquals(problem.b_sorted_tuples));
+            }
+
+            // multiply
+            auto result = multiply<plus_times_semiring<double>>(a, b);
+
+            REQUIRE(result.get_shape() == problem.result_shape);
+
+            // test the result tuples
+            {
+//                if (problem_num == 4) {
+//                    std::cout << std::endl << problem.description << std::endl;
+//                    std::cout << result << std::endl;
+//                    std::cout << make_pair(problem.result_shape, problem.result_sorted_tuples) << std::endl;
+//                }
+
+                auto result_tuples = dump_tuples(result);
+                REQUIRE_THAT(result_tuples, UnorderedEquals(problem.result_sorted_tuples));
             }
         }
     }
     SECTION("Simple tree") {
         int size = 8;
-        quadmat::identity_tuples_generator<double, int> gen(size);
+        quadmat::identity_tuples_generator<double, index_t> gen(size);
 
         auto inner = std::make_shared<quadmat::inner_block<double>>(quadmat::shape_t{2*size, 2*size}, 8);
         auto inner_node = quadmat::tree_node_t<double>(inner);
@@ -65,8 +112,7 @@ TEST_CASE("Multiply") {
 
         // test the result
         {
-            vector<std::tuple<index_t, index_t, double>> v;
-            std::visit(quadmat::leaf_visitor<double>(tuple_dumper<double>(v)), inner_node);
+            vector<std::tuple<index_t, index_t, double>> v = dump_tuples(inner_node);
 
             // construct the expected result
             quadmat::identity_tuples_generator<double, index_t> gen2(2*size);

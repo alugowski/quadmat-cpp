@@ -23,7 +23,7 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = default_config>
     class triples_block: public block<T> {
     public:
-        explicit triples_block(const shape_t shape) : block<T>(shape) {}
+        explicit triples_block(const shape_t shape = {0, 0}) : block<T>(shape) {}
 
         block_size_info size() override {
             return block_size_info{
@@ -133,6 +133,13 @@ namespace quadmat {
         range_t<permuted_iterator> sorted_tuples() const {
             shared_ptr<vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>> permutation = std::make_shared<vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>>(get_sort_permutation());
             return range_t<permuted_iterator>{permuted_iterator(this, permutation, 0), permuted_iterator(this, permutation, rows.size())};
+        }
+
+        /**
+         * @return number of tuples in this block.
+         */
+        [[nodiscard]] blocknnn_t nnn() const {
+            return values.size();
         }
 
     protected:

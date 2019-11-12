@@ -44,9 +44,7 @@ TEST_CASE("Tree Nodes") {
         }), node);
 
         // dump the tuples
-        vector<std::tuple<index_t, index_t, double>> tuples;
-
-        std::visit(quadmat::leaf_visitor<double>(tuple_dumper<double>(tuples)), node);
+        vector<std::tuple<index_t, index_t, double>> tuples = dump_tuples(node);
 
         int count = 0;
         for (auto tup : tuples) {
@@ -71,9 +69,7 @@ TEST_CASE("Tree Nodes") {
         inner->set_child(quadmat::SE, node);
 
         // dump the tuples
-        vector<std::tuple<index_t, index_t, double>> tuples;
-
-        std::visit(quadmat::leaf_visitor<double>(tuple_dumper<double>(tuples)), inner_node);
+        vector<std::tuple<index_t, index_t, double>> tuples = dump_tuples(inner_node);
 
         int count = 0;
         for (auto tup : tuples) {

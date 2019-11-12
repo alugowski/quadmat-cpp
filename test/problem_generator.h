@@ -30,7 +30,7 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
 
     if (!only_with_files) {
         ret.emplace_back(canned_matrix<T, IT>{
-                .description = "empty matrix",
+                .description = "10x10 empty matrix",
                 .shape = {10, 10},
                 .sorted_tuples = quadmat::simple_tuples_generator<T, IT>::EmptyMatrix()
         });
@@ -153,6 +153,20 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
                 .a_sorted_tuples = vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
                 .b_shape = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
                 .b_sorted_tuples = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                .result_shape = {7, 7},
+                .result_sorted_tuples = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+        });
+    }
+
+    {
+        quadmat::identity_tuples_generator<T, IT> identity(7);
+
+        ret.emplace_back(multiply_problem<T, IT>{
+                .description = "Kepner-Gilbert graph * identity",
+                .a_shape = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
+                .a_sorted_tuples = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                .b_shape = {7, 7},
+                .b_sorted_tuples = vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
                 .result_shape = {7, 7},
                 .result_sorted_tuples = quadmat::simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
         });

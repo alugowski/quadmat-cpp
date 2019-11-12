@@ -40,6 +40,14 @@ namespace quadmat {
             return ret;
         }
 
+        [[nodiscard]] offset_t get_offsets(int child_pos, const offset_t &my_offset) const override {
+            return my_offset;
+        }
+
+        [[nodiscard]] shape_t get_child_shape(int child_pos, const shape_t &my_shape) const override {
+            return my_shape;
+        }
+
     protected:
         shape_t shape;
         tree_node_t<T, CONFIG> child;

@@ -244,6 +244,10 @@ namespace quadmat {
         void add_spa(IT col, SPA& spa) {
             // col > prev_col
 
+            if (spa.empty()) {
+                return;
+            }
+
             ret->col_ind.emplace_back(col);
             ret->col_ptr.emplace_back(ret->row_ind.size());
 
@@ -259,9 +263,8 @@ namespace quadmat {
          */
         std::shared_ptr<dcsc_block<T, IT, CONFIG>> finish() {
             // cap off the columns
-            if (ret->row_ind.size() != 0) {
-                ret->col_ptr.emplace_back(ret->row_ind.size());
-            }
+            ret->col_ptr.emplace_back(ret->row_ind.size());
+
             return ret;
         }
 

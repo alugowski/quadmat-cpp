@@ -379,7 +379,7 @@ namespace quadmat {
             template <typename RETIT>
             bool operator()(RETIT retit) {
                 dcsc_accumulator<RETT, RETIT, CONFIG> accumulator(job.dest_shape);
-                leaf_category_visitor_t<IT, RETIT> visitor(job, accumulator);
+                leaf_category_pair_multiply_visitor_t<IT, RETIT> visitor(job, accumulator);
 
                 // multiply each pair in the pair list
                 for (auto pair : job.pair_set.pairs) {
@@ -403,15 +403,15 @@ namespace quadmat {
          * Visitor for leaf categories. This simply unpacks the types and calls the concrete leaf visitor.
          */
         template <typename IT, typename RETIT>
-        class leaf_category_visitor_t {
+        class leaf_category_pair_multiply_visitor_t {
         public:
-            explicit leaf_category_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}
+            explicit leaf_category_pair_multiply_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}
 
             /**
              * Visit categories.
              */
             void operator()(const leaf_category_t<LT, IT, CONFIG>& lhs, const leaf_category_t<RT, IT, CONFIG>& rhs) {
-                std::visit(leaves_visitor_t<IT, RETIT>(job, accumulator), lhs, rhs);
+                std::visit(leaf_pair_multiply_visitor_t<IT, RETIT>(job, accumulator), lhs, rhs);
             }
 
             /**
@@ -431,9 +431,9 @@ namespace quadmat {
          * Concrete leaf block visitor. The leaf block types are known here, so perform the multiplication.
          */
         template <typename IT, typename RETIT>
-        class leaves_visitor_t {
+        class leaf_pair_multiply_visitor_t {
         public:
-            explicit leaves_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}
+            explicit leaf_pair_multiply_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}
 
             /**
              * Visit concrete leaf types and perform multiplication.

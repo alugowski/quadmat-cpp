@@ -27,7 +27,6 @@ namespace quadmat {
 #include "quadmat/io/simple_matrix_market.h"
 
 // operations
-#include "quadmat/algorithms/multiply_trees.h"
-#include "quadmat/algorithms/multiply_leaves.h"
+#include "quadmat/algorithms/algorithms.h"
 
 #endif //QUADMAT_QUADMAT_H

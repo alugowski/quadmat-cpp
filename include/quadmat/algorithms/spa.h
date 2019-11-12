@@ -82,6 +82,13 @@ namespace quadmat {
         }
 
         /**
+         * @return true if the SpA has no elements set.
+         */
+        [[nodiscard]] bool empty() const {
+            return m.empty();
+        }
+
+        /**
          * Clear the SpA for reuse.
          */
         void clear() {

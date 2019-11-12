@@ -19,10 +19,10 @@ namespace quadmat {
     template <typename T, typename CONFIG = default_config>
     matrix<T> identity(index_t n) {
         identity_tuples_generator<T, index_t> gen(n);
-        quadmat::tree_node_t<T, CONFIG> node = quadmat::create_leaf<T, CONFIG>({n, n}, n, gen);
+        tree_node_t<T, CONFIG> node = create_leaf<T, CONFIG>({n, n}, n, gen);
 
         matrix<T, CONFIG> ret({n, n});
-        ret.set_root(node);
+        ret.get_root_bc()->set_child(0, node);
         return ret;
     }
 
