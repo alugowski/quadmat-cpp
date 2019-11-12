@@ -57,11 +57,14 @@ TEST_CASE("Multiply") {
             // subdivide
             subdivide_leaf(a.get_root_bc(), 0, a.get_shape());
             subdivide_leaf(b.get_root_bc(), 0, b.get_shape());
+            REQUIRE(sanity_check(a) == "");
+            REQUIRE(sanity_check(b) == "");
 
             // multiply
             auto result = multiply<plus_times_semiring<double>>(a, b);
 
             // test the result
+            REQUIRE(sanity_check(result) == "");
             REQUIRE_THAT(result, MatrixEquals(problem.result));
         }
     }

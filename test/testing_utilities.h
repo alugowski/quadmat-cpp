@@ -228,4 +228,128 @@ public:
     }
 };
 
+/**
+ * Argument grouping for the sanity check visitor
+ */
+struct sanity_check_info {
+    offset_t offsets;
+    shape_t shape;
+    index_t expected_discriminating_bit;
+    bool are_futures_ok = false;
+    bool check_tuples = false;
+};
+
+/**
+ * Visitor for santiy checking the quad tree
+ */
+template <typename T, typename CONFIG>
+class sanity_check_visitor {
+public:
+    explicit sanity_check_visitor(sanity_check_info& info) : info(info) {}
+
+    string operator()(const std::monostate& ignored) {
+        return "";
+    }
+
+    string operator()(const std::shared_ptr<future_block<T, CONFIG>>& fb) {
+        return info.are_futures_ok ? "" : "future_block present";
+    }
+
+    string operator()(const std::shared_ptr<inner_block<T, CONFIG>> inner) {
+        // make sure the discriminating bit makes sense
+        if (inner->get_discriminating_bit() != info.expected_discriminating_bit) {
+            return std::to_string(inner->get_discriminating_bit()) +
+                   " is not the expected discriminating bit " +
+                   std::to_string(info.expected_discriminating_bit);
+        }
+
+        if (info.shape.nrows < info.expected_discriminating_bit ||
+            info.shape.ncols < info.expected_discriminating_bit) {
+            return "inner_block dimensions < discriminating_bit";
+        }
+
+        // verify child shapes
+        shape_t nw_shape = inner->get_child_shape(NW, info.shape);
+        shape_t se_shape = inner->get_child_shape(SE, info.shape);
+        if (nw_shape.nrows + se_shape.nrows != info.shape.nrows ||
+            nw_shape.ncols + se_shape.ncols != info.shape.ncols) {
+            return "child dimensions don't match inner block";
+        }
+
+        // recurse on children
+        for (auto pos : all_inner_positions) {
+            auto child = inner->get_child(pos);
+
+            sanity_check_info child_info(info);
+
+            child_info.offsets = inner->get_offsets(pos, info.offsets);
+            child_info.shape = inner->get_child_shape(pos, info.shape);
+            child_info.expected_discriminating_bit >>= 1;  // NOLINT(hicpp-signed-bitwise)
+
+            if (child_info.shape.nrows > info.expected_discriminating_bit ||
+                child_info.shape.ncols > info.expected_discriminating_bit) {
+                return "child dimensions " + std::to_string(child_info.shape.nrows) + ", " + std::to_string(child_info.shape.ncols) +
+                       " > than inner block's discriminating_bit " + std::to_string(info.expected_discriminating_bit);
+            }
+
+            string ret = std::visit(sanity_check_visitor<T, CONFIG>(child_info), child);
+            if (!ret.empty()) {
+                return ret;
+            }
+        }
+        return "";
+    }
+
+    string operator()(const leaf_category_t<T, int64_t, CONFIG>& leaf) {
+        return std::visit(*this, leaf);
+    }
+
+    string operator()(const leaf_category_t<T, int32_t, CONFIG>& leaf) {
+        return std::visit(*this, leaf);
+    }
+
+    string operator()(const leaf_category_t<T, int16_t, CONFIG>& leaf) {
+        return std::visit(*this, leaf);
+    }
+
+    template <typename IT>
+    string operator()(const std::shared_ptr<dcsc_block<T, IT, CONFIG>>& leaf) {
+        if (info.shape.nrows <= 0 ||
+            info.shape.ncols <= 0) {
+            return "leaf dimensions <= 0";
+        }
+
+        if (!info.check_tuples) {
+            // done
+            return "";
+        }
+
+        for (auto tup : leaf->tuples()) {
+            auto [row, col, value] = tup;
+
+            // make sure tuple is within shape
+            if (row >= info.shape.nrows || col >= info.shape.ncols) {
+                return "tuple outside of leaf shape";
+            }
+        }
+        return "";
+    }
+
+protected:
+    sanity_check_info info;
+};
+
+/**
+ * Make sure the matrix structure makes sense.
+ */
+template <typename T, typename CONFIG = default_config>
+string sanity_check(matrix<T, CONFIG>& mat, bool slow=true) {
+    sanity_check_info info {
+        .shape = mat.get_shape(),
+        .expected_discriminating_bit = single_block_container<T>(mat.get_shape()).get_discriminating_bit() >> 1,
+        .check_tuples = slow,
+    };
+    return std::visit(sanity_check_visitor<T, CONFIG>(info), mat.get_root_bc()->get_child(0));
+}
+
 #endif //QUADMAT_TESTING_UTILITIES_H

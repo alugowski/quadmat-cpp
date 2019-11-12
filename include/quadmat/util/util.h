@@ -239,7 +239,7 @@ namespace quadmat {
      * Get the number with only the most significant bit set.
      */
     inline index_t clear_all_except_msb(index_t n) {
-        if (n == 0) {
+        if (n <= 0) {
             return 0;
         }
 

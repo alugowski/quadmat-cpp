@@ -34,8 +34,7 @@ namespace quadmat {
 
         std::shared_ptr<inner_block<T, CONFIG>> create_inner(int pos) override {
             std::shared_ptr<inner_block<T, CONFIG>> ret =
-                    std::make_shared<inner_block<T, CONFIG>>(shape, clear_all_except_msb(
-                    (shape.ncols) - 1 | (shape.nrows - 1)));
+                    std::make_shared<inner_block<T, CONFIG>>(shape, get_discriminating_bit() >> 1);
             child = ret;
             return ret;
         }
@@ -48,6 +47,13 @@ namespace quadmat {
             return my_shape;
         }
 
+        /**
+         * Pretend the child is in the NW position of an inner block. Discriminating bit should lie at the border or
+         * beyond.
+         */
+        [[nodiscard]] index_t get_discriminating_bit() const override {
+            return clear_all_except_msb(std::max(shape.ncols, shape.nrows) - 1) << 1;
+        }
     protected:
         shape_t shape;
         tree_node_t<T, CONFIG> child;

@@ -200,6 +200,26 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
     }
 
     {
+        identity_tuples_generator<T, IT> identity(10);
+
+        ret.emplace_back(multiply_problem<T, IT>{
+                .description = "10x10 Kepner-Gilbert graph * identity",
+                .a = {
+                        .shape = {10, 10},
+                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                },
+                .b = {
+                        .shape = {10, 10},
+                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
+                },
+                .result = {
+                        .shape = {10, 10},
+                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                },
+        });
+    }
+
+    {
         simple_matrix_market_loader loader(test_cwd + "matrices/kepner_gilbert_graph_squared.mtx");
 
         // use triple_block to sort

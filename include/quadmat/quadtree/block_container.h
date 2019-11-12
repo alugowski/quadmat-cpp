@@ -27,6 +27,11 @@ namespace quadmat {
         [[nodiscard]] virtual offset_t get_offsets(int child_pos, const offset_t& my_offset) const = 0;
 
         [[nodiscard]] virtual shape_t get_child_shape(int child_pos, const shape_t& my_shape) const = 0;
+
+        /**
+         * @return an index_t with exactly 1 bit set. No child tuple may have this or any bits more significant set.
+         */
+        [[nodiscard]] virtual index_t get_discriminating_bit() const = 0;
     };
 }
 #endif //QUADMAT_BLOCK_CONTAINER_H
