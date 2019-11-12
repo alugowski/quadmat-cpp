@@ -21,7 +21,7 @@ public:
     explicit tuple_dumper(vector<std::tuple<index_t, index_t, T>> &tuples) : tuples(tuples) {}
 
     template <typename LEAF>
-    void operator()(quadmat::offset_t offsets, const std::shared_ptr<LEAF>& leaf) const {
+    void operator()(const std::shared_ptr<LEAF> leaf, offset_t offsets, shape_t shape) const {
         for (auto tup : leaf->tuples()) {
             tuples.emplace_back(
                     std::get<0>(tup) + offsets.row_offset,
@@ -41,8 +41,8 @@ protected:
  */
 template <typename T, typename CONFIG = default_config>
 vector<std::tuple<index_t, index_t, T>> dump_tuples(tree_node_t<T, CONFIG> node) {
-    vector<std::tuple<index_t, index_t, double>> v;
-    std::visit(quadmat::leaf_visitor<double>(tuple_dumper<double>(v)), node);
+    vector<std::tuple<index_t, index_t, T>> v;
+    std::visit(leaf_visitor<double>(tuple_dumper<T>(v)), node);
     return v;
 }
 
@@ -72,6 +72,58 @@ bool is_leaf(tree_node_t<T, CONFIG> node) {
             [](const leaf_category_t<T, int32_t, CONFIG>& ignored) { return true; },
             [](const leaf_category_t<T, int16_t, CONFIG>& ignored) { return true; },
     }, node);
+}
+
+/**
+ * A node visitor that prints matrix structure
+ *
+ * @tparam T
+ */
+template <typename T>
+class structure_printer {
+public:
+    explicit structure_printer(std::ostream &os) : os(os) {}
+
+    template <typename LEAF>
+    void operator()(const std::shared_ptr<LEAF> leaf, const offset_t& offsets, const shape_t& shape) const {
+        // stats
+        os << "leaf ( " << shape.nrows << " x " << shape.ncols << " ), at ( "
+           << offsets.row_offset << ", " << offsets.col_offset << " )";
+
+        // values
+        if (shape.ncols < 40 && shape.nrows < 100) {
+            dense_string_matrix smat(shape);
+            smat.fill_tuples(leaf->tuples());
+
+            os << "\n" << smat.to_string() << "\n";
+        }
+    }
+protected:
+    std::ostream& os;
+};
+
+/**
+ * Utility to print a matrix structure
+ *
+ * @param node
+ * @return human readable string
+ */
+template <typename T, typename CONFIG = default_config>
+std::string print_structure(tree_node_t<T, CONFIG> node, const shape_t& shape) {
+    std::ostringstream ss;
+    std::visit(leaf_visitor<T>(structure_printer<T>(ss), shape), node);
+    return ss.str();
+}
+
+/**
+ * Utility to print a matrix structure
+ *
+ * @param mat
+ * @return human readable string
+ */
+template <typename T, typename CONFIG = default_config>
+std::string print_structure(matrix<T, CONFIG> mat) {
+    return print_structure<T, CONFIG>(mat.get_root_bc()->get_child(0), mat.get_shape());
 }
 
 /**
@@ -133,7 +185,7 @@ std::ostream& operator<<(std::ostream& os, const matrix<T, CONFIG>& mat) {
 
     // values
     if (shape.ncols < 40 && shape.nrows < 100) {
-        quadmat::dense_string_matrix smat(shape);
+        dense_string_matrix smat(shape);
         smat.fill_tuples(dump_tuples(mat));
 
         os << "\n" << smat.to_string();
@@ -166,7 +218,7 @@ std::ostream& operator<<(std::ostream& os, const canned_matrix<T, IT> mat) {
 
     // values
     if (shape.ncols < 40 && shape.nrows < 100) {
-        quadmat::dense_string_matrix smat(shape);
+        dense_string_matrix smat(shape);
         smat.fill_tuples(mat.sorted_tuples);
 
         os << "\n" << smat.to_string();

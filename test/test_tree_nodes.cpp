@@ -36,7 +36,7 @@ TEST_CASE("Tree Nodes") {
         quadmat::tree_node_t<double> node = quadmat::create_leaf<double>({size, size}, size, gen);
 
         // make sure the indices have the expected size
-        std::visit(quadmat::leaf_visitor<double>([](quadmat::offset_t offsets, auto leaf) {
+        std::visit(quadmat::leaf_visitor<double>([](auto leaf, offset_t offsets, shape_t shape) {
             for (auto tup : leaf->tuples()) {
                 REQUIRE(sizeof(std::get<0>(tup)) == sizeof(int16_t));
                 REQUIRE(sizeof(std::get<1>(tup)) == sizeof(int16_t));

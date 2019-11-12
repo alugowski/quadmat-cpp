@@ -53,8 +53,7 @@ namespace quadmat {
     template <typename T, typename CALLBACK, typename CONFIG>
     class leaf_visitor_t {
     public:
-        explicit leaf_visitor_t(CALLBACK& leaf_callback) : leaf_callback(leaf_callback), offsets{} {}
-        leaf_visitor_t(CALLBACK& leaf_callback, offset_t offsets) : leaf_callback(leaf_callback), offsets(offsets) {}
+        leaf_visitor_t(CALLBACK& leaf_callback, const offset_t& offsets, const shape_t& shape) : leaf_callback(leaf_callback), offsets(offsets), shape(shape) {}
 
         /**
          * Reached a null block.
@@ -80,7 +79,8 @@ namespace quadmat {
                 }
 
                 offset_t child_offsets = inner->get_offsets(pos, offsets);
-                std::visit(leaf_visitor_t<T, CALLBACK, CONFIG>(leaf_callback, child_offsets), child);
+                shape_t child_shape = inner->get_child_shape(pos, shape);
+                std::visit(leaf_visitor_t<T, CALLBACK, CONFIG>(leaf_callback, child_offsets, child_shape), child);
             }
         }
 
@@ -111,13 +111,14 @@ namespace quadmat {
         template <typename IT>
         void operator()(const std::shared_ptr<dcsc_block<T, IT, CONFIG>>& leaf) {
             if (leaf) {
-                leaf_callback(offsets, leaf);
+                leaf_callback(leaf, offsets, shape);
             }
         }
 
     protected:
         CALLBACK& leaf_callback;
-        offset_t offsets;
+        const offset_t offsets;
+        const shape_t shape;
     };
 
 
@@ -129,8 +130,8 @@ namespace quadmat {
      * The callback needs to be thread safe.
      */
     template <typename T, typename CALLBACK, typename CONFIG = default_config>
-    leaf_visitor_t<T, CALLBACK, CONFIG> leaf_visitor(CALLBACK& callback) {
-        return leaf_visitor_t<T, CALLBACK, CONFIG>(callback);
+    leaf_visitor_t<T, CALLBACK, CONFIG> leaf_visitor(CALLBACK& callback, const shape_t& shape = {-1, -1}) {
+        return leaf_visitor_t<T, CALLBACK, CONFIG>(callback, offset_t{0, 0}, shape);
     }
 
     /**
@@ -151,8 +152,8 @@ std::visit(leaf_visitor<double>([](offset_t offsets, auto leaf) {
      * \endcode
      */
     template <typename T, typename CALLBACK, typename CONFIG = default_config>
-    leaf_visitor_t<T, const CALLBACK, CONFIG> leaf_visitor(const CALLBACK& callback) {
-        return leaf_visitor_t<T, const CALLBACK, CONFIG>(callback);
+    leaf_visitor_t<T, const CALLBACK, CONFIG> leaf_visitor(const CALLBACK& callback, const shape_t& shape = {-1, -1}) {
+        return leaf_visitor_t<T, const CALLBACK, CONFIG>(callback, offset_t{0, 0}, shape);
     }
 }
 
