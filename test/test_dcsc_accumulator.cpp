@@ -30,7 +30,6 @@ TEST_CASE("DCSC Accumulator") {
 
                 // build accumulator
                 quadmat::dcsc_accumulator<double, int> accum(problem.shape);
-                REQUIRE(accum.get_shape() == problem.shape);
 
                 // slice up the tuples
                 auto tuple_ranges = quadmat::slice_ranges(num_parts,
@@ -38,16 +37,13 @@ TEST_CASE("DCSC Accumulator") {
 
                 // build component blocks
                 for (auto tuple_range : tuple_ranges) {
-                    auto part = std::make_shared<quadmat::dcsc_block<double, int>>(
-                            problem.shape, tuple_range.size(), tuple_range);
+                    auto part = std::make_shared<quadmat::dcsc_block<double, int>>(tuple_range.size(), tuple_range);
 
                     accum.add(part);
                 }
 
                 // collapse
                 auto sum = accum.collapse();
-
-                REQUIRE(sum->get_shape() == problem.shape);
 
                 // get tuples back
                 auto sorted_range = sum->tuples();
@@ -70,7 +66,6 @@ TEST_CASE("DCSC Accumulator") {
 
                 // build accumulator
                 quadmat::dcsc_accumulator<double, int> accum(problem.shape);
-                REQUIRE(accum.get_shape() == problem.shape);
 
                 // shuffle the tuples
                 vector<tuple<int, int, double>> shuffled_tuples(problem.sorted_tuples);
@@ -84,19 +79,16 @@ TEST_CASE("DCSC Accumulator") {
                 // build component blocks
                 for (auto tuple_range : tuple_ranges) {
                     // use a triple_block to sort these shuffled tuples
-                    quadmat::triples_block<double, int> tb(problem.shape);
+                    quadmat::triples_block<double, int> tb;
                     tb.add(tuple_range);
 
-                    auto part = std::make_shared<quadmat::dcsc_block<double, int>>(
-                            problem.shape, tuple_range.size(), tb.sorted_tuples());
+                    auto part = std::make_shared<quadmat::dcsc_block<double, int>>(tuple_range.size(), tb.sorted_tuples());
 
                     accum.add(part);
                 }
 
                 // collapse
                 auto sum = accum.collapse();
-
-                REQUIRE(sum->get_shape() == problem.shape);
 
                 // get tuples back
                 auto sorted_range = sum->tuples();
@@ -121,19 +113,15 @@ TEST_CASE("DCSC Accumulator") {
         SECTION(problem.description) {
             // build accumulator
             quadmat::dcsc_accumulator<double, int> accum(problem.shape);
-            REQUIRE(accum.get_shape() == problem.shape);
 
             // build component blocks
-            auto part = std::make_shared<quadmat::dcsc_block<double, int>>(
-                    problem.shape, problem.sorted_tuples.size(), problem.sorted_tuples);
+            auto part = std::make_shared<quadmat::dcsc_block<double, int>>(problem.sorted_tuples.size(), problem.sorted_tuples);
 
             accum.add(part);
             accum.add(part);
 
             // collapse
             auto sum = accum.collapse();
-
-            REQUIRE(sum->get_shape() == problem.shape);
 
             // get doubled tuples back
             auto sorted_range = sum->tuples();

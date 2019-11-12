@@ -26,10 +26,8 @@ TEST_CASE("Triples Block") {
         quadmat::stable_shuffle(begin(shuffled_tuples), end(shuffled_tuples));
 
         SECTION(problem.description) {
-            quadmat::triples_block<double, int> block(problem.shape);
+            quadmat::triples_block<double, int> block;
             block.add(shuffled_tuples);
-
-            REQUIRE(block.get_shape() == problem.shape);
 
             SECTION("get tuples back") {
                 auto original_tuples = block.original_tuples();

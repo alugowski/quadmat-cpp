@@ -60,7 +60,7 @@ TEST_CASE("Tree Nodes") {
         int size = 8;
         quadmat::identity_tuples_generator<double, int> gen(size);
 
-        auto inner = std::make_shared<quadmat::inner_block<double>>(quadmat::shape_t{2*size, 2*size}, 8);
+        auto inner = std::make_shared<quadmat::inner_block<double>>(8);
         auto inner_node = quadmat::tree_node_t<double>(inner);
 
         // use the same block in both NW and SE positions because they are identical in an identity matrix

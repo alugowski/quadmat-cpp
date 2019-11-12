@@ -36,7 +36,7 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = default_config>
     class dcsc_block: public block<T> {
     public:
-        explicit dcsc_block(const shape_t shape) : block<T>(shape) {}
+        dcsc_block() = default;
     public:
         friend class dcsc_block_factory<T, IT, CONFIG>;
 
@@ -50,7 +50,7 @@ namespace quadmat {
          * @param col_ordered_gen tuple generator. **Must return tuples ordered by column, row**
          */
         template<typename GEN>
-        dcsc_block(const shape_t shape, const blocknnn_t nnn, const GEN col_ordered_gen) : block<T>(shape) {
+        dcsc_block(const blocknnn_t nnn, const GEN col_ordered_gen) {
             // reserve memory
             row_ind.reserve(nnn);
             values.reserve(nnn);
@@ -232,7 +232,7 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG>
     class dcsc_block_factory {
     public:
-        explicit dcsc_block_factory(const shape_t &shape) : ret(std::make_shared<dcsc_block<T, IT, CONFIG>>(shape)) {}
+        explicit dcsc_block_factory() : ret(std::make_shared<dcsc_block<T, IT, CONFIG>>()) {}
 
         /**
          * Dump the contents of a SpA as the last column of the dcsc_block.

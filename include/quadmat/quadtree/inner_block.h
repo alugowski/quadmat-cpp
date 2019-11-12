@@ -35,7 +35,7 @@ namespace quadmat {
     template<typename T, typename CONFIG>
     class inner_block : public block<T>, public block_container<T, CONFIG> {
     public:
-        explicit inner_block(const shape_t& shape, const index_t discriminating_bit) : block<T>(shape), discriminating_bit(discriminating_bit) {
+        explicit inner_block(const index_t discriminating_bit) : discriminating_bit(discriminating_bit) {
             if (discriminating_bit == 0 || clear_all_except_msb(discriminating_bit) != discriminating_bit) {
                 throw std::invalid_argument("invalid discriminating bit");
             }
@@ -55,7 +55,7 @@ namespace quadmat {
 
         std::shared_ptr<inner_block<T, CONFIG>> create_inner(int pos) override {
             std::shared_ptr<inner_block<T, CONFIG>> ret =
-                    std::make_shared<inner_block<T, CONFIG>>(this->get_shape(), this->discriminating_bit >> 1);
+                    std::make_shared<inner_block<T, CONFIG>>(this->discriminating_bit >> 1);
             children[pos] = ret;
             return ret;
         }

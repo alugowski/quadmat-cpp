@@ -440,7 +440,7 @@ namespace quadmat {
              */
             template <typename LHS, typename RHS>
             void operator()(const LHS& lhs, const RHS& rhs) {
-                auto result = multiply_pair<IT, RETIT, SR, sparse_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs);
+                auto result = multiply_pair<IT, RETIT, SR, sparse_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs, job.dest_shape, job.semiring);
                 accumulator.add(result);
             }
 

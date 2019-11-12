@@ -22,7 +22,7 @@ namespace quadmat {
     template <typename T, typename IT, typename CONFIG = default_config>
     class dcsc_accumulator : public block<T> {
     public:
-        explicit dcsc_accumulator(const shape_t &shape) : block<T>(shape) {}
+        explicit dcsc_accumulator(const shape_t &shape) : shape(shape) {}
 
         /**
          * Add a new block to this accumulator
@@ -61,7 +61,7 @@ namespace quadmat {
          */
         template <class SPA, class SR>
         std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse_SpA(const SR& semiring) {
-            auto factory = dcsc_block_factory<T, IT, CONFIG>(this->shape);
+            auto factory = dcsc_block_factory<T, IT, CONFIG>();
 
             std::priority_queue<column_ref, std::vector<column_ref, typename CONFIG::template TEMP_ALLOC<column_ref>>, std::greater<column_ref>> column_queue;
 
@@ -121,6 +121,7 @@ namespace quadmat {
         };
     protected:
         vector<std::shared_ptr<dcsc_block<T, IT, CONFIG>>> children;
+        const shape_t &shape;
     };
 }
 

@@ -223,7 +223,7 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
         simple_matrix_market_loader loader(test_cwd + "matrices/kepner_gilbert_graph_squared.mtx");
 
         // use triple_block to sort
-        triples_block<double, int> result_block(loader.get_shape());
+        triples_block<double, int> result_block;
         result_block.add(loader.tuples());
         auto sorted_result_range = result_block.sorted_tuples();
 

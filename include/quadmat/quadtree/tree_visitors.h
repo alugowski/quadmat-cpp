@@ -33,9 +33,9 @@ namespace quadmat {
         leaf_index_type desired_index_type = get_leaf_index_type(shape);
 
         return std::visit(overloaded{
-                [&](int64_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(std::make_shared<dcsc_block<T, int64_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
-                [&](int32_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(std::make_shared<dcsc_block<T, int32_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
-                [&](int16_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(std::make_shared<dcsc_block<T, int16_t, CONFIG>>(shape, nnn, col_ordered_gen)); },
+                [&](int64_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(std::make_shared<dcsc_block<T, int64_t, CONFIG>>(nnn, col_ordered_gen)); },
+                [&](int32_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(std::make_shared<dcsc_block<T, int32_t, CONFIG>>(nnn, col_ordered_gen)); },
+                [&](int16_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(std::make_shared<dcsc_block<T, int16_t, CONFIG>>(nnn, col_ordered_gen)); },
         }, desired_index_type);
     }
 

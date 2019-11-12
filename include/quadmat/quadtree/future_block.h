@@ -16,7 +16,7 @@ namespace quadmat {
     template<typename T, typename CONFIG>
     class future_block : public block<T> {
     public:
-        explicit future_block(const shape_t shape) : block<T>(shape) {}
+        future_block() = default;
     };
 }
 

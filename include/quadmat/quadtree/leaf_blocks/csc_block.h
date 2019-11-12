@@ -23,7 +23,7 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = default_config>
     class csc_block: public block<T> {
     public:
-        csc_block(const shape_t shape) : block<T>(shape) {}
+        csc_block() = default;
 
         /**
          * Create a CSC block from column-ordered tuples. Single pass.

@@ -22,9 +22,7 @@ TEST_CASE("DCSC Block") {
         const canned_matrix<double, int>& problem = canned_matrices[problem_num];
 
         SECTION(problem.description) {
-            quadmat::dcsc_block<double, int> block(problem.shape, problem.sorted_tuples.size(), problem.sorted_tuples);
-
-            REQUIRE(block.get_shape() == problem.shape);
+            quadmat::dcsc_block<double, int> block(problem.sorted_tuples.size(), problem.sorted_tuples);
 
             SECTION("get tuples back") {
                 auto sorted_range = block.tuples();

@@ -23,7 +23,7 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = default_config>
     class triples_block: public block<T> {
     public:
-        explicit triples_block(const shape_t shape = {0, 0}) : block<T>(shape) {}
+        triples_block() = default;
 
         block_size_info size() override {
             return block_size_info{

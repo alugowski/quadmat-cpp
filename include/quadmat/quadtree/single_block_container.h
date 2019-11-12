@@ -34,7 +34,7 @@ namespace quadmat {
 
         std::shared_ptr<inner_block<T, CONFIG>> create_inner(int pos) override {
             std::shared_ptr<inner_block<T, CONFIG>> ret =
-                    std::make_shared<inner_block<T, CONFIG>>(shape, get_discriminating_bit() >> 1);
+                    std::make_shared<inner_block<T, CONFIG>>(get_discriminating_bit() >> 1);
             child = ret;
             return ret;
         }

@@ -26,12 +26,15 @@ TEST_CASE("Multiply") {
         const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
         SECTION(problem.description) {
-            auto a = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
-            auto b = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
+            auto a = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
+            auto b = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
 
-            auto result = quadmat::multiply_pair<index_t, index_t, quadmat::plus_times_semiring<double>, quadmat::sparse_spa<index_t, quadmat::plus_times_semiring<double>, quadmat::default_config>, quadmat::default_config>(a, b);
+            shape_t result_shape = {
+                    .nrows = problem.a.shape.nrows,
+                    .ncols = problem.b.shape.ncols
+            };
 
-            REQUIRE(result->get_shape() == problem.result.shape);
+            auto result = quadmat::multiply_pair<index_t, index_t, quadmat::plus_times_semiring<double>, quadmat::sparse_spa<index_t, quadmat::plus_times_semiring<double>, quadmat::default_config>, quadmat::default_config>(a, b, result_shape);
 
             // test the result tuples
             {
@@ -72,7 +75,7 @@ TEST_CASE("Multiply") {
         int size = 8;
         quadmat::identity_tuples_generator<double, index_t> gen(size);
 
-        auto inner = std::make_shared<quadmat::inner_block<double>>(quadmat::shape_t{2*size, 2*size}, 8);
+        auto inner = std::make_shared<quadmat::inner_block<double>>(8);
         auto inner_node = quadmat::tree_node_t<double>(inner);
 
         // use the same block in both NW and SE positions because they are identical in an identity matrix

@@ -4,8 +4,6 @@
 #ifndef QUADMAT_MULTIPLY_LEAVES_H
 #define QUADMAT_MULTIPLY_LEAVES_H
 
-#include <cassert>
-
 #include "quadmat/quadtree/leaf_blocks/dcsc_block.h"
 
 namespace quadmat {
@@ -17,17 +15,10 @@ namespace quadmat {
     std::shared_ptr<dcsc_block<typename SR::reduce_type, RET_IT, CONFIG>> multiply_pair(
             std::shared_ptr<dcsc_block<typename SR::map_type_l, IT, CONFIG>> a,
             std::shared_ptr<dcsc_block<typename SR::map_type_r, IT, CONFIG>> b,
+            const shape_t& result_shape,
             const SR& semiring = SR()) {
 
-        // check dimensions
-        assert(a->get_shape().ncols == b->get_shape().nrows);
-
-        shape_t result_shape = {
-                .nrows = a->get_shape().nrows,
-                .ncols = b->get_shape().ncols
-        };
-
-        auto factory = dcsc_block_factory<typename SR::reduce_type, RET_IT, CONFIG>(result_shape);
+        auto factory = dcsc_block_factory<typename SR::reduce_type, RET_IT, CONFIG>();
 
         // For each column j in block b
         SPA spa(result_shape.nrows, semiring);
