@@ -8,6 +8,7 @@
 
 using namespace quadmat;
 
+#include "problem_generator.h"
 
 /**
  * A node visitor that dumps tuples from nodes
@@ -141,22 +142,90 @@ std::ostream& operator<<(std::ostream& os, const matrix<T, CONFIG>& mat) {
 }
 
 /**
+ * Catch2 matrix printer
+ */
+namespace Catch {
+    template <typename T, typename CONFIG>
+    struct StringMaker<matrix<T, CONFIG>> {
+        static std::string convert( matrix<T, CONFIG> const& value ) {
+            std::ostringstream ss;
+            ::operator<<(ss, value);
+            return ss.str();
+        }
+    };
+}
+
+/**
  * problem printer
  */
 template <typename T, typename IT>
-std::ostream& operator<<(std::ostream& os, const std::pair<shape_t, vector<std::tuple<IT, IT, T>>> mat) {
-    shape_t shape = std::get<0>(mat);
+std::ostream& operator<<(std::ostream& os, const canned_matrix<T, IT> mat) {
+    shape_t shape = mat.shape;
     // stats
     os << "matrix ( " << shape.nrows << " x " << shape.ncols << " )";
 
     // values
     if (shape.ncols < 40 && shape.nrows < 100) {
         quadmat::dense_string_matrix smat(shape);
-        smat.fill_tuples(std::get<1>(mat));
+        smat.fill_tuples(mat.sorted_tuples);
 
         os << "\n" << smat.to_string();
     }
     return os;
 }
+
+/**
+ * Catch2 matrix matcher
+ */
+template <typename T, typename CONFIG = default_config>
+class MatrixEquals : public Catch::MatcherBase<matrix<T, CONFIG>> {
+    const shape_t shape;
+    vector<tuple<index_t, index_t, T>> my_tuples;
+public:
+    explicit MatrixEquals(const matrix<T, CONFIG> &mat) : shape(mat.get_shape()), my_tuples(dump_tuples(mat)) {
+        std::sort(my_tuples.begin(), my_tuples.end());
+    }
+
+    explicit MatrixEquals(const canned_matrix<T, index_t> &mat) : shape(mat.shape), my_tuples(mat.sorted_tuples) {
+        std::sort(my_tuples.begin(), my_tuples.end());
+    }
+
+    /**
+     * Test against a matrix
+     */
+    [[nodiscard]] bool match(const matrix<T, CONFIG> &test_value) const override {
+        // test shape
+        if (shape.nrows != test_value.get_shape().nrows ||
+            shape.ncols != test_value.get_shape().ncols) {
+            return false;
+        }
+
+        // test tuples
+        auto rhs_tuples = dump_tuples(test_value);
+
+        if (my_tuples.size() != rhs_tuples.size()) {
+            return false;
+        }
+
+        std::sort(rhs_tuples.begin(), rhs_tuples.end());
+
+        return std::equal(my_tuples.begin(), my_tuples.end(), rhs_tuples.begin());
+    }
+
+    /**
+     * Produces a string describing what this matcher does. It should
+     * include any provided data (the begin/ end in this case) and
+     * be written as if it were stating a fact (in the output it will be
+     * preceded by the value under test).
+     */
+    [[nodiscard]] std::string describe() const override {
+        std::ostringstream ss;
+        ss << "\nMatrixEquals \n" << canned_matrix<T, index_t>{
+                .shape = shape,
+                .sorted_tuples = my_tuples,
+        };
+        return ss.str();
+    }
+};
 
 #endif //QUADMAT_TESTING_UTILITIES_H

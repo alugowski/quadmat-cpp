@@ -13,11 +13,6 @@
 using Catch::Matchers::Equals;
 using Catch::Matchers::UnorderedEquals;
 
-std::ostream& operator<<(std::ostream& os, const std::tuple<index_t, index_t, double>& tup ) {
-    os << "<" << std::get<0>(tup) << ", " << std::get<1>(tup) << ", " << std::get<2>(tup) << ">";
-    return os;
-}
-
 /**
  * Canned matrices
  */
@@ -31,18 +26,18 @@ TEST_CASE("Multiply") {
         const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
         SECTION(problem.description) {
-            auto a = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.a_shape, problem.a_sorted_tuples.size(), problem.a_sorted_tuples);
-            auto b = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.b_shape, problem.b_sorted_tuples.size(), problem.b_sorted_tuples);
+            auto a = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
+            auto b = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
 
             auto result = quadmat::multiply_pair<index_t, index_t, quadmat::plus_times_semiring<double>, quadmat::sparse_spa<index_t, quadmat::plus_times_semiring<double>, quadmat::default_config>, quadmat::default_config>(a, b);
 
-            REQUIRE(result->get_shape() == problem.result_shape);
+            REQUIRE(result->get_shape() == problem.result.shape);
 
             // test the result tuples
             {
                 auto sorted_range = result->tuples();
                 vector <std::tuple<index_t, index_t, double>> v(sorted_range.begin(), sorted_range.end());
-                REQUIRE_THAT(v, Equals(problem.result_sorted_tuples));
+                REQUIRE_THAT(v, Equals(problem.result.sorted_tuples));
             }
         }
     }
@@ -52,8 +47,8 @@ TEST_CASE("Multiply") {
         const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
         SECTION(problem.description) {
-            auto a = matrix_from_tuples<double>(problem.a_shape, problem.a_sorted_tuples.size(), problem.a_sorted_tuples);
-            auto b = matrix_from_tuples<double>(problem.b_shape, problem.b_sorted_tuples.size(), problem.b_sorted_tuples);
+            auto a = matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
+            auto b = matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
 
             // make sure the matrices look how this test assumes they do
             REQUIRE(is_leaf(a.get_root_bc()->get_child(0)));
@@ -63,32 +58,11 @@ TEST_CASE("Multiply") {
             subdivide_leaf(a.get_root_bc(), 0, a.get_shape());
             subdivide_leaf(b.get_root_bc(), 0, b.get_shape());
 
-            // test subdivision
-            {
-                auto result_tuples = dump_tuples(a);
-                REQUIRE_THAT(result_tuples, UnorderedEquals(problem.a_sorted_tuples));
-            }
-            {
-                auto result_tuples = dump_tuples(b);
-                REQUIRE_THAT(result_tuples, UnorderedEquals(problem.b_sorted_tuples));
-            }
-
             // multiply
             auto result = multiply<plus_times_semiring<double>>(a, b);
 
-            REQUIRE(result.get_shape() == problem.result_shape);
-
-            // test the result tuples
-            {
-//                if (problem_num == 4) {
-//                    std::cout << std::endl << problem.description << std::endl;
-//                    std::cout << result << std::endl;
-//                    std::cout << make_pair(problem.result_shape, problem.result_sorted_tuples) << std::endl;
-//                }
-
-                auto result_tuples = dump_tuples(result);
-                REQUIRE_THAT(result_tuples, UnorderedEquals(problem.result_sorted_tuples));
-            }
+            // test the result
+            REQUIRE_THAT(result, MatrixEquals(problem.result));
         }
     }
     SECTION("Simple tree") {
