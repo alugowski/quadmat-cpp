@@ -26,9 +26,11 @@ namespace quadmat {
         auto b_columns = b->columns();
 
         for (auto b_j = b_columns.begin(); b_j != b_columns.end(); ++b_j) {
-            auto b_j_row = b_j.rows_begin();
-            auto b_j_row_end = b_j.rows_end();
-            auto b_j_value = b_j.values_begin();
+            auto b_j_column = *b_j;
+
+            auto b_j_row = b_j_column.rows_begin;
+            auto b_j_row_end = b_j_column.rows_end;
+            auto b_j_value = b_j_column.values_begin;
 
             // For each element i in j
             while (b_j_row != b_j_row_end) {
@@ -37,7 +39,8 @@ namespace quadmat {
 
                 if (a_i != a->columns_end()) {
                     // perform the multiply and add in the SpA
-                    spa.update(a_i.rows_begin(), a_i.rows_end(), a_i.values_begin(), *b_j_value);
+                    auto a_i_column = *a_i;
+                    spa.update(a_i_column.rows_begin, a_i_column.rows_end, a_i_column.values_begin, *b_j_value);
                 }
 
                 ++b_j_row;
@@ -45,7 +48,7 @@ namespace quadmat {
             }
 
             // dump the spa into the result
-            factory.add_spa(*b_j, spa);
+            factory.add_spa(b_j_column.col, spa);
             spa.clear();
         }
 

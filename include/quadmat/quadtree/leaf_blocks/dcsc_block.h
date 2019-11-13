@@ -36,6 +36,10 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = default_config>
     class dcsc_block: public block<T> {
     public:
+        using value_type = T;
+        using index_type = IT;
+        using config_type = CONFIG;
+
         dcsc_block() = default;
     public:
         friend class dcsc_block_factory<T, IT, CONFIG>;
@@ -131,12 +135,22 @@ namespace quadmat {
         }
 
         /**
+         * Reference to a single column
+         */
+        struct column_ref {
+            IT col;
+            typename vector<IT, typename CONFIG::template ALLOC<IT>>::const_iterator rows_begin;
+            typename vector<IT, typename CONFIG::template ALLOC<IT>>::const_iterator rows_end;
+            typename vector<T, typename CONFIG::template ALLOC<T>>::const_iterator values_begin;
+        };
+
+        /**
          * Iterator type for iterating over this block's columns
          */
         class column_iterator: public base_indexed_random_access_iterator<blocknnn_t, column_iterator> {
         public:
             using iterator_category = std::random_access_iterator_tag;
-            using value_type = IT;
+            using value_type = column_ref;
             using pointer = value_type*;
             using reference = value_type&;
             using difference_type = std::ptrdiff_t;
@@ -145,29 +159,16 @@ namespace quadmat {
             column_iterator(const column_iterator& rhs) : base_indexed_random_access_iterator<blocknnn_t, column_iterator>(rhs.i), block(rhs.block) {}
 
             value_type operator*() const {
-                return block->col_ind[this->i];
+                return {
+                    .col = block->col_ind[this->i],
+                    .rows_begin = block->row_ind.begin() + block->col_ptr[this->i],
+                    .rows_end = block->row_ind.begin() + block->col_ptr[this->i+1],
+                    .values_begin = block->values.begin() + block->col_ptr[this->i],
+                };
             }
 
             value_type operator[](const difference_type n) const {
-                return block->col_ind[this->i + n];
-            }
-
-            [[nodiscard]] blocknnn_t get_col_idx() const {
-                return this->i;
-            }
-
-            auto rows_begin() const {
-                return block->row_ind.begin() + block->col_ptr[this->i];
-            }
-            auto rows_end() const {
-                return block->row_ind.begin() + block->col_ptr[this->i+1];
-            }
-
-            auto values_begin() const {
-                return block->values.begin() + block->col_ptr[this->i];
-            }
-            auto values_end() const {
-                return block->values.begin() + block->col_ptr[this->i+1];
+                return *((*this) + n);
             }
 
         private:
@@ -192,7 +193,7 @@ namespace quadmat {
          * @return a {begin, end} pair of iterators to iterate over all the columns of this block.
          */
         range_t<column_iterator> columns() const {
-            return range_t<column_iterator>{column_iterator(this, 0), column_iterator(this, col_ind.size())};
+            return range_t<column_iterator>{columns_begin(), columns_end()};
         }
 
         /**

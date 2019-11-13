@@ -84,10 +84,11 @@ namespace quadmat {
                 column_queue.pop();
 
                 // fill the SpA with this column
-                spa.update(cr.current.rows_begin(), cr.current.rows_end(), cr.current.values_begin());
+                auto current_col = *cr.current;
+                spa.update(current_col.rows_begin, current_col.rows_end, current_col.values_begin);
 
                 // if this is the last block with this column then dump the spa into the result
-                if (column_queue.empty() || column_queue.top().col() != cr.col()) {
+                if (column_queue.empty() || column_queue.top().col() != current_col.col) {
                     factory.add_spa(cr.col(), spa);
                     spa.clear();
                 }
@@ -112,7 +113,7 @@ namespace quadmat {
             iter_type end;
 
             IT col() const {
-                return *current;
+                return (*current).col;
             }
 
             bool operator>(const column_ref& rhs) const {

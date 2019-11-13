@@ -23,6 +23,10 @@ namespace quadmat {
     template<typename T, typename IT, typename CONFIG = default_config>
     class csc_block: public block<T> {
     public:
+        using value_type = T;
+        using index_type = IT;
+        using config_type = CONFIG;
+
         csc_block() = default;
 
         /**

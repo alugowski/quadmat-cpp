@@ -21,7 +21,14 @@ namespace quadmat {
          *
          * @param shape number of rows and columns.
          */
-        explicit matrix(const shape_t shape): shape(shape), root_bc(std::make_shared<single_block_container<T, CONFIG>>(shape)) {}
+        explicit matrix(const shape_t& shape) : shape(shape), root_bc(std::make_shared<single_block_container<T, CONFIG>>(shape)) {}
+
+        /**
+         * Construct a matrix with a particular node
+         * @param root_node
+         * @param shape
+         */
+        matrix(const shape_t& shape, const tree_node_t<T, CONFIG>& root_node) : shape(shape), root_bc(std::make_shared<single_block_container<T, CONFIG>>(shape, root_node)) {}
 
         /**
          * @return the shape of this matrix

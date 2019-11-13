@@ -40,7 +40,7 @@ TEST_CASE("Multiply") {
             {
                 auto sorted_range = result->tuples();
                 vector <std::tuple<index_t, index_t, double>> v(sorted_range.begin(), sorted_range.end());
-                REQUIRE_THAT(v, Equals(problem.result.sorted_tuples));
+                REQUIRE_THAT(matrix(problem.result.shape, tree_node_t<double>(result)), MatrixEquals(problem.result));
             }
         }
     }
