@@ -139,6 +139,32 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
     }
 
     {
+        identity_tuples_generator<T, IT> identity(4);
+        vector<tuple<IT, IT, T>> quadrant_tuples{
+                {1, 0, 1.0},
+                {3, 0, 1.0},
+                {0, 3, 1.0},
+                {2, 3, 1.0}
+        };
+
+        ret.emplace_back(multiply_problem<T, IT>{
+                .description = "4x4 top with empty columns * identity",
+                .a = {
+                        .shape = {4, 4},
+                        .sorted_tuples = quadrant_tuples,
+                },
+                .b = {
+                        .shape = {4, 4},
+                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
+                },
+                .result = {
+                        .shape = {4, 4},
+                        .sorted_tuples = quadrant_tuples,
+                },
+        });
+    }
+
+    {
         full_tuples_generator<T, IT> gen_factor({4, 4}, 1);
         full_tuples_generator<T, IT> gen_result({4, 4}, 4);
 

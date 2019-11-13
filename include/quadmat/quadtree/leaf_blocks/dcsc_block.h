@@ -203,6 +203,9 @@ namespace quadmat {
          */
         column_iterator column(IT col) const {
             auto pos = std::lower_bound(begin(col_ind), end(col_ind), col);
+            if (pos == end(col_ind) || *pos != col) {
+                return columns_end();
+            }
             return column_iterator(this, pos - begin(col_ind));
         }
 
