@@ -7,14 +7,19 @@
 #include <cstdint>
 #include <variant>
 
-#include "quadmat/quadtree/leaf_blocks/dcsc_block.h"
 #include "quadmat/quadtree/future_block.h"
 
 namespace quadmat {
 
-    // forward declaration
+    // forward declaration of block types
     template<typename T, typename CONFIG = default_config>
     class inner_block;
+
+    template<typename T, typename IT, typename CONFIG = default_config>
+    class dcsc_block;
+
+    template<typename IT, typename BASE_LEAF>
+    class window_shadow_block;
 
     /**
      * @brief Supported index sizes for leaf blocks
@@ -41,7 +46,10 @@ namespace quadmat {
      */
     template <typename T, typename CONFIG>
     struct leaf_category_struct<T, int64_t, CONFIG> {
-        using type = std::variant<std::shared_ptr<dcsc_block<T, int64_t, CONFIG>>>;
+        using type = std::variant<
+                std::shared_ptr<dcsc_block<T, int64_t, CONFIG>>,
+                std::shared_ptr<window_shadow_block<int64_t, dcsc_block<T, int64_t, CONFIG>>>
+                >;
     };
 
     /**
@@ -49,7 +57,11 @@ namespace quadmat {
      */
     template <typename T, typename CONFIG>
     struct leaf_category_struct<T, int32_t, CONFIG> {
-        using type = std::variant<std::shared_ptr<dcsc_block<T, int32_t, CONFIG>>>;
+        using type = std::variant<
+                std::shared_ptr<dcsc_block<T, int32_t, CONFIG>>,
+                std::shared_ptr<window_shadow_block<int32_t, dcsc_block<T, int32_t, CONFIG>>>,
+                std::shared_ptr<window_shadow_block<int32_t, dcsc_block<T, int64_t, CONFIG>>>
+                >;
     };
 
     /**
@@ -57,7 +69,12 @@ namespace quadmat {
      */
     template <typename T, typename CONFIG>
     struct leaf_category_struct<T, int16_t, CONFIG> {
-        using type = std::variant<std::shared_ptr<dcsc_block<T, int16_t, CONFIG>>>;
+        using type = std::variant<
+                std::shared_ptr<dcsc_block<T, int16_t, CONFIG>>,
+                std::shared_ptr<window_shadow_block<int16_t, dcsc_block<T, int16_t, CONFIG>>>,
+                std::shared_ptr<window_shadow_block<int16_t, dcsc_block<T, int32_t, CONFIG>>>,
+                std::shared_ptr<window_shadow_block<int16_t, dcsc_block<T, int64_t, CONFIG>>>
+                >;
     };
 
     /**

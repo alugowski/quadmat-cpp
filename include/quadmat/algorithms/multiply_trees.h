@@ -439,8 +439,8 @@ namespace quadmat {
              * Visit concrete leaf types and perform multiplication.
              */
             template <typename LHS, typename RHS>
-            void operator()(const LHS& lhs, const RHS& rhs) {
-                auto result = multiply_pair<IT, RETIT, SR, sparse_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs, job.dest_shape, job.semiring);
+            void operator()(const std::shared_ptr<LHS>& lhs, const std::shared_ptr<RHS>& rhs) {
+                auto result = multiply_pair<LHS, RHS, RETIT, SR, sparse_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs, job.dest_shape, job.semiring);
                 accumulator.add(result);
             }
 

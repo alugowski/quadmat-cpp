@@ -34,7 +34,13 @@ TEST_CASE("Multiply") {
                     .ncols = problem.b.shape.ncols
             };
 
-            auto result = quadmat::multiply_pair<index_t, index_t, quadmat::plus_times_semiring<double>, quadmat::sparse_spa<index_t, quadmat::plus_times_semiring<double>, quadmat::default_config>, quadmat::default_config>(a, b, result_shape);
+            auto result = quadmat::multiply_pair<
+                    quadmat::dcsc_block<double, index_t>,
+                    quadmat::dcsc_block<double, index_t>,
+                    index_t,
+                    quadmat::plus_times_semiring<double>,
+                    quadmat::sparse_spa<index_t, quadmat::plus_times_semiring<double>, quadmat::default_config>,
+                    quadmat::default_config>(a, b, result_shape);
 
             // test the result tuples
             {

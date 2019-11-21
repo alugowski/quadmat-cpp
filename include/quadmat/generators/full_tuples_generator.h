@@ -27,7 +27,7 @@ namespace quadmat {
         /**
          * Input Iterator type that this generator emits
          */
-        class iterator: public base_tuple_input_iterator<iterator> {
+        class iterator: public base_input_iterator<iterator> {
         public:
             using iterator_category = std::input_iterator_tag;
             using value_type = tuple<IT, IT, T>;
@@ -55,7 +55,7 @@ namespace quadmat {
                 return *this;
             }
 
-            bool operator==(iterator rhs) const {
+            bool operator==(const iterator& rhs) const {
                 return row == rhs.row && col == rhs.col;
             }
 

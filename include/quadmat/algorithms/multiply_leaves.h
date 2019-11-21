@@ -9,12 +9,12 @@
 namespace quadmat {
 
     /**
-     * Multiply two DCSC blocks
+     * Multiply two leaf blocks
      */
-    template <typename IT, typename RET_IT, class SR, class SPA, typename CONFIG>
+    template <typename A_LEAF_TYPE, typename B_LEAF_TYPE, typename RET_IT, class SR, class SPA, typename CONFIG>
     std::shared_ptr<dcsc_block<typename SR::reduce_type, RET_IT, CONFIG>> multiply_pair(
-            std::shared_ptr<dcsc_block<typename SR::map_type_l, IT, CONFIG>> a,
-            std::shared_ptr<dcsc_block<typename SR::map_type_r, IT, CONFIG>> b,
+            std::shared_ptr<A_LEAF_TYPE> a,
+            std::shared_ptr<B_LEAF_TYPE> b,
             const shape_t& result_shape,
             const SR& semiring = SR()) {
 

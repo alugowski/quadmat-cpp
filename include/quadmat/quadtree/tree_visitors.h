@@ -108,8 +108,8 @@ namespace quadmat {
         /**
          * Reached a leaf block. Call visitor.
          */
-        template <typename IT>
-        void operator()(const std::shared_ptr<dcsc_block<T, IT, CONFIG>>& leaf) {
+        template <typename LEAF_TYPE>
+        void operator()(const std::shared_ptr<LEAF_TYPE>& leaf) {
             if (leaf) {
                 leaf_callback(leaf, offsets, shape);
             }

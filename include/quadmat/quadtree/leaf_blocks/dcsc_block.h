@@ -10,10 +10,11 @@
 
 using std::vector;
 
-#include "quadmat/quadtree/block.h"
+#include "quadmat/quadtree/tree_nodes.h"
 #include "quadmat/util/base_iterators.h"
 #include "quadmat/util/util.h"
 
+#include "quadmat/quadtree/leaf_blocks/window_shadow_block.h"
 
 namespace quadmat {
 
@@ -33,12 +34,15 @@ namespace quadmat {
      * @tparam IT index type
      * @tparam CONFIG storage configuration options
      */
-    template<typename T, typename IT, typename CONFIG = default_config>
+    template<typename T, typename IT, typename CONFIG>
     class dcsc_block: public block<T> {
     public:
         using value_type = T;
         using index_type = IT;
         using config_type = CONFIG;
+
+        using row_iter_type = typename vector<IT, typename config_type::template ALLOC<IT>>::const_iterator;
+        using value_iter_type = typename vector<value_type, typename config_type::template ALLOC<value_type>>::const_iterator;
 
         dcsc_block() = default;
     public:
@@ -139,9 +143,9 @@ namespace quadmat {
          */
         struct column_ref {
             IT col;
-            typename vector<IT, typename CONFIG::template ALLOC<IT>>::const_iterator rows_begin;
-            typename vector<IT, typename CONFIG::template ALLOC<IT>>::const_iterator rows_end;
-            typename vector<T, typename CONFIG::template ALLOC<T>>::const_iterator values_begin;
+            row_iter_type rows_begin;
+            row_iter_type rows_end;
+            value_iter_type values_begin;
         };
 
         /**
@@ -165,10 +169,6 @@ namespace quadmat {
                     .rows_end = block->row_ind.begin() + block->col_ptr[this->i+1],
                     .values_begin = block->values.begin() + block->col_ptr[this->i],
                 };
-            }
-
-            value_type operator[](const difference_type n) const {
-                return *((*this) + n);
             }
 
         private:
@@ -217,6 +217,26 @@ namespace quadmat {
                     sizeof(dcsc_block<T, IT, CONFIG>),
                     values.size()
             };
+        }
+
+        /**
+         * Create a shadow block that provides a view of a part of this leaf block
+         */
+        static tree_node_t<T, CONFIG> get_shadow_block(const std::shared_ptr<dcsc_block<T, IT, CONFIG>>& base_dcsc, const offset_t& offsets, const shape_t& shape) {
+            // find the column range for the shadow
+            auto begin_column_pos = std::lower_bound(begin(base_dcsc->col_ind), end(base_dcsc->col_ind), offsets.col_offset);
+            auto begin_column = column_iterator(base_dcsc.get(), begin_column_pos - begin(base_dcsc->col_ind));
+
+            auto end_column_pos = std::upper_bound(begin(base_dcsc->col_ind), end(base_dcsc->col_ind), offsets.col_offset - 1 + shape.ncols);
+            auto end_column = column_iterator(base_dcsc.get(), end_column_pos - begin(base_dcsc->col_ind));
+
+            leaf_index_type shadow_type = get_leaf_index_type(shape);
+
+            return std::visit(overloaded{
+                    [&](int64_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(std::make_shared<window_shadow_block<int64_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
+                    [&](int32_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(std::make_shared<window_shadow_block<int32_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
+                    [&](int16_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(std::make_shared<window_shadow_block<int16_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
+            }, shadow_type);
         }
 
     protected:

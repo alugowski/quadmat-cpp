@@ -23,7 +23,7 @@ namespace quadmat {
      * @tparam derived implementation class
      */
     template<typename derived>
-    class base_tuple_input_iterator {
+    class base_input_iterator {
     public:
         derived operator++(int) { // NOLINT(cert-dcl21-cpp)
             derived temp(*this);
@@ -58,7 +58,7 @@ namespace quadmat {
     class base_indexed_random_access_iterator {
     public:
         // - default-constructible
-        base_indexed_random_access_iterator() : i(0) {}
+        base_indexed_random_access_iterator() = default;
 
         // - copy-constructible, copy-assignable and destructible
         explicit base_indexed_random_access_iterator(IT i) : i(i) {}
@@ -163,11 +163,36 @@ namespace quadmat {
         }
 
         // - Supports offset dereference operator ([])
-        // left to derived
+        auto operator[](const std::ptrdiff_t n) const {
+            return *(*static_cast<derived*>(this) + n);
+        }
 
     protected:
         IT i;
     };
 
+    /**
+     * Iterator that wraps another iterator and returns an offset version of the base iterator's values
+     */
+    template <typename BASE_ITER>
+    class offset_iterator: public base_indexed_random_access_iterator<BASE_ITER, offset_iterator<BASE_ITER>> {
+    public:
+        using iterator_category = typename BASE_ITER::iterator_category;
+        using value_type = typename BASE_ITER::value_type;
+        using pointer = typename BASE_ITER::pointer;
+        using reference = typename BASE_ITER::reference;
+        using difference_type = typename BASE_ITER::difference_type;
+
+        offset_iterator() = default;
+        explicit offset_iterator(const BASE_ITER& iter, const typename BASE_ITER::value_type& offset) : base_indexed_random_access_iterator<BASE_ITER, offset_iterator<BASE_ITER>>(iter), offset(offset) {}
+        offset_iterator(const offset_iterator<BASE_ITER>& rhs) : base_indexed_random_access_iterator<BASE_ITER, offset_iterator<BASE_ITER>>(rhs.i), offset(rhs.offset) {}
+
+        value_type operator*() const {
+            return *(this->i) + offset;
+        }
+
+    private:
+        typename BASE_ITER::value_type offset;
+    };
 }
 #endif //QUADMAT_BASE_ITERATORS_H
