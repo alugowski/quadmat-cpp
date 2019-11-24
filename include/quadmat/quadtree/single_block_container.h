@@ -52,7 +52,7 @@ namespace quadmat {
          * beyond.
          */
         [[nodiscard]] index_t get_discriminating_bit() const override {
-            return clear_all_except_msb(std::max(shape.ncols, shape.nrows) - 1) << 1;
+            return quadmat::get_discriminating_bit(shape) << 1;
         }
     protected:
         shape_t shape;

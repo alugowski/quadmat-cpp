@@ -155,6 +155,7 @@ namespace quadmat {
     class node_type_mismatch : public std::invalid_argument {
     public:
         node_type_mismatch() : invalid_argument("node mismatch") {}
+        explicit node_type_mismatch(const std::string &s): invalid_argument("node mismatch: " + s) {}
     };
 }
 

@@ -6,6 +6,7 @@
 
 #include <type_traits>
 #include "quadmat/quadtree/tree_visitors.h"
+#include "quadmat/quadtree/shadow_subdivision.h"
 #include "quadmat/algorithms/multiply_leaves.h"
 
 namespace quadmat {
@@ -283,7 +284,9 @@ namespace quadmat {
              */
             template <typename IT>
             void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& lhs, const leaf_category_t<RT, IT, CONFIG>& rhs) {
-                throw not_implemented("shadow subdivision");
+                // TODO: check that the below shape guess is safe
+                auto rhs_inner = shadow_subdivide(rhs, shape_t{lhs->get_discriminating_bit()*2, lhs->get_discriminating_bit()*2});
+                return operator()(lhs, rhs_inner);
             }
 
             /**
@@ -293,15 +296,17 @@ namespace quadmat {
              */
             template <typename IT>
             void operator()(const leaf_category_t<LT, IT, CONFIG>& lhs, const std::shared_ptr<inner_block<RT, CONFIG>>& rhs) {
-                throw not_implemented("shadow subdivision");
+                // TODO: check that the below shape guess is safe
+                auto lhs_inner = shadow_subdivide(lhs, shape_t{rhs->get_discriminating_bit()*2, rhs->get_discriminating_bit()*2});
+                return operator()(lhs_inner, rhs);
             }
 
             /**
-             * Reached two leaf blocks.
+             * Reached two leaf blocks. This shouldn't happen here.
              */
             template <typename IT>
             void operator()(const leaf_category_t<LT, IT, CONFIG>& lhs, const leaf_category_t<RT, IT, CONFIG>& rhs) {
-                throw not_implemented("shadow subdivision");
+                throw node_type_mismatch();
             }
 
             /**
@@ -340,7 +345,7 @@ namespace quadmat {
             template <typename LHS, typename RHS>
             void operator()(const LHS& lhs, const RHS& rhs) {
                 // should not happen
-                throw node_type_mismatch();
+                throw node_type_mismatch(std::string("catchall handler called with ( ") + typeid(lhs).name() + " , " + typeid(rhs).name() + " )");
             }
 
         protected:

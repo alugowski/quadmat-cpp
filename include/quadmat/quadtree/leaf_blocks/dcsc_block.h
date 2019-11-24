@@ -210,6 +210,18 @@ namespace quadmat {
             return column_iterator(this, pos - begin(col_ind));
         }
 
+        /**
+         * @param col column to look up
+         * @return column iterator point at col, or if there is no such column, the next larger column (or columns_end())
+         */
+        column_iterator column_lower_bound(IT col) const {
+            auto pos = std::lower_bound(begin(col_ind), end(col_ind), col);
+            if (pos == end(col_ind)) {
+                return columns_end();
+            }
+            return column_iterator(this, pos - begin(col_ind));
+        }
+
         block_size_info size() override {
             return block_size_info{
                     col_ind.size() * sizeof(IT) + col_ptr.size() * sizeof(blocknnn_t) + row_ind.size() * sizeof(IT),
@@ -236,6 +248,28 @@ namespace quadmat {
                     [&](int64_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(std::make_shared<window_shadow_block<int64_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
                     [&](int32_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(std::make_shared<window_shadow_block<int32_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
                     [&](int16_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(std::make_shared<window_shadow_block<int16_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
+            }, shadow_type);
+        }
+
+        /**
+         * Create a shadow block that provides a view of a part of this leaf block
+         *
+         * @param base_dcsc a shared pointer to this
+         * @param shadow_begin_column first column that the shadow block should consider
+         * @param shadow_end_column one past the end column that the shadow block should consider
+         * @param shadow_offsets row and column offsets of the shadow's tuples
+         * @param shadow_shape shape of the shadow block
+         * @return a leaf tree node
+         */
+        tree_node_t<T, CONFIG> get_shadow_block(const std::shared_ptr<dcsc_block<T, IT, CONFIG>>& base_dcsc,
+                                                const column_iterator& shadow_begin_column, const column_iterator& shadow_end_column,
+                                                const offset_t& shadow_offsets, const shape_t& shadow_shape) {
+            leaf_index_type shadow_type = get_leaf_index_type(shadow_shape);
+
+            return std::visit(overloaded{
+                    [&](int64_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(std::make_shared<window_shadow_block<int64_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
+                    [&](int32_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(std::make_shared<window_shadow_block<int32_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
+                    [&](int16_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(std::make_shared<window_shadow_block<int16_t, dcsc_block<T, IT, CONFIG>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
             }, shadow_type);
         }
 

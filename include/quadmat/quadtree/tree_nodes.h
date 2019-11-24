@@ -48,6 +48,8 @@ namespace quadmat {
     struct leaf_category_struct<T, int64_t, CONFIG> {
         using type = std::variant<
                 std::shared_ptr<dcsc_block<T, int64_t, CONFIG>>,
+                std::shared_ptr<window_shadow_block<int64_t, dcsc_block<T, int16_t, CONFIG>>>, // unused, needed for compilation of shadow blocks. TODO: find a way to get rid of this
+                std::shared_ptr<window_shadow_block<int64_t, dcsc_block<T, int32_t, CONFIG>>>, // unused, needed for compilation of shadow blocks. TODO: find a way to get rid of this
                 std::shared_ptr<window_shadow_block<int64_t, dcsc_block<T, int64_t, CONFIG>>>
                 >;
     };
@@ -59,6 +61,7 @@ namespace quadmat {
     struct leaf_category_struct<T, int32_t, CONFIG> {
         using type = std::variant<
                 std::shared_ptr<dcsc_block<T, int32_t, CONFIG>>,
+                std::shared_ptr<window_shadow_block<int32_t, dcsc_block<T, int16_t, CONFIG>>>, // unused, needed for compilation of shadow blocks. TODO: find a way to get rid of this
                 std::shared_ptr<window_shadow_block<int32_t, dcsc_block<T, int32_t, CONFIG>>>,
                 std::shared_ptr<window_shadow_block<int32_t, dcsc_block<T, int64_t, CONFIG>>>
                 >;

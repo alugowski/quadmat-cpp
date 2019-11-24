@@ -84,6 +84,14 @@ namespace quadmat {
             bool operator==(const column_iterator& rhs) const {
                 return iter == rhs.iter;
             }
+
+            /**
+             * @return iterator to the base column
+             */
+            const typename BASE_LEAF::column_iterator& get_base_iter() const {
+                return iter;
+            }
+
         private:
             void advance_to_next_nonempty_col() {
                 while (iter != shadow_block->end_column && !shadow_block->are_rows_in_window(iter)) {
@@ -126,9 +134,47 @@ namespace quadmat {
 
             if (base_iter == base->columns_end()) {
                 return end_iter;
+            } else {
+                return column_iterator(this, base_iter);
             }
+        }
 
-            return column_iterator(this, base_iter);
+        /**
+         * @param col column to look up
+         * @return column iterator point at col, or if there is no such column, the next larger column (or columns_end())
+         */
+        column_iterator column_lower_bound(IT col) const {
+            const typename BASE_LEAF::column_iterator base_iter = base->column_lower_bound(col + offsets.col_offset);
+
+            if (base_iter == base->columns_end()) {
+                return end_iter;
+            } else {
+                return column_iterator(this, base_iter);
+            }
+        }
+
+        /**
+         * Create a shadow block that provides a view of a part of this leaf block
+         *
+         * @param ignored shared pointer to this.
+         * @param shadow_begin_column first column that the shadow block should consider
+         * @param shadow_end_column one past the end column that the shadow block should consider
+         * @param shadow_offsets row and column offsets of the shadow's tuples
+         * @param shadow_shape shape of the shadow block
+         * @return a leaf tree node
+         */
+        tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> get_shadow_block(
+                const std::shared_ptr<window_shadow_block<IT, BASE_LEAF>>& ignored,
+                const column_iterator& shadow_begin_column, const column_iterator& shadow_end_column,
+                const offset_t& shadow_offsets, const shape_t& shadow_shape) {
+
+            leaf_index_type shadow_type = get_leaf_index_type(shadow_shape);
+
+            return std::visit(overloaded{
+                    [&](int64_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int64_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int64_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), shadow_offsets, shadow_shape)); },
+                    [&](int32_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int32_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int32_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), shadow_offsets, shadow_shape)); },
+                    [&](int16_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int16_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int16_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), shadow_offsets, shadow_shape)); },
+            }, shadow_type);
         }
 
         /**

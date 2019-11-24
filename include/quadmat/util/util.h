@@ -251,6 +251,15 @@ namespace quadmat {
 
         return (1ul << msb);
     }
+
+    /**
+     * Find the discriminating bit to be used if a particular shape is to be subdivided.
+     * @param shape
+     * @return
+     */
+    inline index_t get_discriminating_bit(const shape_t& shape) {
+        return clear_all_except_msb(std::max(shape.ncols, shape.nrows) - 1); // NOLINT(hicpp-signed-bitwise),
+    }
 }
 
 #endif //QUADMAT_UTIL_H
