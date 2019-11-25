@@ -87,6 +87,16 @@ namespace quadmat {
     using leaf_category_t = typename leaf_category_struct<T, IT, CONFIG>::type;
 
     /**
+     * Leaf node
+     */
+    template <typename T, typename CONFIG = default_config>
+    using leaf_node_t = std::variant<
+            leaf_category_t<T, int64_t, CONFIG>,
+            leaf_category_t<T, int32_t, CONFIG>,
+            leaf_category_t<T, int16_t, CONFIG>
+            >;
+
+    /**
      * All tree nodes
      */
     template <typename T, typename CONFIG = default_config>
@@ -94,9 +104,7 @@ namespace quadmat {
             std::monostate, // empty
             std::shared_ptr<future_block<T, CONFIG>>, // a block that will be computed later
             std::shared_ptr<inner_block<T, CONFIG>>, // next level of quad tree
-            leaf_category_t<T, int64_t, CONFIG>,
-            leaf_category_t<T, int32_t, CONFIG>,
-            leaf_category_t<T, int16_t, CONFIG>
+            leaf_node_t<T, CONFIG> // leaf node
             >;
 
     /**

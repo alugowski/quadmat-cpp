@@ -19,27 +19,6 @@ namespace quadmat {
         explicit subdivision_visitor_t(const shape_t& shape) : node_shape(shape) {}
 
         /**
-         * Reached a null block. Error condition.
-         */
-        std::shared_ptr<inner_block<T, CONFIG>> operator()(const std::monostate& ignored) {
-            throw node_type_mismatch();
-        }
-
-        /**
-         * Reached a future block. Error condition.
-         */
-        std::shared_ptr<inner_block<T, CONFIG>> operator()(const std::shared_ptr<future_block<T, CONFIG>>& fb) {
-            throw node_type_mismatch();
-        }
-
-        /**
-         * Reached an inner block. Already subdivided
-         */
-        std::shared_ptr<inner_block<T, CONFIG>> operator()(const std::shared_ptr<inner_block<T, CONFIG>> inner) {
-            return inner;
-        }
-
-        /**
          * Reached a leaf block category.
          */
         std::shared_ptr<inner_block<T, CONFIG>> operator()(const leaf_category_t<T, int64_t, CONFIG>& leaf) {
@@ -114,7 +93,7 @@ namespace quadmat {
      * @return an inner block
      */
     template <typename T, typename CONFIG = default_config>
-    std::shared_ptr<inner_block<T, CONFIG>> shadow_subdivide(const tree_node_t<T, CONFIG>& node, const shape_t& shape) {
+    std::shared_ptr<inner_block<T, CONFIG>> shadow_subdivide(const leaf_node_t<T, CONFIG>& node, const shape_t& shape) {
         return std::visit(subdivision_visitor_t<T, CONFIG>(shape), node);
     }
 }

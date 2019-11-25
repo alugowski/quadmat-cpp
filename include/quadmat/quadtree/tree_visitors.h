@@ -29,13 +29,13 @@ namespace quadmat {
      * @return
      */
     template <typename T, typename CONFIG = default_config, typename GEN>
-    tree_node_t<T, CONFIG> create_leaf(const shape_t& shape, const blocknnn_t nnn, const GEN col_ordered_gen) {
+    leaf_node_t<T, CONFIG> create_leaf(const shape_t& shape, const blocknnn_t nnn, const GEN col_ordered_gen) {
         leaf_index_type desired_index_type = get_leaf_index_type(shape);
 
         return std::visit(overloaded{
-                [&](int64_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(std::make_shared<dcsc_block<T, int64_t, CONFIG>>(nnn, col_ordered_gen)); },
-                [&](int32_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(std::make_shared<dcsc_block<T, int32_t, CONFIG>>(nnn, col_ordered_gen)); },
-                [&](int16_t dim) -> tree_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(std::make_shared<dcsc_block<T, int16_t, CONFIG>>(nnn, col_ordered_gen)); },
+                [&](int64_t dim) -> leaf_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(std::make_shared<dcsc_block<T, int64_t, CONFIG>>(nnn, col_ordered_gen)); },
+                [&](int32_t dim) -> leaf_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(std::make_shared<dcsc_block<T, int32_t, CONFIG>>(nnn, col_ordered_gen)); },
+                [&](int16_t dim) -> leaf_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(std::make_shared<dcsc_block<T, int16_t, CONFIG>>(nnn, col_ordered_gen)); },
         }, desired_index_type);
     }
 
@@ -82,6 +82,13 @@ namespace quadmat {
                 shape_t child_shape = inner->get_child_shape(pos, shape);
                 std::visit(leaf_visitor_t<T, CALLBACK, CONFIG>(leaf_callback, child_offsets, child_shape), child);
             }
+        }
+
+        /**
+         * Reached a leaf node.
+         */
+        void operator()(const leaf_node_t<T, CONFIG>& leaf) {
+            std::visit(*this, leaf);
         }
 
         /**

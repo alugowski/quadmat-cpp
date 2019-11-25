@@ -68,9 +68,7 @@ bool is_leaf(tree_node_t<T, CONFIG> node) {
             [](const std::monostate& ignored) { return false; },
             [](const std::shared_ptr<future_block<T, CONFIG>>& ignored) { return false; },
             [](const std::shared_ptr<inner_block<T, CONFIG>>& ignored) { return false; },
-            [](const leaf_category_t<T, int64_t, CONFIG>& ignored) { return true; },
-            [](const leaf_category_t<T, int32_t, CONFIG>& ignored) { return true; },
-            [](const leaf_category_t<T, int16_t, CONFIG>& ignored) { return true; },
+            [](const leaf_node_t<T, CONFIG>& ignored) { return true; }
     }, node);
 }
 

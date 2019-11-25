@@ -23,9 +23,9 @@ TEST_CASE("Shadow Subdivision") {
 
     SECTION(problem.description) {
         auto block = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.sorted_tuples.size(), problem.sorted_tuples);
-        auto node = tree_node_t<double>(block);
+        auto leaf_node = leaf_node_t<double>(block);
 
-        auto shadow_inner = shadow_subdivide(node, problem.shape);
+        auto shadow_inner = shadow_subdivide<double>(leaf_node, problem.shape);
 
         SECTION("get tuples back") {
             vector<std::tuple<index_t, index_t, double>> v = dump_tuples(tree_node_t<double>(shadow_inner));

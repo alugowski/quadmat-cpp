@@ -75,16 +75,20 @@ namespace quadmat {
                 return HAS_INNER;
             }
 
+            unsigned operator()(const leaf_node_t<T, CONFIG> &leaf) {
+                return HAS_LEAF | std::visit(*this, leaf);
+            }
+
             unsigned operator()(const leaf_category_t<T, int64_t, CONFIG> &leaf) {
-                return HAS_LEAF | HAS_LEAF_64;
+                return HAS_LEAF_64;
             }
 
             unsigned operator()(const leaf_category_t<T, int32_t, CONFIG> &leaf) {
-                return HAS_LEAF | HAS_LEAF_32;
+                return HAS_LEAF_32;
             }
 
             unsigned operator()(const leaf_category_t<T, int16_t, CONFIG> &leaf) {
-                return HAS_LEAF | HAS_LEAF_16;
+                return HAS_LEAF_16;
             }
         };
 
@@ -279,25 +283,19 @@ namespace quadmat {
 
             /**
              * Reached an inner block and a leaf block.
-             *
-             * @tparam LEAF_CAT
              */
-            template <typename IT>
-            void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& lhs, const leaf_category_t<RT, IT, CONFIG>& rhs) {
+            void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
                 // TODO: check that the below shape guess is safe
-                auto rhs_inner = shadow_subdivide(rhs, shape_t{lhs->get_discriminating_bit()*2, lhs->get_discriminating_bit()*2});
+                auto rhs_inner = shadow_subdivide<RT>(rhs, shape_t{lhs->get_discriminating_bit()*2, lhs->get_discriminating_bit()*2});
                 return operator()(lhs, rhs_inner);
             }
 
             /**
              * Reached a leaf block and an inner block.
-             *
-             * @tparam LEAF_CAT
              */
-            template <typename IT>
-            void operator()(const leaf_category_t<LT, IT, CONFIG>& lhs, const std::shared_ptr<inner_block<RT, CONFIG>>& rhs) {
+            void operator()(const leaf_node_t<LT, CONFIG>& lhs, const std::shared_ptr<inner_block<RT, CONFIG>>& rhs) {
                 // TODO: check that the below shape guess is safe
-                auto lhs_inner = shadow_subdivide(lhs, shape_t{rhs->get_discriminating_bit()*2, rhs->get_discriminating_bit()*2});
+                auto lhs_inner = shadow_subdivide<LT>(lhs, shape_t{rhs->get_discriminating_bit()*2, rhs->get_discriminating_bit()*2});
                 return operator()(lhs_inner, rhs);
             }
 
@@ -411,6 +409,13 @@ namespace quadmat {
         class leaf_category_pair_multiply_visitor_t {
         public:
             explicit leaf_category_pair_multiply_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}
+
+            /**
+             * Unpack leaf nodes into categories
+             */
+            void operator()(const leaf_node_t<LT, CONFIG>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
+                std::visit(*this, lhs, rhs);
+            }
 
             /**
              * Visit categories.
