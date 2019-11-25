@@ -132,7 +132,7 @@ namespace quadmat {
         column_iterator column(IT col) const {
             const typename BASE_LEAF::column_iterator base_iter = base->column(col + offsets.col_offset);
 
-            if (base_iter == base->columns_end()) {
+            if (base_iter == base->columns_end() || !are_rows_in_window(base_iter)) {
                 return end_iter;
             } else {
                 return column_iterator(this, base_iter);
