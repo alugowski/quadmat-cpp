@@ -32,8 +32,8 @@ TEST_CASE("Multiply") {
         const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
         SECTION(problem.description) {
-            auto a = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
-            auto b = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
+            auto a = quadmat::dcsc_block_factory<double, index_t>(problem.a.sorted_tuples.size(), problem.a.sorted_tuples).finish();
+            auto b = quadmat::dcsc_block_factory<double, index_t>(problem.b.sorted_tuples.size(), problem.b.sorted_tuples).finish();
 
             shape_t result_shape = {
                     .nrows = problem.a.shape.nrows,

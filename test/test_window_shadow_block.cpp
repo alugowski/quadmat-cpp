@@ -48,7 +48,7 @@ TEST_CASE("Window Shadow Block") {
     const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
 
     SECTION(problem.description) {
-        auto block = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.sorted_tuples.size(), problem.sorted_tuples);
+        auto block = quadmat::dcsc_block_factory<double, index_t>(problem.sorted_tuples.size(), problem.sorted_tuples).finish();
 
         vector<window_t> windows{
                 window_t{"full", {0, 0}, {problem.shape.nrows, problem.shape.ncols}},

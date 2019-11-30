@@ -22,7 +22,7 @@ TEST_CASE("Shadow Subdivision") {
     const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
 
     SECTION(problem.description) {
-        auto block = std::make_shared<quadmat::dcsc_block<double, index_t>>(problem.sorted_tuples.size(), problem.sorted_tuples);
+        auto block = quadmat::dcsc_block_factory<double, index_t>(problem.sorted_tuples.size(), problem.sorted_tuples).finish();
         auto leaf_node = leaf_node_t<double>(block);
 
         auto shadow_inner = shadow_subdivide<double>(leaf_node, problem.shape);

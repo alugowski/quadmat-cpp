@@ -37,7 +37,7 @@ TEST_CASE("DCSC Accumulator") {
 
                 // build component blocks
                 for (auto tuple_range : tuple_ranges) {
-                    auto part = std::make_shared<quadmat::dcsc_block<double, int>>(tuple_range.size(), tuple_range);
+                    auto part = dcsc_block_factory<double, int>(tuple_range.size(), tuple_range).finish();
 
                     accum.add(part);
                 }
@@ -82,7 +82,7 @@ TEST_CASE("DCSC Accumulator") {
                     quadmat::triples_block<double, int> tb;
                     tb.add(tuple_range);
 
-                    auto part = std::make_shared<quadmat::dcsc_block<double, int>>(tuple_range.size(), tb.sorted_tuples());
+                    auto part = quadmat::dcsc_block_factory<double, int>(tuple_range.size(), tb.sorted_tuples()).finish();
 
                     accum.add(part);
                 }
@@ -115,7 +115,7 @@ TEST_CASE("DCSC Accumulator") {
             quadmat::dcsc_accumulator<double, int> accum(problem.shape);
 
             // build component blocks
-            auto part = std::make_shared<quadmat::dcsc_block<double, int>>(problem.sorted_tuples.size(), problem.sorted_tuples);
+            auto part = quadmat::dcsc_block_factory<double, int>(problem.sorted_tuples.size(), problem.sorted_tuples).finish();
 
             accum.add(part);
             accum.add(part);

@@ -15,6 +15,7 @@ namespace quadmat {
 // quad tree
 #include "quadmat/quadtree/tree_nodes.h"
 #include "quadmat/quadtree/tree_visitors.h"
+#include "quadmat/quadtree/tree_construction.h"
 #include "quadmat/algorithms/dcsc_accumulator.h"
 #include "quadmat/quadtree/single_block_container.h"
 #include "quadmat/matrix.h"

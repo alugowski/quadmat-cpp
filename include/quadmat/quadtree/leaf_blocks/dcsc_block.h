@@ -19,12 +19,6 @@ using std::vector;
 namespace quadmat {
 
     /**
-     * Forward declaration of a type that is allowed to construct dcsc_blocks
-     */
-    template <typename T, typename IT, typename CONFIG = default_config>
-    class dcsc_block_factory;
-
-    /**
      * A Doubly-Compressed Sparse Columns block.
      *
      * This format is similar to CSC, but the column array is again compressed to not allow empty columns.
@@ -46,41 +40,19 @@ namespace quadmat {
 
         dcsc_block() = default;
     public:
-        friend class dcsc_block_factory<T, IT, CONFIG>;
-
         /**
-         * Create a DCSC block from (column, row)-ordered tuples. Single pass.
+         * Create a DCSC block. Use dcsc_block_factory to create these vectors.
          *
-         * @tparam GEN tuple generator template type
-         * @param nrows number of rows in this block
-         * @param ncols number of columns in this block
-         * @param nnn estimated number of nonzeros in this block.
-         * @param col_ordered_gen tuple generator. **Must return tuples ordered by column, row**
+         * @param col_ind
+         * @param col_ptr
+         * @param row_ind
+         * @param values
          */
-        template<typename GEN>
-        dcsc_block(const blocknnn_t nnn, const GEN col_ordered_gen) {
-            // reserve memory
-            row_ind.reserve(nnn);
-            values.reserve(nnn);
-
-            IT prev_col = -1;
-            blocknnn_t i = 0;
-            for (auto tup : col_ordered_gen) {
-                IT col = std::get<1>(tup);
-                if (prev_col != col) {
-                    // new column
-                    col_ind.emplace_back(col);
-                    col_ptr.emplace_back(i);
-                }
-                prev_col = col;
-
-                row_ind.emplace_back(std::get<0>(tup)); // add row
-                values.emplace_back(std::get<2>(tup)); // add value
-                i++;
-            }
-
-            col_ptr.emplace_back(i);
-        }
+        dcsc_block(vector<IT, typename CONFIG::template ALLOC<IT>>&& col_ind,
+                   vector<blocknnn_t, typename CONFIG::template ALLOC<blocknnn_t>>&& col_ptr,
+                   vector<IT, typename CONFIG::template ALLOC<IT>>&& row_ind,
+                   vector<T, typename CONFIG::template ALLOC<T>>&& values) :
+                   col_ind(col_ind), col_ptr(col_ptr), row_ind(row_ind), values(values) {}
 
         /**
          * Iterator type for iterating over this block's tuples
@@ -274,10 +246,10 @@ namespace quadmat {
         }
 
     protected:
-        vector<IT, typename CONFIG::template ALLOC<IT>> col_ind;
-        vector<blocknnn_t, typename CONFIG::template ALLOC<blocknnn_t>> col_ptr;
-        vector<IT, typename CONFIG::template ALLOC<IT>> row_ind;
-        vector<T, typename CONFIG::template ALLOC<T>> values;
+        const vector<IT, typename CONFIG::template ALLOC<IT>> col_ind;
+        const vector<blocknnn_t, typename CONFIG::template ALLOC<blocknnn_t>> col_ptr;
+        const vector<IT, typename CONFIG::template ALLOC<IT>> row_ind;
+        const vector<T, typename CONFIG::template ALLOC<T>> values;
     };
 
     /**
@@ -287,10 +259,42 @@ namespace quadmat {
      * @tparam IT
      * @tparam CONFIG
      */
-    template<typename T, typename IT, typename CONFIG>
+    template<typename T, typename IT, typename CONFIG = default_config>
     class dcsc_block_factory {
     public:
-        explicit dcsc_block_factory() : ret(std::make_shared<dcsc_block<T, IT, CONFIG>>()) {}
+        dcsc_block_factory() = default;
+
+        /**
+         * Create a DCSC block from (column, row)-ordered tuples. Single pass.
+         *
+         * @tparam GEN tuple generator template type
+         * @param nrows number of rows in this block
+         * @param ncols number of columns in this block
+         * @param nnn estimated number of nonzeros in this block.
+         * @param col_ordered_gen tuple generator. **Must return tuples ordered by column, row**
+         */
+        template<typename GEN>
+        dcsc_block_factory(const blocknnn_t nnn, const GEN col_ordered_gen) {
+            // reserve memory
+            row_ind.reserve(nnn);
+            values.reserve(nnn);
+
+            IT prev_col = -1;
+            blocknnn_t i = 0;
+            for (auto tup : col_ordered_gen) {
+                IT col = std::get<1>(tup);
+                if (prev_col != col) {
+                    // new column
+                    col_ind.emplace_back(col);
+                    col_ptr.emplace_back(i);
+                }
+                prev_col = col;
+
+                row_ind.emplace_back(std::get<0>(tup)); // add row
+                values.emplace_back(std::get<2>(tup)); // add value
+                i++;
+            }
+        }
 
         /**
          * Dump the contents of a SpA as the last column of the dcsc_block.
@@ -306,10 +310,10 @@ namespace quadmat {
                 return;
             }
 
-            ret->col_ind.emplace_back(col);
-            ret->col_ptr.emplace_back(ret->row_ind.size());
+            col_ind.emplace_back(col);
+            col_ptr.emplace_back(row_ind.size());
 
-            spa.emplace_back_result(ret->row_ind, ret->values);
+            spa.emplace_back_result(row_ind, values);
         }
 
         /**
@@ -321,13 +325,21 @@ namespace quadmat {
          */
         std::shared_ptr<dcsc_block<T, IT, CONFIG>> finish() {
             // cap off the columns
-            ret->col_ptr.emplace_back(ret->row_ind.size());
+            col_ptr.emplace_back(row_ind.size());
 
-            return ret;
+            return std::make_shared<dcsc_block<T, IT, CONFIG>>(
+                    std::move(col_ind),
+                    std::move(col_ptr),
+                    std::move(row_ind),
+                    std::move(values)
+                    );
         }
 
     protected:
-        std::shared_ptr<dcsc_block<T, IT, CONFIG>> ret;
+        vector<IT, typename CONFIG::template ALLOC<IT>> col_ind;
+        vector<blocknnn_t, typename CONFIG::template ALLOC<blocknnn_t>> col_ptr;
+        vector<IT, typename CONFIG::template ALLOC<IT>> row_ind;
+        vector<T, typename CONFIG::template ALLOC<T>> values;
     };
 }
 
