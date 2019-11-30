@@ -62,8 +62,8 @@ TEST_CASE("Multiply") {
         const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
         SECTION(problem.description) {
-            auto a = matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
-            auto b = matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
+            auto a = single_leaf_matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
+            auto b = single_leaf_matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
 
             // make sure the matrices look how this test assumes they do
             REQUIRE(is_leaf(a.get_root_bc()->get_child(0)));
@@ -86,8 +86,8 @@ TEST_CASE("Multiply") {
         const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
         SECTION(problem.description) {
-            auto a = matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
-            auto b = matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
+            auto a = single_leaf_matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
+            auto b = single_leaf_matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
 
             // make sure the matrices look how this test assumes they do
             REQUIRE(is_leaf(a.get_root_bc()->get_child(0)));

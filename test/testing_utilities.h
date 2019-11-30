@@ -402,4 +402,21 @@ string sanity_check(matrix<T, CONFIG>& mat, bool slow=true) {
     return std::visit(sanity_check_visitor<T, CONFIG>(info), mat.get_root_bc()->get_child(0));
 }
 
+/**
+ * Construct a matrix from tuples. The matrix consists of a single leaf.
+ *
+ * @tparam GEN tuple generator. Must have a begin() and end() that return tuple<IT, IT, T> for some integer type IT
+ * @param shape shape of leaf
+ * @param nnn estimated number of non-nulls, i.e. col_ordered_gen.size().
+ * @param col_ordered_gen tuple generator
+ */
+template <typename T, typename CONFIG = default_config, typename GEN>
+matrix<T, CONFIG> single_leaf_matrix_from_tuples(const shape_t shape, const blocknnn_t nnn, const GEN& col_ordered_gen) {
+    matrix<T, CONFIG> ret{shape};
+
+    tree_node_t<T, CONFIG> node = create_leaf<T, CONFIG>(shape, nnn, col_ordered_gen);
+    ret.get_root_bc()->set_child(0, node);
+    return ret;
+}
+
 #endif //QUADMAT_TESTING_UTILITIES_H
