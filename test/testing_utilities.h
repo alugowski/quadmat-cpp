@@ -28,7 +28,7 @@ public:
     explicit tuple_dumper(vector<std::tuple<index_t, index_t, T>> &tuples) : tuples(tuples) {}
 
     template <typename LEAF>
-    void operator()(const std::shared_ptr<LEAF> leaf, offset_t offsets, shape_t shape) const {
+    void operator()(const std::shared_ptr<LEAF>& leaf, const offset_t& offsets, const shape_t& shape) const {
         for (auto tup : leaf->tuples()) {
             tuples.emplace_back(
                     std::get<0>(tup) + offsets.row_offset,
@@ -243,7 +243,7 @@ public:
         std::sort(my_tuples.begin(), my_tuples.end());
     }
 
-    explicit MatrixEquals(const canned_matrix<T, index_t> &mat) : shape(mat.shape), my_tuples(mat.sorted_tuples) {
+    explicit MatrixEquals(const canned_matrix<T, index_t> &mat, const CONFIG& = CONFIG()) : shape(mat.shape), my_tuples(mat.sorted_tuples) {
         std::sort(my_tuples.begin(), my_tuples.end());
     }
 
@@ -297,7 +297,7 @@ struct sanity_check_info {
 };
 
 /**
- * Visitor for santiy checking the quad tree
+ * Visitor for sanity checking the quad tree
  */
 template <typename T, typename CONFIG>
 class sanity_check_visitor {
@@ -357,6 +357,10 @@ public:
         return "";
     }
 
+    string operator()(const leaf_node_t<T, CONFIG>& leaf) {
+        return std::visit(*this, leaf);
+    }
+
     string operator()(const leaf_category_t<T, int64_t, CONFIG>& leaf) {
         return std::visit(*this, leaf);
     }
@@ -369,8 +373,8 @@ public:
         return std::visit(*this, leaf);
     }
 
-    template <typename IT>
-    string operator()(const std::shared_ptr<dcsc_block<T, IT, CONFIG>>& leaf) {
+    template <typename LEAF>
+    string operator()(const std::shared_ptr<LEAF>& leaf) {
         if (info.shape.nrows <= 0 ||
             info.shape.ncols <= 0) {
             return "leaf dimensions <= 0";
@@ -386,7 +390,7 @@ public:
 
             // make sure tuple is within shape
             if (row >= info.shape.nrows || col >= info.shape.ncols) {
-                return "tuple outside of leaf shape";
+                return std::string("tuple <") + std::to_string(row) + ", " + std::to_string(col) + ", " + std::to_string(value) + "> outside of leaf shape " + info.shape.to_string();
             }
         }
         return "";

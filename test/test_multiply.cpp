@@ -56,51 +56,28 @@ TEST_CASE("Multiply") {
             }
         }
     }
-    SECTION("Single inner_block * Single inner_block") {
-        // get the problem
-        int problem_num = GENERATE(range(0, num_multiply_problems));
-        const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
-        SECTION(problem.description) {
-            auto a = single_leaf_matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
-            auto b = single_leaf_matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
-
-            // make sure the matrices look how this test assumes they do
-            REQUIRE(is_leaf(a.get_root_bc()->get_child(0)));
-            REQUIRE(is_leaf(b.get_root_bc()->get_child(0)));
-
-            // subdivide
-            subdivide_leaf(a.get_root_bc(), 0, a.get_shape());
-            subdivide_leaf(b.get_root_bc(), 0, b.get_shape());
-
-            // multiply
-            auto result = multiply<plus_times_semiring<double>>(a, b);
-
-            // test the result
-            REQUIRE_THAT(result, MatrixEquals(problem.result));
-        }
-    }
     SECTION("Simple Trees") {
-        // get the problem
-        int problem_num = GENERATE(range(0, num_multiply_problems));
-        const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
+        auto sub_type = GENERATE(
+                subdivision_t{false, false, "leaf * leaf"},
+                subdivision_t{true, false, "single inner * leaf"},
+                subdivision_t{false, true, "leaf * single inner"},
+                subdivision_t{true, true, "single inner * single inner"}
+        );
 
-        SECTION(problem.description) {
-            auto a = single_leaf_matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
-            auto b = single_leaf_matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
+        SECTION(sub_type.description) {
+            // get the problem
+            int problem_num = GENERATE(range(0, num_multiply_problems));
+            const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
 
-            // make sure the matrices look how this test assumes they do
-            REQUIRE(is_leaf(a.get_root_bc()->get_child(0)));
-            REQUIRE(is_leaf(b.get_root_bc()->get_child(0)));
+            SECTION(problem.description) {
+                auto a = single_leaf_matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
+                auto b = single_leaf_matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
 
-            auto sub_type = GENERATE(
-                    subdivision_t{false, false, "leaf * leaf"},
-                    subdivision_t{true, false, "single inner * leaf"},
-                    subdivision_t{false, true, "leaf * single inner"},
-                    subdivision_t{true, true, "single inner * single inner"}
-                    );
+                // make sure the matrices look how this test assumes they do
+                REQUIRE(is_leaf(a.get_root_bc()->get_child(0)));
+                REQUIRE(is_leaf(b.get_root_bc()->get_child(0)));
 
-            SECTION(sub_type.description) {
                 // subdivide
                 if (sub_type.subdivide_left) {
                     subdivide_leaf(a.get_root_bc(), 0, a.get_shape());
@@ -114,6 +91,57 @@ TEST_CASE("Multiply") {
 
                 // test the result
                 REQUIRE_THAT(result, MatrixEquals(problem.result));
+            }
+        }
+    }
+
+    SECTION("leaf_split_threshold=4") {
+        auto sub_type = GENERATE(
+                // leaf * leaf already handled in another test case
+                subdivision_t{true, false, "tree * leaf"},
+                subdivision_t{false, true, "leaf * tree"},
+                subdivision_t{true, true, "tree * tree"}
+        );
+
+        SECTION(sub_type.description) {
+            // get the problem
+            int problem_num = GENERATE(range(0, num_multiply_problems));
+            const multiply_problem<double, index_t> &problem = multiply_problems[problem_num];
+
+            SECTION(problem.description) {
+                matrix<double, config_split_4> a{problem.a.shape}, b{problem.b.shape};
+
+                // construct matrix a as either a tree or a single leaf
+                if (sub_type.subdivide_left) {
+                    a = matrix_from_tuples<double, config_split_4>(problem.a.shape,
+                                                                   problem.a.sorted_tuples.size(),
+                                                                   problem.a.sorted_tuples);
+                } else {
+                    a = single_leaf_matrix_from_tuples<double, config_split_4>(problem.a.shape,
+                                                                               problem.a.sorted_tuples.size(),
+                                                                               problem.a.sorted_tuples);
+                }
+
+                // construct matrix b as either a tree or a single leaf
+                if (sub_type.subdivide_right) {
+                    b = matrix_from_tuples<double, config_split_4>(problem.b.shape,
+                                                                   problem.b.sorted_tuples.size(),
+                                                                   problem.b.sorted_tuples);
+                } else {
+                    b = single_leaf_matrix_from_tuples<double, config_split_4>(problem.b.shape,
+                                                                               problem.b.sorted_tuples.size(),
+                                                                               problem.b.sorted_tuples);
+                }
+                REQUIRE("" == sanity_check(a)); // NOLINT(readability-container-size-empty)
+                REQUIRE("" == sanity_check(b)); // NOLINT(readability-container-size-empty)
+
+                // multiply
+                auto result = multiply<plus_times_semiring<double>>(a, b);
+
+                REQUIRE("" == sanity_check(result)); // NOLINT(readability-container-size-empty)
+
+                // test the result
+                REQUIRE_THAT(result, MatrixEquals(problem.result, config_split_4()));
             }
         }
     }

@@ -45,6 +45,10 @@ namespace quadmat {
         }
 
         shape_t& operator=(const shape_t& rhs) = default;
+
+        [[nodiscard]] std::string to_string() const {
+            return std::string("{") + std::to_string(nrows) + ", " + std::to_string(ncols) + "}";
+        }
     };
 
     /**
@@ -55,6 +59,13 @@ namespace quadmat {
     struct offset_t {
         index_t row_offset = 0;
         index_t col_offset = 0;
+
+        offset_t operator+(const offset_t& rhs) const {
+            return offset_t{
+                    .row_offset = row_offset + rhs.row_offset,
+                    .col_offset = col_offset + rhs.col_offset,
+            };
+        }
     };
 
     /**

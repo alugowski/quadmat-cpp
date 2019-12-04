@@ -11,6 +11,20 @@
 
 namespace quadmat {
 
+    /**
+     * Compute the shape of the product of matrices a and b.
+     *
+     * @param a_shape shape of matrix a
+     * @param b_shape shape of matrix b
+     * @return shape of matrix a*b
+     */
+    inline shape_t get_multiply_result_shape(const shape_t& a_shape, const shape_t& b_shape) {
+        return shape_t{
+                .nrows = a_shape.nrows,
+                .ncols = b_shape.ncols
+        };
+    }
+
     enum pair_status_t {
         EMPTY_PAIR = 0,
 
@@ -55,8 +69,10 @@ namespace quadmat {
     struct tree_node_pair_t {
         tree_node_t<LT, CONFIG> a;
         tree_node_t<RT, CONFIG> b;
+        shape_t a_shape;
+        shape_t b_shape;
 
-        tree_node_pair_t(const tree_node_t<LT, CONFIG> &a, const tree_node_t<RT, CONFIG> &b) : a(a), b(b) {}
+        tree_node_pair_t(const tree_node_t<LT, CONFIG> &a, const tree_node_t<RT, CONFIG> &b, const shape_t& a_shape, const shape_t& b_shape) : a(a), b(b), a_shape(a_shape), b_shape(b_shape) {}
 
         /**
          * Visitor that describes the contents of this tree_node_pair.
@@ -125,7 +141,7 @@ namespace quadmat {
         vector<tree_node_pair_t<LT, RT, CONFIG>, typename CONFIG::template TEMP_ALLOC<tree_node_pair_t<LT, RT, CONFIG>>> pairs;
 
         pair_set_t() = default;
-        explicit pair_set_t(const tree_node_t<LT, CONFIG>& a, const tree_node_t<LT, CONFIG>& b) : pairs{{a, b}} {}
+        explicit pair_set_t(const tree_node_t<LT, CONFIG>& a, const tree_node_t<LT, CONFIG>& b, const shape_t& a_shape, const shape_t& b_shape) : pairs{{a, b, a_shape, b_shape}} {}
 
         /**
          * Prune any pair in the pair set that has an empty block. The result of that multiplication is also an empty block.
@@ -227,7 +243,7 @@ namespace quadmat {
             array<pair_set_t<LT, RT, CONFIG>, 4> recursive_pair_sets{};
 
             for (auto pair : pair_set.pairs) {
-                std::visit(recursive_visitor_t(recursive_pair_sets), pair.a, pair.b);
+                std::visit(recursive_visitor_t(recursive_pair_sets, pair), pair.a, pair.b);
             }
 
             // recurse
@@ -241,7 +257,35 @@ namespace quadmat {
 
                 job.run();
             }
+
+            // clean up result
+            clean_recurse_result(recursive_dest_block);
+
             return true;
+        }
+
+        /**
+         * Do basic cleanup of a recursive multiply call. This only makes the structure cleaner, it does not change
+         * the meaning of the matrix.
+         *
+         * Cleanup tasks include
+         * - If all children of `recursive_dest_block` are empty then make the result empty too
+         *
+         * @param recursive_dest_block inner_block that was produced.
+         */
+        void clean_recurse_result(std::shared_ptr<inner_block<RETT, CONFIG>>& recursive_dest_block) {
+            bool empty = true;
+            for (auto recursive_child_pos : all_inner_positions) {
+                tree_node_t<RETT, CONFIG> child = recursive_dest_block->get_child(recursive_child_pos);
+                if (!std::holds_alternative<std::monostate>(child)) {
+                    empty = false;
+                    break;
+                }
+            }
+            if (empty) {
+                // all children are empty so remove the empty inner block
+                dest_bc->set_child(dest_position, std::monostate());
+            }
         }
 
         /**
@@ -249,10 +293,12 @@ namespace quadmat {
          */
         class recursive_visitor_t {
         public:
-            explicit recursive_visitor_t(array<pair_set_t<LT, RT, CONFIG>, 4>& ret_sets) : ret_sets(ret_sets) {}
+            explicit recursive_visitor_t(
+                    array<pair_set_t<LT, RT, CONFIG>, 4>& ret_sets,
+                    const tree_node_pair_t<LT, RT, CONFIG>& node_pair) : ret_sets(ret_sets), node_pair(node_pair) {}
 
             /**
-             * Reached two inner blocks. Recurse on children and modify offsets accordingly.
+             * Reached two inner blocks.
              *
              *        A      x      B      =       C
              *
@@ -265,46 +311,50 @@ namespace quadmat {
              */
             void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& a, const std::shared_ptr<inner_block<RT, CONFIG>>& b) {
                 // NW
-                ret_sets[NW].pairs.emplace_back(a->get_child(NW), b->get_child(NW));
-                ret_sets[NW].pairs.emplace_back(a->get_child(NE), b->get_child(SW));
+                ret_sets[NW].pairs.emplace_back(a->get_child(NW), b->get_child(NW), a->get_child_shape(NW, node_pair.a_shape), b->get_child_shape(NW, node_pair.b_shape));
+                ret_sets[NW].pairs.emplace_back(a->get_child(NE), b->get_child(SW), a->get_child_shape(NE, node_pair.a_shape), b->get_child_shape(SW, node_pair.b_shape));
 
                 // NE
-                ret_sets[NE].pairs.emplace_back(a->get_child(NW), b->get_child(NE));
-                ret_sets[NE].pairs.emplace_back(a->get_child(NE), b->get_child(SE));
+                ret_sets[NE].pairs.emplace_back(a->get_child(NW), b->get_child(NE), a->get_child_shape(NW, node_pair.a_shape), b->get_child_shape(NE, node_pair.b_shape));
+                ret_sets[NE].pairs.emplace_back(a->get_child(NE), b->get_child(SE), a->get_child_shape(NE, node_pair.a_shape), b->get_child_shape(SE, node_pair.b_shape));
 
                 // SW
-                ret_sets[SW].pairs.emplace_back(a->get_child(SW), b->get_child(NW));
-                ret_sets[SW].pairs.emplace_back(a->get_child(SE), b->get_child(SW));
+                ret_sets[SW].pairs.emplace_back(a->get_child(SW), b->get_child(NW), a->get_child_shape(SW, node_pair.a_shape), b->get_child_shape(NW, node_pair.b_shape));
+                ret_sets[SW].pairs.emplace_back(a->get_child(SE), b->get_child(SW), a->get_child_shape(SE, node_pair.a_shape), b->get_child_shape(SW, node_pair.b_shape));
 
                 // SE
-                ret_sets[SE].pairs.emplace_back(a->get_child(SW), b->get_child(NE));
-                ret_sets[SE].pairs.emplace_back(a->get_child(SE), b->get_child(SE));
+                ret_sets[SE].pairs.emplace_back(a->get_child(SW), b->get_child(NE), a->get_child_shape(SW, node_pair.a_shape), b->get_child_shape(NE, node_pair.b_shape));
+                ret_sets[SE].pairs.emplace_back(a->get_child(SE), b->get_child(SE), a->get_child_shape(SE, node_pair.a_shape), b->get_child_shape(SE, node_pair.b_shape));
             }
 
             /**
              * Reached an inner block and a leaf block.
              */
             void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
-                // TODO: check that the below shape guess is safe
-                auto rhs_inner = shadow_subdivide<RT>(rhs, shape_t{lhs->get_discriminating_bit()*2, lhs->get_discriminating_bit()*2});
-                return operator()(lhs, rhs_inner);
+                auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape);
+                operator()(lhs, rhs_inner);
             }
 
             /**
              * Reached a leaf block and an inner block.
              */
             void operator()(const leaf_node_t<LT, CONFIG>& lhs, const std::shared_ptr<inner_block<RT, CONFIG>>& rhs) {
-                // TODO: check that the below shape guess is safe
-                auto lhs_inner = shadow_subdivide<LT>(lhs, shape_t{rhs->get_discriminating_bit()*2, rhs->get_discriminating_bit()*2});
-                return operator()(lhs_inner, rhs);
+                auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape);
+                operator()(lhs_inner, rhs);
             }
 
             /**
-             * Reached two leaf blocks. This shouldn't happen here.
+             * Reached two leaf blocks. This happens when two leaves are in a pair set where another pair has an inner block.
              */
-            template <typename IT>
-            void operator()(const leaf_category_t<LT, IT, CONFIG>& lhs, const leaf_category_t<RT, IT, CONFIG>& rhs) {
-                throw node_type_mismatch();
+            void operator()(const leaf_node_t<LT, CONFIG>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
+                // ensure the category is the same
+                if (lhs.index() != rhs.index()) {
+                    throw node_type_mismatch();
+                }
+
+                auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape);
+                auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape);
+                operator()(lhs_inner, rhs_inner);
             }
 
             /**
@@ -321,21 +371,27 @@ namespace quadmat {
             /**
              * Reached a future block.
              */
-            void operator()(const std::shared_ptr<future_block<LT, CONFIG>>& lhs, const std::shared_ptr<future_block<RT, CONFIG>>& rhs) {}
+            void operator()(const std::shared_ptr<future_block<LT, CONFIG>>& lhs, const std::shared_ptr<future_block<RT, CONFIG>>& rhs) {
+                throw not_implemented("future_block in multiply");
+            }
 
             /**
              * Reached a future block.
              * @tparam OTHER anything except std::monostate as that already has a handler above
              */
             template <typename OTHER, std::enable_if_t<std::is_same<OTHER, std::monostate>::value == 0>>
-            void operator()(const std::shared_ptr<future_block<LT, CONFIG>>& lhs, const OTHER& rhs) {}
+            void operator()(const std::shared_ptr<future_block<LT, CONFIG>>& lhs, const OTHER& rhs) {
+                throw not_implemented("future_block in multiply");
+            }
 
             /**
              * Reached a future block
              * @tparam OTHER anything except std::monostate as that already has a handler above
              */
             template <typename OTHER, std::enable_if_t<std::is_same<OTHER, std::monostate>::value == 0>>
-            void operator()(const OTHER& lhs, const std::shared_ptr<future_block<RT, CONFIG>>& rhs) {}
+            void operator()(const OTHER& lhs, const std::shared_ptr<future_block<RT, CONFIG>>& rhs) {
+                throw not_implemented("future_block in multiply");
+            }
 
             /**
              * Catch-all for combinations that should never happen. For example, mixing leaves of different categories.
@@ -348,6 +404,11 @@ namespace quadmat {
 
         protected:
             array<pair_set_t<LT, RT, CONFIG>, 4>& ret_sets;
+
+            /**
+             * The node pair that is being visited. Used for metadata such as shape.
+             */
+            const tree_node_pair_t<LT, RT, CONFIG>& node_pair;
         };
 
 
@@ -393,7 +454,11 @@ namespace quadmat {
                 auto result = accumulator.collapse(job.semiring);
 
                 // write the new block to the result tree
-                job.dest_bc->set_child(job.dest_position, result);
+                if (result->nnn() > 0) {
+                    job.dest_bc->set_child(job.dest_position, leaf_category_t<RETT, RETIT, CONFIG>(result));
+                } else {
+                    job.dest_bc->set_child(job.dest_position, std::monostate());
+                }
 
                 return true;
             }

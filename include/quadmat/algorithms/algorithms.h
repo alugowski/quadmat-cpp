@@ -26,16 +26,17 @@ namespace quadmat {
             const SR& semiring = SR()) {
 
         // create the result matrix
-        matrix<typename SR::reduce_type, CONFIG> ret = matrix<typename SR::reduce_type, CONFIG>{shape_t{
-            .nrows = a.get_shape().nrows,
-            .ncols = b.get_shape().ncols
-        }};
+        matrix<typename SR::reduce_type, CONFIG> ret = matrix<typename SR::reduce_type, CONFIG>{
+            get_multiply_result_shape(a.get_shape(), b.get_shape())
+        };
 
         // setup multiply job
         spawn_multiply_job<SR, CONFIG> job(
                 quadmat::pair_set_t<typename SR::map_type_l, typename SR::map_type_r, CONFIG>{
                     a.get_root_bc()->get_child(0),
-                    b.get_root_bc()->get_child(0)
+                    b.get_root_bc()->get_child(0),
+                    a.get_shape(),
+                    b.get_shape()
                     },
                 ret.get_root_bc(), 0, {0, 0}, ret.get_shape(), semiring);
 

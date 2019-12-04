@@ -30,6 +30,17 @@ namespace quadmat {
          */
         void add(std::shared_ptr<dcsc_block<T, IT, CONFIG>> new_block) {
             children.push_back(new_block);
+
+#if QUADMAT_DEBUG_INLINE_SANITY_TESTING
+            for (auto tup : new_block->tuples()) {
+                auto [row, col, value] = tup;
+
+                // make sure tuple is within shape
+                if (row >= shape.nrows || col >= shape.ncols) {
+                    throw std::invalid_argument(std::string("tuple <") + std::to_string(row) + ", " + std::to_string(col) + ", " + std::to_string(value) + "> outside of leaf shape " + shape.to_string());
+                }
+            }
+#endif
         }
 
         auto begin() const {

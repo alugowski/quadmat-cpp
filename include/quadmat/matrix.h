@@ -59,14 +59,20 @@ namespace quadmat {
      * @tparam GEN tuple generator. Must have a begin() and end() that return tuple<IT, IT, T> for some integer type IT
      * @param shape shape of leaf
      * @param nnn estimated number of non-nulls, i.e. col_ordered_gen.size().
-     * @param col_ordered_gen tuple generator
+     * @param gen tuple generator
      */
     template <typename T, typename CONFIG = default_config, typename GEN>
-    matrix<T, CONFIG> matrix_from_tuples(const shape_t shape, const blocknnn_t nnn, const GEN& col_ordered_gen) {
+    matrix<T, CONFIG> matrix_from_tuples(const shape_t shape, const blocknnn_t nnn, const GEN& gen) {
         matrix<T, CONFIG> ret{shape};
 
-        tree_node_t<T, CONFIG> node = create_leaf<T, CONFIG>(shape, nnn, col_ordered_gen);
-        ret.get_root_bc()->set_child(0, node);
+        // copy tuples into a triples block
+        auto triples = std::make_shared<triples_block<T, index_t, CONFIG>>();
+        triples->add(gen);
+
+        // get a quadmat quadtree by subdividing the triples block
+        auto subdivided_node = subdivide(triples, shape);
+
+        ret.get_root_bc()->set_child(0, subdivided_node);
         return ret;
     }
 }

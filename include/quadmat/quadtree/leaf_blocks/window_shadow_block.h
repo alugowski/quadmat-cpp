@@ -184,9 +184,9 @@ namespace quadmat {
             leaf_index_type shadow_type = get_leaf_index_type(shadow_shape);
 
             return std::visit(overloaded{
-                    [&](int64_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int64_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int64_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), shadow_offsets, shadow_shape)); },
-                    [&](int32_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int32_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int32_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), shadow_offsets, shadow_shape)); },
-                    [&](int16_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int16_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int16_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), shadow_offsets, shadow_shape)); },
+                    [&](int64_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int64_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int64_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), offsets + shadow_offsets, shadow_shape)); },
+                    [&](int32_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int32_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int32_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), offsets + shadow_offsets, shadow_shape)); },
+                    [&](int16_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int16_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int16_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), offsets + shadow_offsets, shadow_shape)); },
             }, shadow_type);
         }
 
