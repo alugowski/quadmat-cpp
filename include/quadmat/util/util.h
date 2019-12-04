@@ -258,7 +258,11 @@ namespace quadmat {
      * @return
      */
     inline index_t get_discriminating_bit(const shape_t& shape) {
-        return clear_all_except_msb(std::max(shape.ncols, shape.nrows) - 1); // NOLINT(hicpp-signed-bitwise),
+        index_t dim_max = std::max(shape.ncols, shape.nrows);
+        if (dim_max < 2) {
+            return 1;
+        }
+        return clear_all_except_msb(dim_max - 1); // NOLINT(hicpp-signed-bitwise),
     }
 }
 

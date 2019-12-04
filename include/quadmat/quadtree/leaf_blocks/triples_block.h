@@ -26,6 +26,7 @@ namespace quadmat {
         using value_type = T;
         using index_type = IT;
         using config_type = CONFIG;
+        using permutation_vector_type = vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>;
 
         triples_block() = default;
 
@@ -80,7 +81,7 @@ namespace quadmat {
             tuple_iterator(const triples_block<T, IT, CONFIG>* block, size_t i) : base_indexed_random_access_iterator<size_t, tuple_iterator>(i), block(block) {}
             tuple_iterator(const tuple_iterator& rhs) : base_indexed_random_access_iterator<size_t, tuple_iterator>(rhs.i), block(rhs.block) {}
 
-            value_type operator*() {
+            value_type operator*() const {
                 return std::tuple<IT, IT, T>(block->rows[this->i], block->cols[this->i], block->values[this->i]);
             }
 
@@ -101,7 +102,7 @@ namespace quadmat {
 
             explicit permuted_iterator(
                     const triples_block<T, IT, CONFIG>* block,
-                    shared_ptr<vector<size_t>> permutation,
+                    shared_ptr<permutation_vector_type> permutation,
                     size_t i)
                     : base_indexed_random_access_iterator<size_t, permuted_iterator>(i),
                             permutation(std::move(permutation)),
@@ -112,7 +113,7 @@ namespace quadmat {
                             permutation(rhs.permutation),
                             block(rhs.block) {}
 
-            value_type operator*() {
+            value_type operator*() const {
                 return std::tuple<IT, IT, T>(
                         block->rows[(*permutation)[this->i]],
                         block->cols[(*permutation)[this->i]],
@@ -120,7 +121,7 @@ namespace quadmat {
             }
 
         private:
-            shared_ptr<vector<size_t>> permutation;
+            shared_ptr<permutation_vector_type> permutation;
             const triples_block<T, IT, CONFIG>* block;
         };
 
@@ -128,15 +129,37 @@ namespace quadmat {
          * @return a (begin, end) pair of tuple iterators that return tuples in order sorted by column, row.
          */
         range_t<tuple_iterator> original_tuples() const {
-            return range_t<tuple_iterator>{tuple_iterator(this, 0), tuple_iterator(this, rows.size())};
+            return range_t<tuple_iterator>{
+                tuple_iterator(this, 0),
+                tuple_iterator(this, rows.size())
+            };
         }
 
         /**
          * @return a (begin, end) pair of tuple iterators that return tuples in order sorted by column, row.
          */
         range_t<permuted_iterator> sorted_tuples() const {
-            shared_ptr<vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>> permutation = std::make_shared<vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>>>(get_sort_permutation());
-            return range_t<permuted_iterator>{permuted_iterator(this, permutation, 0), permuted_iterator(this, permutation, rows.size())};
+            auto permutation = get_sort_permutation();
+            return range_t<permuted_iterator>{
+                permuted_iterator(this, permutation, 0),
+                permuted_iterator(this, permutation, rows.size())
+            };
+        }
+
+        /**
+         *
+         * @param permutation a permutation vector
+         * @param p_begin start of permutation range
+         * @param p_end end of permutation range
+         * @return a (begin, end) pair of tuple iterators that return tuples in the order specified by permutation.
+         */
+        range_t<permuted_iterator> permuted_tuples(shared_ptr<permutation_vector_type> permutation,
+                                                   typename permutation_vector_type::iterator p_begin,
+                                                   typename permutation_vector_type::iterator p_end) const {
+            return range_t<permuted_iterator>{
+                permuted_iterator(this, permutation, p_begin - permutation->begin()),
+                permuted_iterator(this, permutation, p_end - permutation->begin())
+            };
         }
 
         /**
@@ -144,6 +167,22 @@ namespace quadmat {
          */
         [[nodiscard]] blocknnn_t nnn() const {
             return values.size();
+        }
+
+        /**
+         * @param i
+         * @return the row index of tuple i
+         */
+        [[nodiscard]] IT get_row(size_t i) const {
+            return rows[i];
+        }
+
+        /**
+         * @param i
+         * @return the column index of tuple i
+         */
+        [[nodiscard]] IT get_col(size_t i) const {
+            return cols[i];
         }
 
     protected:
@@ -154,11 +193,11 @@ namespace quadmat {
         /**
          * Get a permutation that would order the triples by column then row.
          */
-        vector<size_t, typename CONFIG::template TEMP_ALLOC<size_t>> get_sort_permutation() const
+        shared_ptr<permutation_vector_type> get_sort_permutation() const
         {
-            std::vector<std::size_t, typename CONFIG::template TEMP_ALLOC<size_t>> p(rows.size());
-            std::iota(p.begin(), p.end(), 0);
-            std::sort(p.begin(), p.end(),
+            auto p = std::make_shared<permutation_vector_type>(rows.size());
+            std::iota(p->begin(), p->end(), 0);
+            std::sort(p->begin(), p->end(),
                       [&](size_t i, size_t j) {
                 if (cols[i] != cols[j]) {
                     return cols[i] < cols[j];

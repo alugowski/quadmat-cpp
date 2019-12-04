@@ -194,5 +194,50 @@ namespace quadmat {
     private:
         typename BASE_ITER::value_type offset;
     };
+
+    /**
+     * Iterator that wraps a tuple iterator and returns an offset version of that iterator's tuples
+     */
+    template <typename BASE_ITER>
+    class offset_tuples_iterator: public BASE_ITER {
+    public:
+        using iterator_category = typename BASE_ITER::iterator_category;
+        using value_type = typename BASE_ITER::value_type;
+        using pointer = typename BASE_ITER::pointer;
+        using reference = typename BASE_ITER::reference;
+        using difference_type = typename BASE_ITER::difference_type;
+
+        offset_tuples_iterator() = default;
+        explicit offset_tuples_iterator(const BASE_ITER& iter, const offset_t& offsets) : BASE_ITER(iter), offsets(offsets) {}
+        offset_tuples_iterator(const offset_tuples_iterator<BASE_ITER>& rhs) : BASE_ITER(rhs), offsets(rhs.offsets) {}
+
+        value_type operator*() const {
+            auto base_value = BASE_ITER::operator*();
+            return value_type(
+                    std::get<0>(base_value) + offsets.row_offset,
+                    std::get<1>(base_value) + offsets.col_offset,
+                    std::get<2>(base_value));
+        }
+
+    private:
+        const offset_t offsets;
+    };
+
+    /**
+     * Utility function to offset a range of tuple iterators.
+     *
+     * @tparam ITER tuple iterator
+     * @param range begin,end pair of tuple iterators
+     * @param offsets offsets to subtract
+     * @return a tuple iterator range that returns all tuples from `range` but subtracts `offsets` from each one.
+     */
+    template <typename ITER>
+    range_t<offset_tuples_iterator<ITER>> offset_tuples_neg(const range_t<ITER>& range, const offset_t& offsets) {
+        offset_t negative_offsets = {-offsets.row_offset, -offsets.col_offset};
+        return range_t<offset_tuples_iterator<ITER>> {
+            offset_tuples_iterator<ITER>(range.begin(), negative_offsets),
+            offset_tuples_iterator<ITER>(range.end(), negative_offsets)
+        };
+    }
 }
 #endif //QUADMAT_BASE_ITERATORS_H

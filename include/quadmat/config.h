@@ -18,7 +18,7 @@ namespace quadmat {
         /**
          * leaf blocks larger than this should be split
          */
-        static const blocknnn_t leaf_split_threshold = 10 * 1024;
+        static constexpr blocknnn_t leaf_split_threshold = 10 * 1024;
 
         /**
          * default allocator, and for long-lived objects

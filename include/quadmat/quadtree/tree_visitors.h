@@ -112,7 +112,7 @@ namespace quadmat {
      *
      * The callback needs to be thread safe.
      */
-    template <typename T, typename CALLBACK, typename CONFIG = default_config>
+    template <typename T, typename CONFIG = default_config, typename CALLBACK>
     leaf_visitor_t<T, CALLBACK, CONFIG> leaf_visitor(CALLBACK& callback, const shape_t& shape = {-1, -1}) {
         return leaf_visitor_t<T, CALLBACK, CONFIG>(callback, offset_t{0, 0}, shape);
     }
@@ -126,15 +126,22 @@ namespace quadmat {
      *
      * @example Visit all tuples in a tree node `node`:
      * \code
-std::visit(leaf_visitor<double>([](offset_t offsets, auto leaf) {
+std::visit(leaf_visitor<double>([](auto leaf, offset_t offsets, shape_t shape) {
             for (auto tup : leaf->tuples()) {
                 // row index is std::get<0>(tup) + offsets.row_offset
                 // col index is std::get<1>(tup) + offsets.col_offset
             }
         }), node);
      * \endcode
+     *
+     * @tparam T
+     * @tparam CONFIG
+     * @tparam CALLBACK
+     * @param callback
+     * @param shape shape of the node. This is optional, however if it is omitted then the shape argument to the callback will be invalid.
+     * @return a visitor to pass to std::visit
      */
-    template <typename T, typename CALLBACK, typename CONFIG = default_config>
+    template <typename T, typename CONFIG = default_config, typename CALLBACK>
     leaf_visitor_t<T, const CALLBACK, CONFIG> leaf_visitor(const CALLBACK& callback, const shape_t& shape = {-1, -1}) {
         return leaf_visitor_t<T, const CALLBACK, CONFIG>(callback, offset_t{0, 0}, shape);
     }

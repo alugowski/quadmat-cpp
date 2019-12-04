@@ -11,6 +11,13 @@ using namespace quadmat;
 #include "problem_generator.h"
 
 /**
+ * A config with a very small split threshold of 4. Useful for testing subdivision.
+ */
+struct config_split_4 : public default_config {
+    static constexpr blocknnn_t leaf_split_threshold = 4;
+};
+
+/**
  * A node visitor that dumps tuples from nodes
  *
  * @tparam T
@@ -42,7 +49,7 @@ protected:
 template <typename T, typename CONFIG = default_config>
 vector<std::tuple<index_t, index_t, T>> dump_tuples(tree_node_t<T, CONFIG> node) {
     vector<std::tuple<index_t, index_t, T>> v;
-    std::visit(leaf_visitor<double>(tuple_dumper<T>(v)), node);
+    std::visit(leaf_visitor<double, CONFIG>(tuple_dumper<T>(v)), node);
     return v;
 }
 
@@ -53,7 +60,7 @@ vector<std::tuple<index_t, index_t, T>> dump_tuples(tree_node_t<T, CONFIG> node)
  */
 template <typename T, typename CONFIG = default_config>
 vector<std::tuple<index_t, index_t, T>> dump_tuples(matrix<T, CONFIG> mat) {
-    return dump_tuples(mat.get_root_bc()->get_child(0));
+    return dump_tuples<T, CONFIG>(mat.get_root_bc()->get_child(0));
 }
 
 /**

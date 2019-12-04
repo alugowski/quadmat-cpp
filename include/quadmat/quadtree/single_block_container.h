@@ -52,6 +52,10 @@ namespace quadmat {
          * beyond.
          */
         [[nodiscard]] index_t get_discriminating_bit() const override {
+            index_t dim_max = std::max(shape.ncols, shape.nrows);
+            if (dim_max < 2) {
+                return 1;
+            }
             return quadmat::get_discriminating_bit(shape) << 1;
         }
     protected:

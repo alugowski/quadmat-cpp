@@ -154,6 +154,19 @@ namespace quadmat {
         }
 
         /**
+         * Warning: this method is O(n).
+         *
+         * @return number of tuples in this block.
+         */
+        [[nodiscard]] blocknnn_t nnn() const {
+            blocknnn_t ret = 0;
+            for (auto col : columns()) {
+                ret += col.rows_end - col.rows_begin;
+            }
+            return ret;
+        }
+
+        /**
          * Create a shadow block that provides a view of a part of this leaf block
          *
          * @param ignored shared pointer to this.

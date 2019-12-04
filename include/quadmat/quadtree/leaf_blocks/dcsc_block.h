@@ -204,6 +204,13 @@ namespace quadmat {
         }
 
         /**
+         * @return number of tuples in this block.
+         */
+        [[nodiscard]] blocknnn_t nnn() const {
+            return values.size();
+        }
+
+        /**
          * Create a shadow block that provides a view of a part of this leaf block
          */
         static tree_node_t<T, CONFIG> get_shadow_block(const std::shared_ptr<dcsc_block<T, IT, CONFIG>>& base_dcsc, const offset_t& offsets, const shape_t& shape) {
