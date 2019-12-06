@@ -18,13 +18,6 @@ namespace quadmat {
     public:
         explicit block() = default;
         virtual ~block() = default;
-
-        /**
-         * @return byte size of this block along with rough breakdown between index, value, and other
-         */
-        virtual block_size_info size() {
-            return block_size_info();
-        }
     };
 }
 

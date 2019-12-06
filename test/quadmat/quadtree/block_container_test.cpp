@@ -16,5 +16,10 @@ TEST_CASE("Block Container"){
             REQUIRE(single_block_container<double>({8, 8}).get_discriminating_bit() == 8);
             REQUIRE(single_block_container<double>({9, 9}).get_discriminating_bit() == 16);
         }
+        SECTION("children") {
+            REQUIRE(single_block_container<double>({1, 1}).num_children() == 1);
+            REQUIRE(single_block_container<double>({1, 1}).get_offsets(5, {}) == offset_t{});
+            REQUIRE(single_block_container<double>({1, 1}).get_child_shape(5, {}) == shape_t{});
+        }
     }
 }

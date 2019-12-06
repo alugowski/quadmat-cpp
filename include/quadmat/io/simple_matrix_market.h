@@ -95,7 +95,7 @@ namespace quadmat {
                 }
             }
 
-            // read the dimension line, which may be preceeded by comments
+            // read the dimension line, which may be preceded by comments
             do {
                 std::getline(instream, line);
                 lines_read++;
@@ -185,6 +185,7 @@ namespace quadmat {
     protected:
         template <typename EC>
         bool load(std::istream& instream, EC& ec, const T& pattern_value) {
+            bool has_warnings = false;
 
             // read the header
             matrix_market_header header;
@@ -233,10 +234,12 @@ namespace quadmat {
 
                 if (row < 1 || row > shape.nrows) {
                     ec.warning("line ", line_num, ": row index out of range");
+                    has_warnings = true;
                     continue;
                 }
                 if (col < 1 || col > shape.ncols) {
                     ec.warning("line ", line_num, ": column index out of range");
+                    has_warnings = true;
                     continue;
                 }
 
@@ -257,7 +260,7 @@ namespace quadmat {
             // if the file used a symmetry then duplicate tuples accordingly
             expand_symmetry(header);
 
-            return true;
+            return !has_warnings;
         }
 
         void expand_symmetry(const matrix_market_header& header) {

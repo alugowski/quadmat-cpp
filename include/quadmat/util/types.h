@@ -60,6 +60,10 @@ namespace quadmat {
         index_t row_offset = 0;
         index_t col_offset = 0;
 
+        bool operator==(const offset_t& rhs) const {
+            return row_offset == rhs.row_offset && col_offset == rhs.col_offset;
+        }
+
         offset_t operator+(const offset_t& rhs) const {
             return offset_t{
                     .row_offset = row_offset + rhs.row_offset,
@@ -133,12 +137,22 @@ namespace quadmat {
         }
 
         template <typename... ARGS>
-        void error(const std::string& arg, ARGS... args) {
-            error(arg, args...);
+        void error(const std::string& arg1, const std::string& arg2, ARGS... args) {
+            error(arg1 + arg2, args...);
+        }
+
+        template <typename... ARGS>
+        void error(const std::string& arg1, const char* arg2, ARGS... args) {
+            error(arg1 + arg2, args...);
         }
 
         template <typename ARG, typename... ARGS>
-        void error(const ARG arg, ARGS... args) {
+        void error(const std::string& arg, const ARG& arg2, ARGS... args) {
+            error(arg + std::to_string(arg2), args...);
+        }
+
+        template <typename ARG, typename... ARGS>
+        void error(const ARG& arg, ARGS... args) {
             error(std::to_string(arg), args...);
         }
 
@@ -148,6 +162,25 @@ namespace quadmat {
         }
 
         std::string prefix;
+    };
+
+    /**
+     * A simple error consumer that ignores everything.
+     */
+    struct ignoring_error_consumer {
+        explicit ignoring_error_consumer(const std::string& = std::string()) {}
+
+        void set_prefix(const std::string &) {
+        }
+
+        template <typename... ARGS>
+        void error(ARGS... args) {
+        }
+
+        template <typename... ARGS>
+        void warning(ARGS... args) {
+            error(args...);
+        }
     };
 
     /**

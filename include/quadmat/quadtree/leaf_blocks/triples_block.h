@@ -30,7 +30,7 @@ namespace quadmat {
 
         triples_block() = default;
 
-        block_size_info size() override {
+        [[nodiscard]] block_size_info size() const {
             return block_size_info{
                 rows.size() * sizeof(IT) + cols.size() * sizeof(IT),
                 values.size() * sizeof(T),

@@ -160,4 +160,11 @@ TEST_CASE("Numeric Utilities") {
         REQUIRE(quadmat::clear_all_except_msb((1ul << 63ul) - 1ul) == (1ul << 62ul));
         REQUIRE(quadmat::clear_all_except_msb(std::numeric_limits<quadmat::index_t>::max()) == (1ul << 62ul));
     }
+    SECTION("discriminating bit") {
+        REQUIRE(quadmat::get_discriminating_bit({0, 0}) == 1);
+        REQUIRE(quadmat::get_discriminating_bit({1, 1}) == 1);
+        REQUIRE(quadmat::get_discriminating_bit({7, 7}) == 4);
+        REQUIRE(quadmat::get_discriminating_bit({8, 8}) == 4);
+        REQUIRE(quadmat::get_discriminating_bit({9, 9}) == 8);
+    }
 }

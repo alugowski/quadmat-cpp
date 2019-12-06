@@ -194,7 +194,7 @@ namespace quadmat {
             return column_iterator(this, pos - begin(col_ind));
         }
 
-        block_size_info size() override {
+        [[nodiscard]] block_size_info size() const {
             return block_size_info{
                     col_ind.size() * sizeof(IT) + col_ptr.size() * sizeof(blocknnn_t) + row_ind.size() * sizeof(IT),
                     values.size() * sizeof(T),

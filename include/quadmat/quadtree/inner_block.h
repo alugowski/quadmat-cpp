@@ -117,7 +117,7 @@ namespace quadmat {
             return discriminating_bit;
         }
 
-        block_size_info size() override {
+        [[nodiscard]] block_size_info size() const {
             return block_size_info{
                     .overhead_bytes = sizeof(inner_block<T, CONFIG>),
             };
