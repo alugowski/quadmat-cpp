@@ -31,7 +31,7 @@ namespace quadmat {
                 : base(base),
                   begin_column(begin_column),
                   end_column(end_column),
-                  end_iter(column_iterator(this, end_column)),
+                  end_iter(column_iterator(this, end_column, false)),
                   offsets(offsets),
                   row_begin(offsets.row_offset), row_inclusive_end(offsets.row_offset - 1 + shape.nrows) {}
 
@@ -56,28 +56,36 @@ namespace quadmat {
             using reference = value_type&;
             using difference_type = std::ptrdiff_t;
 
-            explicit column_iterator(const window_shadow_block<IT, BASE_LEAF>* shadow_block, const typename BASE_LEAF::column_iterator& iter) : shadow_block(shadow_block), iter(iter) {
-                // It's possible that the given iter points at a column that doesn't have any rows that fit the window.
-                advance_to_next_nonempty_col();
+            /**
+             *
+             * @param shadow_block block this is an iterator on
+             * @param iter column that is being shadowed
+             * @param advance_ok If true and `iter` points at a column with no tuples in the window then will
+             *                   auto-advance until a non-empty column (or the end) is found.
+             *                   If false then the user is responsible to call are_rows_in_window() before dereferencing
+             */
+            explicit column_iterator(const window_shadow_block<IT, BASE_LEAF>* shadow_block, const typename BASE_LEAF::column_iterator& iter, bool advance_ok = true) : shadow_block(shadow_block), iter(iter) {
+                if (advance_ok) {
+                    // It's possible that the given iter points at a column that doesn't have any rows that fit the window.
+                    advance_to_next_nonempty_col();
+                } // else it's a column point lookup and are_rows_in_window() is called by the caller
             }
-            column_iterator(const column_iterator& rhs) : shadow_block(rhs.shadow_block), iter(rhs.iter) {}
+            column_iterator(const column_iterator& rhs) : shadow_block(rhs.shadow_block), iter(rhs.iter), cached_rows_begin(rhs.cached_rows_begin), cached_rows_end(rhs.cached_rows_end) {}
 
             value_type operator*() const {
                 auto base_ref = *iter;
-                auto rows_begin = std::lower_bound(base_ref.rows_begin, base_ref.rows_end, shadow_block->row_begin);
-                auto rows_end = std::upper_bound(rows_begin, base_ref.rows_end, shadow_block->row_inclusive_end);
                 return {
                         .col = static_cast<IT>(base_ref.col - shadow_block->offsets.col_offset),
-                        .rows_begin = offset_iterator<typename BASE_LEAF::row_iter_type>(rows_begin, -shadow_block->offsets.row_offset),
-                        .rows_end = offset_iterator<typename BASE_LEAF::row_iter_type>(rows_end, -shadow_block->offsets.row_offset),
-                        .values_begin = base_ref.values_begin + (rows_begin - base_ref.rows_begin),
+                        .rows_begin = offset_iterator<typename BASE_LEAF::row_iter_type>(cached_rows_begin, -shadow_block->offsets.row_offset),
+                        .rows_end = offset_iterator<typename BASE_LEAF::row_iter_type>(cached_rows_end, -shadow_block->offsets.row_offset),
+                        .values_begin = base_ref.values_begin + (cached_rows_begin - base_ref.rows_begin),
                 };
             }
 
             column_iterator& operator++() {
                 do {
                     ++iter;
-                } while (iter != shadow_block->end_column && !shadow_block->are_rows_in_window(iter));
+                } while (iter != shadow_block->end_column && !are_rows_in_window());
                 return *this;
             }
 
@@ -92,14 +100,37 @@ namespace quadmat {
                 return iter;
             }
 
+            /**
+             * @return true if there are any rows inside the window in the column pointed to by this
+             */
+            [[nodiscard]] bool are_rows_in_window() {
+                auto ref = *iter;
+
+                // a fast check to see if the row range falls outside the window
+                if (ref.rows_begin == ref.rows_end ||
+                       *ref.rows_begin > shadow_block->row_inclusive_end ||
+                       *(ref.rows_end - 1) < shadow_block->row_begin) {
+                    return false;
+                }
+
+                // there might still not be any values in the window if the window is in an empty part of the column
+                // however the column does now have valid iterators, so we can dereference and do a search
+                cached_rows_begin = std::lower_bound(ref.rows_begin, ref.rows_end, shadow_block->row_begin);
+                cached_rows_end = std::upper_bound(cached_rows_begin, ref.rows_end, shadow_block->row_inclusive_end);
+
+                return cached_rows_begin != cached_rows_end;
+            }
+
         private:
             void advance_to_next_nonempty_col() {
-                while (iter != shadow_block->end_column && !shadow_block->are_rows_in_window(iter)) {
+                while (iter != shadow_block->end_column && !are_rows_in_window()) {
                     ++iter;
                 }
             }
             const window_shadow_block<IT, BASE_LEAF>* shadow_block;
             typename BASE_LEAF::column_iterator iter;
+
+            typename BASE_LEAF::row_iter_type cached_rows_begin, cached_rows_end;
         };
 
         /**
@@ -132,10 +163,17 @@ namespace quadmat {
         column_iterator column(IT col) const {
             const typename BASE_LEAF::column_iterator base_iter = base->column(col + offsets.col_offset);
 
-            if (base_iter == base->columns_end() || !are_rows_in_window(base_iter)) {
+            if (base_iter == base->columns_end()) {
+                // column not in base block
                 return end_iter;
             } else {
-                return column_iterator(this, base_iter);
+                auto ret = column_iterator(this, base_iter, false);
+                if (ret.are_rows_in_window()) {
+                    return ret;
+                } else {
+                    // column is in base block, but has no tuples in the window
+                    return end_iter;
+                }
             }
         }
 
@@ -253,17 +291,6 @@ namespace quadmat {
         }
 
     protected:
-
-        /**
-         * @param iter column to check
-         * @return true if there are any rows inside the window in the column pointed to by iter
-         */
-        bool are_rows_in_window(const typename BASE_LEAF::column_iterator& iter) const {
-            auto ref = *iter;
-            return ref.rows_begin != ref.rows_end &&
-                   *ref.rows_begin <= row_inclusive_end &&
-                   *(ref.rows_end - 1) >= row_begin;
-        }
 
         /**
          * The block this is a window on

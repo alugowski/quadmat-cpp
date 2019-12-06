@@ -5,7 +5,7 @@
 
 #include "quadmat/quadmat.h"
 
-#include "../../problem_generator.h"
+#include "../../testing_utilities.h"
 
 using namespace quadmat;
 
@@ -14,34 +14,36 @@ using Catch::Matchers::UnorderedEquals;
 /**
  * Canned matrices
  */
-static const auto canned_matrices = get_canned_matrices<double, int>(true); // NOLINT(cert-err58-cpp)
+static const auto canned_matrices = get_canned_matrices<double, index_t>(true); // NOLINT(cert-err58-cpp)
 static const int num_canned_matrices = canned_matrices.size();
 
 TEST_CASE("Matrix Market Loader") {
     SECTION("simple loader") {
         // get the problem
         int problem_num = GENERATE(range(0, num_canned_matrices));
-        const canned_matrix<double, int>& problem = canned_matrices[problem_num];
+        const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
 
         SECTION(problem.description) {
 
-            simple_matrix_market_loader loader(test_cwd + "matrices/" + problem.filename);
+            simple_matrix_market_loader loader;
+
+            auto mat = loader.load(test_cwd + "matrices/" + problem.filename);
 
             REQUIRE(loader.is_load_successful());
-            REQUIRE(loader.get_shape() == problem.shape);
+            REQUIRE(mat.get_shape() == problem.shape);
 
-            auto loaded_tuples = loader.tuples();
-            vector<std::tuple<int, int, double>> v(begin(loaded_tuples), end(loaded_tuples));
-            REQUIRE_THAT(v, UnorderedEquals(problem.sorted_tuples));
+            REQUIRE_THAT(mat, MatrixEquals(problem));
         }
     }
     SECTION("simple loader - invalid inputs") {
         {
-            simple_matrix_market_loader loader(test_cwd + "matrices/" + "invalid_bad_banner.mtx", ignoring_error_consumer());
+            simple_matrix_market_loader loader{ignoring_error_consumer()};
+            loader.load(test_cwd + "matrices/" + "invalid_bad_banner.mtx");
             REQUIRE(!loader.is_load_successful());
         }
         {
-            simple_matrix_market_loader loader(test_cwd + "matrices/" + "invalid_indices_out_of_range_1.mtx", ignoring_error_consumer());
+            simple_matrix_market_loader loader{ignoring_error_consumer()};
+            loader.load(test_cwd + "matrices/" + "invalid_indices_out_of_range_1.mtx");
             REQUIRE(!loader.is_load_successful());
         }
 
@@ -54,6 +56,7 @@ TEST_CASE("Matrix Market Loader") {
                                         "invalid_bad_object.mtx",
                                         "invalid_bad_symmetry.mtx",
                                         "invalid_complex.mtx",
+                                        "invalid_hermitian.mtx",
                                         "invalid_indices_out_of_range_1.mtx",
                                         "invalid_indices_out_of_range_2.mtx",
                                         "invalid_truncated_header.mtx",
@@ -64,7 +67,7 @@ TEST_CASE("Matrix Market Loader") {
         );
 
         SECTION(filename) {
-            REQUIRE_THROWS(simple_matrix_market_loader(test_cwd + "matrices/" + filename));
+            REQUIRE_THROWS(simple_matrix_market_loader().load(test_cwd + "matrices/" + filename));
         }
     }
 }

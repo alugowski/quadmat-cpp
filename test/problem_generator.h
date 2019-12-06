@@ -56,6 +56,24 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
     }
 
     {
+        vector<tuple<IT, IT, T>> skew_symmetric_tuples{
+                {1, 0, -2},
+                {2, 0, 45},
+                {0, 1, 2},
+                {2, 1, 4},
+                {0, 2, -45},
+                {1, 2, -4},
+        };
+
+        ret.emplace_back(canned_matrix<T, IT>{
+                .description = "3x3 skew-symmetric matrix",
+                .shape = {3, 3},
+                .sorted_tuples = skew_symmetric_tuples,
+                .filename = "skew_symmetric.mtx"
+        });
+    }
+
+    {
         ret.emplace_back(canned_matrix<T, IT>{
                 .description = "Kepner-Gilbert graph",
                 .shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
@@ -246,10 +264,11 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
     }
 
     {
-        simple_matrix_market_loader loader(test_cwd + "matrices/kepner_gilbert_graph_squared.mtx");
+        simple_matrix_market_loader loader;
+        auto result_mat = loader.load(test_cwd + "matrices/kepner_gilbert_graph_squared.mtx");
 
         // use triple_block to sort
-        triples_block<double, int> result_block;
+        triples_block<double, index_t> result_block;
         result_block.add(loader.tuples());
         auto sorted_result_range = result_block.sorted_tuples();
 
@@ -264,7 +283,7 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
                         .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
                 },
                 .result = {
-                        .shape = loader.get_shape(),
+                        .shape = result_mat.get_shape(),
                         .sorted_tuples = vector<std::tuple<IT, IT, T>>(sorted_result_range.begin(), sorted_result_range.end()),
                 }
         });

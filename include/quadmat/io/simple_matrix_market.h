@@ -136,30 +136,11 @@ namespace quadmat {
      *
      * Matrix Market format declared here: http://networkrepository.com/mtx-matrix-market-format.html
      */
-    template <typename T = double, typename IT = long long>
+    template <typename EC = throwing_error_consumer<>, typename T = double, typename IT = long long>
     class simple_matrix_market_loader {
     public:
 
-        template <typename EC = throwing_error_consumer<>>
-        explicit simple_matrix_market_loader(std::istream& instream, EC ec = EC(), const T& pattern_value = 1) {
-            load_successful = load(instream, ec, pattern_value);
-        }
-
-        template <typename EC = throwing_error_consumer<>>
-        explicit simple_matrix_market_loader(const std::string& filename, EC ec = EC(), const T& pattern_value = 1) {
-            ec.set_prefix(filename + ": ");
-
-            std::ifstream infile;
-            infile.open(filename);
-
-            if (!infile) {
-                ec.error("Cannot open file");
-            } else {
-                load_successful = load(infile, ec, pattern_value);
-            }
-
-            infile.close();
-        }
+        explicit simple_matrix_market_loader(EC ec = EC()) : ec(ec) {};
 
         /**
          * @return A begin,end pair of iterators over the tuples that have been loaded in the constructor
@@ -169,10 +150,39 @@ namespace quadmat {
         }
 
         /**
-         * @return number of rows and columns as declared in the file
+         * Load from a stream object.
+         *
+         * @tparam EC
+         * @param instream stream to load from
+         * @param ec error consumer to use
+         * @param pattern_value value to insert if the matrix market file uses a pattern field
+         * @return loaded matrix
          */
-        [[nodiscard]] const shape_t &get_shape() const {
-            return shape;
+        template <typename CONFIG = default_config>
+        matrix<T, CONFIG> load(std::istream& instream, const T& pattern_value = 1) {
+            load_successful = load_impl(instream, pattern_value);
+
+            return matrix_from_tuples<T, CONFIG>(shape, loaded_tuples.size(), loaded_tuples);
+        }
+
+        /**
+         * Load from a filename.
+         *
+         * @tparam CONFIG
+         * @param filename filename to load from
+         * @param pattern_value value to insert if the matrix market file uses a pattern field
+         * @return loaded matrix
+         */
+        template <typename CONFIG = default_config>
+        matrix<T, CONFIG> load(const std::string& filename, const T& pattern_value = 1) {
+            ec.set_prefix(filename + ": ");
+
+            if (std::ifstream infile{filename}) {
+                return load(infile, pattern_value);
+            } else {
+                ec.error("Cannot open file");
+                return matrix<T, CONFIG>{shape_t{-1, -1}};
+            }
         }
 
         /**
@@ -183,8 +193,7 @@ namespace quadmat {
         }
 
     protected:
-        template <typename EC>
-        bool load(std::istream& instream, EC& ec, const T& pattern_value) {
+        bool load_impl(std::istream& instream, const T& pattern_value) {
             bool has_warnings = false;
 
             // read the header
@@ -269,10 +278,12 @@ namespace quadmat {
                     // no symmetry
                     break;
 
-                case matrix_market_header::symmetric:
-                case matrix_market_header::hermitian: {
+                case matrix_market_header::hermitian:
+                    // Hermitian not supported due to no complex value support
+                case matrix_market_header::symmetric: {
                     // only the entries on or below the main diagonal are listed
-                    // duplicate entries below the diagonal
+                    // duplicate entries below the diagonal, transposing row/column
+
                     size_t end = loaded_tuples.size();
                     for (size_t i = 0; i < end; i++) {
                         const auto &tup = loaded_tuples[i];
@@ -286,12 +297,12 @@ namespace quadmat {
 
                 case matrix_market_header::skew_symmetric: {
                     // only the entries strictly below the main diagonal are to be listed
-                    // duplicate all entries
+                    // duplicate all entries, transposing row/column and negating values
 
                     size_t end = loaded_tuples.size();
                     for (size_t i = 0; i < end; i++) {
                         const auto &tup = loaded_tuples[i];
-                        loaded_tuples.emplace_back(std::get<1>(tup), std::get<0>(tup), std::get<2>(tup));
+                        loaded_tuples.emplace_back(std::get<1>(tup), std::get<0>(tup), -std::get<2>(tup));
                     }
                     break;
                 }
@@ -306,6 +317,8 @@ namespace quadmat {
         shape_t shape;
 
         bool load_successful = false;
+
+        EC ec;
     };
 
     /**
