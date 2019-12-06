@@ -1,7 +1,7 @@
 // Copyright (C) 2019 Adam Lugowski
 // All Rights Reserved.
 
-#include "catch.hpp"
+#include "../../catch.hpp"
 
 #include "quadmat/quadmat.h"
 

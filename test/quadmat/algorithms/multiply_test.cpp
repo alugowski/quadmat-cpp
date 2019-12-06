@@ -3,12 +3,12 @@
 
 #define CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
 
-#include "catch.hpp"
+#include "../../catch.hpp"
 
 #include "quadmat/quadmat.h"
 
-#include "problem_generator.h"
-#include "testing_utilities.h"
+#include "../../problem_generator.h"
+#include "../../testing_utilities.h"
 
 using Catch::Matchers::Equals;
 using Catch::Matchers::UnorderedEquals;
