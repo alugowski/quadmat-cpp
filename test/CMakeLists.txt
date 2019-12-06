@@ -1,2 +1,10 @@
 add_executable(tests_run test_matrix_construction.cpp test_tbb_present.cpp test_tuple_generators.cpp test_util.cpp test_triple_block.cpp test_dcsc_block.cpp problem_generator.h test_dcsc_accumulator.cpp test_spa.cpp test_io.cpp test_multiply.cpp test_tree_nodes.cpp testing_utilities.h test_block_container.cpp test_window_shadow_block.cpp test_shadow_subdivision.cpp test_tree_construction.cpp)
 target_link_libraries(tests_run tbb)
+
+if ("${CMAKE_C_COMPILER_ID}" MATCHES "(Apple)?[Cc]lang" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?[Cc]lang")
+    message("Building with llvm Code Coverage Tools")
+    set(CMAKE_CXX_FLAGS "-fprofile-instr-generate -fcoverage-mapping")
+elseif (CMAKE_COMPILER_IS_GNUCXX)
+    message("Building with lcov Code Coverage Tools")
+    set(CMAKE_CXX_FLAGS "--coverage")
+endif()
