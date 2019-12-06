@@ -63,7 +63,13 @@ TEST_CASE("Window Shadow Block") {
                 // make sure tuples are correct
                 auto expected_tuples = filter_tuples(problem, window);
 
-                vector<std::tuple<index_t, index_t, double>> v = dump_tuples(shadow);
+                blocknnn_t nnn;
+                std::visit(leaf_visitor<double>([&](auto leaf, offset_t offsets, shape_t shape) {
+                    nnn = leaf->nnn();
+                }), shadow);
+                REQUIRE(nnn == expected_tuples.size());
+
+                vector<std::tuple<index_t, index_t, double>> v = dump_tuples(tree_node_t<double>(shadow));
                 REQUIRE_THAT(v, Equals(expected_tuples));
             }
         }

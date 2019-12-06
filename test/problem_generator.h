@@ -22,7 +22,56 @@ struct canned_matrix {
     shape_t shape;
     vector<std::tuple<IT, IT, T>> sorted_tuples;
     std::string filename; // only set if available
+
+    /**
+     * @return a version of `sorted_tuples` where duplicates are summed
+     */
+    vector<std::tuple<IT, IT, T>> accumulated_tuples() const {
+        vector<std::tuple<IT, IT, T>> ret;
+
+        bool first = true;
+        IT last_row, last_col;
+        for (auto tup : sorted_tuples) {
+            auto [row, col, value] = tup;
+
+            if (!first && last_row == row && last_col == col) {
+                // same position as last entry, sum values
+                ret.back() = std::tuple<IT, IT, T>(row, col, std::get<2>(ret.back()) + value);
+            } else {
+                ret.push_back(tup);
+            }
+
+            first = false;
+            last_row = row;
+            last_col = col;
+        }
+
+        return ret;
+    }
 };
+
+/**
+ * Blow up matrix dimensions.
+ */
+template <typename T, typename IT>
+canned_matrix<T, IT> expand_matrix(const canned_matrix<T, IT>& orig, int factor) {
+    shape_t new_shape = {
+            .nrows = orig.shape.nrows * factor,
+            .ncols = orig.shape.ncols * factor
+    };
+
+    vector<std::tuple<IT, IT, T>> new_tuples;
+    std::transform(begin(orig.sorted_tuples), end(orig.sorted_tuples), std::back_inserter(new_tuples),
+                   [&](tuple<IT, IT, T> tup) -> tuple<IT, IT, T> {
+                       return tuple<IT, IT, T>(factor * std::get<0>(tup), factor * std::get<1>(tup), std::get<2>(tup));
+                   });
+
+    return canned_matrix<T, IT>{
+        .description = orig.description + " expanded by " + std::to_string(factor) + "x to " + new_shape.to_string(),
+        .shape = new_shape,
+        .sorted_tuples = new_tuples
+    };
+}
 
 template <typename T, typename IT>
 vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
@@ -42,6 +91,21 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
                 .description = "10x10 identity matrix",
                 .shape = {10, 10},
                 .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end())
+        });
+    }
+
+    if (!only_with_files) {
+        identity_tuples_generator<T, IT> gen(10);
+        vector<std::tuple<IT, IT, T>> tuples;
+        for (auto tup : gen) {
+            tuples.push_back(tup);
+            tuples.push_back(tup);
+        }
+
+        ret.emplace_back(canned_matrix<T, IT>{
+                .description = "10x10 identity matrix with every entry duplicated",
+                .shape = {10, 10},
+                .sorted_tuples = tuples
         });
     }
 
@@ -83,6 +147,11 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
     }
 
     if (!only_with_files) {
+        // expand into 32-bit indices
+        ret.push_back(expand_matrix(ret.back(), 10000));
+    }
+
+    if (!only_with_files) {
         // same as above but with extra sparsity
         shape_t orig_shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape();
 
@@ -90,8 +159,8 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
 
         vector<std::tuple<IT, IT, T>> tuples;
         std::transform(begin(orig_tuples), end(orig_tuples), std::back_inserter(tuples),
-                       [](tuple<int, int, double> tup) -> tuple<int, int, double> {
-                           return tuple<int, int, double>(2 * std::get<0>(tup), 2 * std::get<1>(tup), std::get<2>(tup));
+                       [](tuple<IT, IT, T> tup) -> tuple<IT, IT, T> {
+                           return tuple<IT, IT, T>(2 * std::get<0>(tup), 2 * std::get<1>(tup), std::get<2>(tup));
                        });
 
         ret.emplace_back(canned_matrix<T, IT>{
@@ -114,6 +183,20 @@ struct multiply_problem {
     canned_matrix<T, IT> b;
     canned_matrix<T, IT> result;
 };
+
+
+/**
+ * Blow up dimensions of a multiplication problem
+ */
+template <typename T, typename IT>
+multiply_problem<T, IT> expand_multiply_problem(const multiply_problem<T, IT>& orig, int factor) {
+    return multiply_problem<T, IT>{
+            .description = orig.description + " expanded by " + std::to_string(factor) + "x",
+            .a = expand_matrix(orig.a, factor),
+            .b = expand_matrix(orig.b, factor),
+            .result = expand_matrix(orig.result, factor),
+    };
+}
 
 template <typename T, typename IT>
 vector<multiply_problem<T, IT>> get_multiply_problems() {
@@ -289,6 +372,10 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
         });
     }
 
+    {
+        // expand into 32-bits
+//        ret.push_back(expand_multiply_problem(ret.back(), 10000));
+    }
 
     return ret;
 }

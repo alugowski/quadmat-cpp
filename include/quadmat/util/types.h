@@ -115,6 +115,40 @@ namespace quadmat {
     };
 
     /**
+     * Utility to construct strings out of a list of arguments
+     */
+    struct join {
+        static std::string to_string(const std::string& e) {
+            return e;
+        }
+
+        template <typename... ARGS>
+        static std::string to_string(const char* arg, ARGS... args) {
+            return to_string(std::string(arg), args...);
+        }
+
+        template <typename... ARGS>
+        static std::string to_string(const std::string& arg1, const std::string& arg2, ARGS... args) {
+            return to_string(arg1 + arg2, args...);
+        }
+
+        template <typename... ARGS>
+        static std::string to_string(const std::string& arg1, const char* arg2, ARGS... args) {
+            return to_string(arg1 + arg2, args...);
+        }
+
+        template <typename ARG, typename... ARGS>
+        static std::string to_string(const std::string& arg, const ARG& arg2, ARGS... args) {
+            return to_string(arg + std::to_string(arg2), args...);
+        }
+
+        template <typename ARG, typename... ARGS>
+        static std::string to_string(const ARG& arg, ARGS... args) {
+            return to_string(std::to_string(arg), args...);
+        }
+    };
+
+    /**
      * A simple implementation of a class that consumes errors by immediately throwing them.
      *
      * @tparam EX type of exception to throw. Must have a constructor that accepts a std::string
@@ -127,33 +161,9 @@ namespace quadmat {
             prefix = new_prefix;
         }
 
-        void error(const std::string& e) {
-            throw EX(prefix + e);
-        }
-
         template <typename... ARGS>
-        void error(const char* arg, ARGS... args) {
-            error(std::string(arg), args...);
-        }
-
-        template <typename... ARGS>
-        void error(const std::string& arg1, const std::string& arg2, ARGS... args) {
-            error(arg1 + arg2, args...);
-        }
-
-        template <typename... ARGS>
-        void error(const std::string& arg1, const char* arg2, ARGS... args) {
-            error(arg1 + arg2, args...);
-        }
-
-        template <typename ARG, typename... ARGS>
-        void error(const std::string& arg, const ARG& arg2, ARGS... args) {
-            error(arg + std::to_string(arg2), args...);
-        }
-
-        template <typename ARG, typename... ARGS>
-        void error(const ARG& arg, ARGS... args) {
-            error(std::to_string(arg), args...);
+        void error(ARGS... args) {
+            throw EX(prefix + join::to_string(args...));
         }
 
         template <typename... ARGS>
