@@ -25,10 +25,12 @@ struct config_split_4 : public default_config {
 template <typename T>
 class tuple_dumper {
 public:
-    explicit tuple_dumper(vector<std::tuple<index_t, index_t, T>> &tuples) : tuples(tuples) {}
+    explicit tuple_dumper(vector<std::tuple<index_t, index_t, T>> &tuples, std::mutex& m) : tuples(tuples), m(m) {}
 
     template <typename LEAF>
     void operator()(const std::shared_ptr<LEAF>& leaf, const offset_t& offsets, const shape_t& shape) const {
+        std::lock_guard lock{m};
+
         for (auto tup : leaf->tuples()) {
             tuples.emplace_back(
                     std::get<0>(tup) + offsets.row_offset,
@@ -39,6 +41,7 @@ public:
     }
 protected:
     vector<std::tuple<index_t, index_t, T>>& tuples;
+    std::mutex& m;
 };
 
 /**
@@ -49,7 +52,8 @@ protected:
 template <typename T, typename CONFIG = default_config>
 vector<std::tuple<index_t, index_t, T>> dump_tuples(tree_node_t<T, CONFIG> node) {
     vector<std::tuple<index_t, index_t, T>> v;
-    std::visit(leaf_visitor<double, CONFIG>(tuple_dumper<T>(v)), node);
+    std::mutex m;
+    std::visit(leaf_visitor<double, CONFIG>(tuple_dumper<T>(v, m)), node);
     return v;
 }
 

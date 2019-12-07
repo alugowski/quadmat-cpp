@@ -13,20 +13,6 @@
 static const auto canned_matrices =  get_canned_matrices<double, index_t>(); // NOLINT(cert-err58-cpp)
 static const int num_canned_matrices = canned_matrices.size();
 
-/**
- * A node visitor that collects node sizes
- */
-class sizer {
-public:
-    explicit sizer(block_size_info &sizes) : sizes(sizes) {}
-
-    template <typename LEAF>
-    void operator()(const std::shared_ptr<LEAF>& leaf, const offset_t& offsets, const shape_t& shape) {
-        sizes = leaf->size() + sizes;
-    }
-protected:
-    block_size_info& sizes;
-};
 
 TEST_CASE("Tree Visitors") {
 
