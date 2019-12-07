@@ -14,28 +14,28 @@ using Catch::Matchers::UnorderedEquals;
 /**
  * Canned matrices
  */
-static const auto canned_matrices = get_canned_matrices<double, index_t>(true); // NOLINT(cert-err58-cpp)
+static const auto canned_matrices_with_files = get_canned_matrices<double, index_t>(true); // NOLINT(cert-err58-cpp)
+static const int num_canned_matrices_with_files = canned_matrices_with_files.size();
+
+static const auto canned_matrices = get_canned_matrices<double, index_t>(); // NOLINT(cert-err58-cpp)
 static const int num_canned_matrices = canned_matrices.size();
 
-TEST_CASE("Matrix Market Loader") {
-    SECTION("simple loader") {
+TEST_CASE("I/O - Matrix Market") {
+    SECTION("load") {
         // get the problem
-        int problem_num = GENERATE(range(0, num_canned_matrices));
-        const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
+        int problem_num = GENERATE(range(0, num_canned_matrices_with_files));
+        const canned_matrix<double, index_t>& problem = canned_matrices_with_files[problem_num];
 
         SECTION(problem.description) {
+            std::ifstream infile{test_cwd + "matrices/" + problem.filename};
+            auto mat = matrix_market::load(infile);
 
-            simple_matrix_market_loader loader;
-
-            auto mat = loader.load(test_cwd + "matrices/" + problem.filename);
-
-            REQUIRE(loader.is_load_successful());
             REQUIRE(mat.get_shape() == problem.shape);
 
             REQUIRE_THAT(mat, MatrixEquals(problem));
         }
     }
-    SECTION("simple loader - invalid inputs") {
+    SECTION("load - invalid inputs") {
         {
             simple_matrix_market_loader loader{ignoring_error_consumer()};
             loader.load(test_cwd + "matrices/" + "invalid_bad_banner.mtx");
@@ -68,6 +68,29 @@ TEST_CASE("Matrix Market Loader") {
 
         SECTION(filename) {
             REQUIRE_THROWS(simple_matrix_market_loader().load(test_cwd + "matrices/" + filename));
+        }
+    }
+
+    SECTION("save") {
+        // get the problem
+        int problem_num = GENERATE(range(0, num_canned_matrices));
+        const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
+
+        SECTION(problem.description) {
+            // construct a tight matrix
+            auto mat = matrix_from_tuples<double, config_split_4>(problem.shape,
+                                                                  problem.sorted_tuples.size(),
+                                                                  problem.sorted_tuples);
+
+            // save
+            std::ostringstream oss;
+            REQUIRE(matrix_market::save(mat, oss));
+
+            // load
+            std::istringstream iss{oss.str()};
+            auto loaded_mat = matrix_market::load<double, config_split_4>(iss);
+
+            REQUIRE_THAT(mat, MatrixEquals(loaded_mat));
         }
     }
 }

@@ -5,6 +5,7 @@
 #define QUADMAT_SIMPLE_MATRIX_MARKET_H
 
 #include <fstream>
+#include <mutex>
 #include <sstream>
 #include <vector>
 
@@ -119,6 +120,24 @@ namespace quadmat {
             return true;
         }
 
+        template <typename EC>
+        bool write_header(std::ostream& os, EC& ec) {
+            std::string delim = " ";
+
+            // write the banner
+            os << MatrixMarketBanner2 << delim;
+            os << "matrix" << delim;
+            os << "coordinate" << delim;
+            os << "real" << delim;
+            os << "general" << "\n";
+
+            // no comment
+
+            // write dimension line
+            os << nrows << delim << ncols << delim << nnz << "\n";
+            return true;
+        }
+
         enum {matrix, vector} object = matrix;
         enum {array, coordinate} format = coordinate;
         enum {real, double_, complex, integer, pattern} field = real;
@@ -145,7 +164,7 @@ namespace quadmat {
         /**
          * @return A begin,end pair of iterators over the tuples that have been loaded in the constructor
          */
-        auto tuples() const {
+        [[nodiscard]] auto tuples() const {
             return range_t{loaded_tuples.cbegin(), loaded_tuples.cend()};
         }
 
@@ -326,6 +345,75 @@ namespace quadmat {
      */
     template <typename T = double, typename IT = long long>
     using matrix_market_loader = simple_matrix_market_loader<T, IT>;
+
+    /**
+     * Matrix Market I/O
+     */
+    class matrix_market {
+    public:
+
+        /**
+         * Load a Matrix Market file into a matrix.
+         *
+         * @tparam T
+         * @tparam CONFIG
+         * @tparam EC
+         * @param input
+         * @param ec
+         * @return a matrix
+         */
+        template <typename T = double, typename CONFIG = default_config, typename EC = throwing_error_consumer<>>
+        static matrix<T, CONFIG> load(std::istream& input, EC ec = EC(), const T& pattern_value = 1) {
+            simple_matrix_market_loader loader;
+            return loader.load<CONFIG>(input);
+        }
+
+        /**
+         * Save a matrix to a Matrix Market file.
+         *
+         * @tparam T
+         * @tparam CONFIG
+         * @tparam EC
+         * @param mat matrix to write
+         * @param ec error consumer
+         * @return `true` on success
+         */
+        template <typename T, typename CONFIG, typename EC = throwing_error_consumer<>>
+        static bool save(matrix<T, CONFIG> mat, std::ostream& output, EC ec = EC()) {
+            // write the header
+            matrix_market_header header;
+            header.object = matrix_market_header::matrix;
+            header.format = matrix_market_header::coordinate;
+            header.field = matrix_market_header::real;
+            header.symmetry = matrix_market_header::general;
+
+            header.nrows = mat.get_shape().nrows;
+            header.ncols = mat.get_shape().ncols;
+            header.nnz = mat.get_nnn();
+
+            header.write_header(output, ec);
+
+            // write the tuples
+            std::mutex output_mutex;
+            std::visit(leaf_visitor<T, CONFIG>([&](auto leaf, const offset_t& offsets, shape_t) {
+                // format the string
+                std::ostringstream oss;
+                for (auto tup : leaf->tuples()) {
+                    oss << 1 + offsets.row_offset + std::get<0>(tup) << " "
+                        << 1 + offsets.col_offset + std::get<1>(tup) << " "
+                        << std::get<2>(tup) << "\n";
+                }
+
+                // dump the formatted chunk
+                {
+                    std::lock_guard lock(output_mutex);
+                    output << oss.str();
+                }
+            }), mat.get_root_bc()->get_child(0));
+
+            return true;
+        }
+    };
 }
 
 #endif //QUADMAT_SIMPLE_MATRIX_MARKET_H

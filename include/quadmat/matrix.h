@@ -36,6 +36,23 @@ namespace quadmat {
         [[nodiscard]] shape_t get_shape() const { return shape; }
 
         /**
+         * Get the number of non-null entries in this matrix.
+         *
+         * WARNING: this is O(# of blocks).
+         *
+         * @return number of non-nulls in this matrix
+         */
+        [[nodiscard]] size_t get_nnn() const {
+            std::atomic<size_t> nnn{0};
+
+            std::visit(leaf_visitor<T, CONFIG>([&](auto leaf, offset_t, shape_t) {
+                nnn.fetch_add(leaf->nnn());
+            }), get_root_bc()->get_child(0));
+
+            return nnn;
+        }
+
+        /**
          * @return a const reference to the block container that holds the root tree node
          */
         std::shared_ptr<const block_container<T, CONFIG>> get_root_bc() const { return std::static_pointer_cast<const block_container<T, CONFIG>>(root_bc); }
