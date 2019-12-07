@@ -48,14 +48,10 @@ namespace quadmat {
          */
         HAS_LEAF = 1u << 3u,
 
-        HAS_LEAF_16 = 1u << 4u,
-        HAS_LEAF_32 = 1u << 5u,
-        HAS_LEAF_64 = 1u << 6u,
-
         /**
          * Has two leaves of different index sizes. Error condition that should never occur.
          */
-        HAS_MISMATCHED_LEAVES = 1u << 7u
+        HAS_MISMATCHED_DIMS = 1u << 7u
     };
 
     /**
@@ -92,19 +88,7 @@ namespace quadmat {
             }
 
             unsigned operator()(const leaf_node_t<T, CONFIG> &leaf) {
-                return HAS_LEAF | std::visit(*this, leaf);
-            }
-
-            unsigned operator()(const leaf_category_t<T, int64_t, CONFIG> &leaf) {
-                return HAS_LEAF_64;
-            }
-
-            unsigned operator()(const leaf_category_t<T, int32_t, CONFIG> &leaf) {
-                return HAS_LEAF_32;
-            }
-
-            unsigned operator()(const leaf_category_t<T, int16_t, CONFIG> &leaf) {
-                return HAS_LEAF_16;
+                return HAS_LEAF;
             }
         };
 
@@ -117,15 +101,19 @@ namespace quadmat {
             unsigned a_status = std::visit(status_visitor_t<LT>{}, a);
             unsigned b_status = std::visit(status_visitor_t<RT>{}, b);
 
-            // if both are leaves make sure they are of the same size
-            if ((a_status & HAS_LEAF) == HAS_LEAF &&
-                    (b_status & HAS_LEAF) == HAS_LEAF) {
-                if (a_status != b_status) {
-                    return HAS_MISMATCHED_LEAVES;
-                }
+            if (a_shape.ncols != b_shape.nrows) {
+                return HAS_MISMATCHED_DIMS;
             }
 
             return a_status | b_status;
+        }
+
+        leaf_node_t<LT, CONFIG> get_leaf_a() const {
+            return std::get<leaf_node_t<LT, CONFIG>>(a);
+        }
+
+        leaf_node_t<LT, CONFIG> get_leaf_b() const {
+            return std::get<leaf_node_t<LT, CONFIG>>(b);
         }
     };
 
@@ -157,16 +145,6 @@ namespace quadmat {
                 } else {
                     ret |= pair_status;
                     ++cur;
-                }
-            }
-
-            // test for mismatches
-            unsigned constexpr leaf_bit_mask = (unsigned)HAS_LEAF_64 | HAS_LEAF_32 | HAS_LEAF_16;
-            if (ret & leaf_bit_mask) {
-                unsigned b = ret & leaf_bit_mask;
-                if (!(b && !(b & (b-1)))) {
-                    // more than one bit set, so there are leaf blocks of different sizes present
-                    ret |= HAS_MISMATCHED_LEAVES;
                 }
             }
 
@@ -211,7 +189,7 @@ namespace quadmat {
             }
 
             // sanity check
-            if ((status & HAS_MISMATCHED_LEAVES) == HAS_MISMATCHED_LEAVES) {
+            if ((status & HAS_MISMATCHED_DIMS) == HAS_MISMATCHED_DIMS) {
                 throw node_type_mismatch();
             }
 
@@ -347,11 +325,6 @@ namespace quadmat {
              * Reached two leaf blocks. This happens when two leaves are in a pair set where another pair has an inner block.
              */
             void operator()(const leaf_node_t<LT, CONFIG>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
-                // ensure the category is the same
-                if (lhs.index() != rhs.index()) {
-                    throw node_type_mismatch();
-                }
-
                 auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape);
                 auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape);
                 operator()(lhs_inner, rhs_inner);
@@ -417,25 +390,13 @@ namespace quadmat {
          */
         bool multiply_leaves(unsigned pair_status) {
             leaf_index_type ret_type = get_leaf_index_type(dest_shape);
-
-            if ((pair_status & HAS_LEAF_64) == HAS_LEAF_64) {
-                return std::visit(result_leaf_visitor<int64_t>(*this), ret_type);
-            } else if ((pair_status & HAS_LEAF_32) == HAS_LEAF_32) {
-                return std::visit(result_leaf_visitor<int32_t>(*this), ret_type);
-            } else if ((pair_status & HAS_LEAF_16) == HAS_LEAF_16) {
-                return std::visit(result_leaf_visitor<int16_t>(*this), ret_type);
-            } else {
-                throw node_type_mismatch();
-            }
+            return std::visit(result_leaf_visitor(*this), ret_type);
         }
 
         /**
          * Visitor for the result block's index size. This index size is determined by the dimensions of the result, and
          * can potentially be different than the index size of the inputs.
-         *
-         * @tparam IT the input leaves' index size.
          */
-        template <typename IT>
         class result_leaf_visitor {
         public:
             explicit result_leaf_visitor(const spawn_multiply_job<SR, CONFIG>& job): job(job) {}
@@ -443,11 +404,11 @@ namespace quadmat {
             template <typename RETIT>
             bool operator()(RETIT retit) {
                 dcsc_accumulator<RETT, RETIT, CONFIG> accumulator(job.dest_shape);
-                leaf_category_pair_multiply_visitor_t<IT, RETIT> visitor(job, accumulator);
+                leaf_category_pair_multiply_visitor_t<RETIT> visitor(job, accumulator);
 
                 // multiply each pair in the pair list
                 for (auto pair : job.pair_set.pairs) {
-                    std::visit(visitor, pair.a, pair.b);
+                    std::visit(visitor, pair.get_leaf_a(), pair.get_leaf_b());
                 }
 
                 // collapse all the blocks
@@ -470,31 +431,17 @@ namespace quadmat {
         /**
          * Visitor for leaf categories. This simply unpacks the types and calls the concrete leaf visitor.
          */
-        template <typename IT, typename RETIT>
+        template <typename RETIT>
         class leaf_category_pair_multiply_visitor_t {
         public:
             explicit leaf_category_pair_multiply_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}
 
             /**
-             * Unpack leaf nodes into categories
-             */
-            void operator()(const leaf_node_t<LT, CONFIG>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
-                std::visit(*this, lhs, rhs);
-            }
-
-            /**
-             * Visit categories.
-             */
-            void operator()(const leaf_category_t<LT, IT, CONFIG>& lhs, const leaf_category_t<RT, IT, CONFIG>& rhs) {
-                std::visit(leaf_pair_multiply_visitor_t<IT, RETIT>(job, accumulator), lhs, rhs);
-            }
-
-            /**
-             * Visitor for everything else, which should never happen.
+             * Unpack categories.
              */
             template <typename LHS, typename RHS>
             void operator()(const LHS& lhs, const RHS& rhs) {
-                throw node_type_mismatch();
+                std::visit(leaf_pair_multiply_visitor_t<RETIT>(job, accumulator), lhs, rhs);
             }
 
         protected:
@@ -505,7 +452,7 @@ namespace quadmat {
         /**
          * Concrete leaf block visitor. The leaf block types are known here, so perform the multiplication.
          */
-        template <typename IT, typename RETIT>
+        template <typename RETIT>
         class leaf_pair_multiply_visitor_t {
         public:
             explicit leaf_pair_multiply_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}

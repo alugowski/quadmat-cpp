@@ -374,7 +374,7 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
 
     {
         // expand into 32-bits
-//        ret.push_back(expand_multiply_problem(ret.back(), 10000));
+        ret.push_back(expand_multiply_problem(ret.back(), 10000));
     }
 
     return ret;
