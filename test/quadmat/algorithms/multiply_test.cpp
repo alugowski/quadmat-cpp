@@ -145,4 +145,53 @@ TEST_CASE("Multiply") {
             }
         }
     }
+
+    SECTION("errors") {
+        // hit some edge cases, as well as artificial constructions to get 100% line coverage
+
+        auto future_node = tree_node_t<double>(std::make_shared<future_block<double>>());
+        matrix<double> future_matrix_10x10{{10, 10}, future_node};
+        auto problem_10x10 = multiply_problems[1];
+        auto problem_4x4 = multiply_problems[3];
+
+        auto matrix_10x10 = single_leaf_matrix_from_tuples<double>(problem_10x10.a.shape,
+                                                                   problem_10x10.a.sorted_tuples.size(),
+                                                                   problem_10x10.a.sorted_tuples);
+        auto matrix_4x4 = single_leaf_matrix_from_tuples<double>(problem_4x4.a.shape,
+                                                                 problem_4x4.a.sorted_tuples.size(),
+                                                                 problem_4x4.a.sorted_tuples);
+
+        // future blocks are not implemented
+        SECTION("future blocks"){
+            REQUIRE_THROWS_AS(multiply<plus_times_semiring<double>>(future_matrix_10x10, matrix_10x10),
+                              not_implemented);
+        }
+
+        // dimension mismatch
+        SECTION("dimension mismatches"){
+            REQUIRE_THROWS_AS(multiply<plus_times_semiring<double>>(matrix_4x4, matrix_10x10), node_type_mismatch);
+        }
+
+        SECTION("recurse corruption") {
+            matrix<double> empty_matrix_10x10{{10, 10}};
+            auto matrix_inner_10x10 = single_leaf_matrix_from_tuples<double>(problem_10x10.a.shape,
+                                                                             problem_10x10.a.sorted_tuples.size(),
+                                                                             problem_10x10.a.sorted_tuples);
+            subdivide_leaf(matrix_inner_10x10.get_root_bc(), 0, matrix_inner_10x10.get_shape());
+
+            matrix<double> ret{{10, 10}};
+
+            // setup multiply job
+            spawn_multiply_job<plus_times_semiring<double>, default_config> job(
+                    quadmat::pair_set_t<double, double, default_config>{
+                            matrix_inner_10x10.get_root_bc()->get_child(0),
+                            empty_matrix_10x10.get_root_bc()->get_child(0),
+                            matrix_inner_10x10.get_shape(),
+                            empty_matrix_10x10.get_shape()
+                    },
+                    ret.get_root_bc(), 0, {0, 0}, ret.get_shape());
+
+            REQUIRE_THROWS_AS(job.run(false), node_type_mismatch);
+        }
+    }
 }

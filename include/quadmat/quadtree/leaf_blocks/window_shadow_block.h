@@ -204,6 +204,12 @@ namespace quadmat {
             return ret;
         }
 
+        [[nodiscard]] block_size_info size() const {
+            return block_size_info{
+                    .overhead_bytes = sizeof(window_shadow_block<IT, BASE_LEAF>),
+            };
+        }
+
         /**
          * Create a shadow block that provides a view of a part of this leaf block
          *

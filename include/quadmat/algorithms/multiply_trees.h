@@ -136,11 +136,11 @@ namespace quadmat {
          *
          * @return the bitwise OR of all statuses of remaining pairs, or 0 if empty.
          */
-        unsigned prune_empty() {
+        unsigned prune_empty(bool prune_ok = true) {
             unsigned ret = 0;
             for (auto cur = pairs.begin(); cur != pairs.end();) {
                 unsigned pair_status = cur->get_status();
-                if ((pair_status & HAS_EMPTY) == HAS_EMPTY) {
+                if ((pair_status & HAS_EMPTY) == HAS_EMPTY && prune_ok) {
                     pairs.erase(cur);
                 } else {
                     ret |= pair_status;
@@ -178,9 +178,9 @@ namespace quadmat {
         /**
          * Run multiply job.
          */
-        bool run() {
+        bool run(bool prune = true) {
             // see what needs to be done
-            unsigned status = pair_set.prune_empty();
+            unsigned status = pair_set.prune_empty(prune);
 
             // see if pair set has anything to do
             if (status == EMPTY_PAIR) {
@@ -328,42 +328,6 @@ namespace quadmat {
                 auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape);
                 auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape);
                 operator()(lhs_inner, rhs_inner);
-            }
-
-            /**
-             * Reached a null block.
-             */
-            void operator()(const std::monostate& lhs, const std::monostate& rhs) {}
-
-            template <typename OTHER>
-            void operator()(const std::monostate& lhs, const OTHER& rhs) {}
-
-            template <typename OTHER>
-            void operator()(const OTHER& lhs, const std::monostate& rhs) {}
-
-            /**
-             * Reached a future block.
-             */
-            void operator()(const std::shared_ptr<future_block<LT, CONFIG>>& lhs, const std::shared_ptr<future_block<RT, CONFIG>>& rhs) {
-                throw not_implemented("future_block in multiply");
-            }
-
-            /**
-             * Reached a future block.
-             * @tparam OTHER anything except std::monostate as that already has a handler above
-             */
-            template <typename OTHER, std::enable_if_t<std::is_same<OTHER, std::monostate>::value == 0>>
-            void operator()(const std::shared_ptr<future_block<LT, CONFIG>>& lhs, const OTHER& rhs) {
-                throw not_implemented("future_block in multiply");
-            }
-
-            /**
-             * Reached a future block
-             * @tparam OTHER anything except std::monostate as that already has a handler above
-             */
-            template <typename OTHER, std::enable_if_t<std::is_same<OTHER, std::monostate>::value == 0>>
-            void operator()(const OTHER& lhs, const std::shared_ptr<future_block<RT, CONFIG>>& rhs) {
-                throw not_implemented("future_block in multiply");
             }
 
             /**

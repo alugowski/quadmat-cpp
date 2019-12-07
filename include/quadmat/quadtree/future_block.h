@@ -13,7 +13,7 @@ namespace quadmat {
      *
      * @tparam T value type, eg. double
      */
-    template<typename T, typename CONFIG>
+    template<typename T, typename CONFIG = default_config>
     class future_block : public block<T> {
     public:
         future_block() = default;
