@@ -4,53 +4,11 @@
 #ifndef QUADMAT_PROBLEM_GENERATOR_H
 #define QUADMAT_PROBLEM_GENERATOR_H
 
-#include <vector>
-
-#include "quadmat/util/util.h"
+#include "quadmat/quadmat.h"
 
 using namespace quadmat;
 
-// TODO: figure out how to set the working directory through CMake
-static const std::string test_cwd = "/Users/enos/projects/quadmat/test/";
-static const std::string test_matrix_dir = test_cwd + "matrices/";
-static const std::string unittest_matrix_dir = test_matrix_dir + "unit/";
-
-/**
- * Describe a single matrix
- */
-template <typename T, typename IT>
-struct canned_matrix {
-    std::string description;
-    shape_t shape;
-    vector<std::tuple<IT, IT, T>> sorted_tuples;
-    std::string filename; // only set if available
-
-    /**
-     * @return a version of `sorted_tuples` where duplicates are summed
-     */
-    vector<std::tuple<IT, IT, T>> accumulated_tuples() const {
-        vector<std::tuple<IT, IT, T>> ret;
-
-        bool first = true;
-        IT last_row, last_col;
-        for (auto tup : sorted_tuples) {
-            auto [row, col, value] = tup;
-
-            if (!first && last_row == row && last_col == col) {
-                // same position as last entry, sum values
-                ret.back() = std::tuple<IT, IT, T>(row, col, std::get<2>(ret.back()) + value);
-            } else {
-                ret.push_back(tup);
-            }
-
-            first = false;
-            last_row = row;
-            last_col = col;
-        }
-
-        return ret;
-    }
-};
+#include "problem_structs.h"
 
 /**
  * Blow up matrix dimensions.
@@ -176,18 +134,6 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
 }
 
 /**
- * Describe a result = a * b problem
- */
-template <typename T, typename IT>
-struct multiply_problem {
-    std::string description;
-    canned_matrix<T, IT> a;
-    canned_matrix<T, IT> b;
-    canned_matrix<T, IT> result;
-};
-
-
-/**
  * Blow up dimensions of a multiplication problem
  */
 template <typename T, typename IT>
@@ -201,7 +147,7 @@ multiply_problem<T, IT> expand_multiply_problem(const multiply_problem<T, IT>& o
 }
 
 template <typename T, typename IT>
-vector<multiply_problem<T, IT>> get_multiply_problems() {
+vector<multiply_problem<T, IT>> get_canned_multiply_problems() {
     vector<multiply_problem<T, IT>> ret;
 
     {
@@ -346,37 +292,6 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
                         .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
                 },
         });
-    }
-
-    {
-        simple_matrix_market_loader loader;
-        auto result_mat = loader.load(unittest_matrix_dir + "kepner_gilbert_graph_squared.mtx");
-
-        // use triple_block to sort
-        triples_block<double, index_t> result_block;
-        result_block.add(loader.tuples());
-        auto sorted_result_range = result_block.sorted_tuples();
-
-        ret.emplace_back(multiply_problem<T, IT>{
-                .description = "Kepner-Gilbert graph squared",
-                .a = {
-                        .shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
-                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
-                },
-                .b = {
-                        .shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
-                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
-                },
-                .result = {
-                        .shape = result_mat.get_shape(),
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(sorted_result_range.begin(), sorted_result_range.end()),
-                }
-        });
-    }
-
-    {
-        // expand into 32-bits
-        ret.push_back(expand_multiply_problem(ret.back(), 10000));
     }
 
     return ret;

@@ -5,7 +5,7 @@
 
 #include "quadmat/quadmat.h"
 
-#include "../../../test_utilities/problem_generator.h"
+#include "../../../test_utilities/testing_utilities.h"
 
 using Catch::Matchers::Equals;
 
