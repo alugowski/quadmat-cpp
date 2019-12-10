@@ -12,6 +12,8 @@ using namespace quadmat;
 
 // TODO: figure out how to set the working directory through CMake
 static const std::string test_cwd = "/Users/enos/projects/quadmat/test/";
+static const std::string test_matrix_dir = test_cwd + "matrices/";
+static const std::string unittest_matrix_dir = test_matrix_dir + "unit/";
 
 /**
  * Describe a single matrix
@@ -348,7 +350,7 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
 
     {
         simple_matrix_market_loader loader;
-        auto result_mat = loader.load(test_cwd + "matrices/kepner_gilbert_graph_squared.mtx");
+        auto result_mat = loader.load(unittest_matrix_dir + "kepner_gilbert_graph_squared.mtx");
 
         // use triple_block to sort
         triples_block<double, index_t> result_block;

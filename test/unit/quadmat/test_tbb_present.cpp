@@ -8,7 +8,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_reduce.h>
 
-#include "../catch.hpp"
+#include "../../test_dependencies/catch.hpp"
 
 TEST_CASE("TBB is present", "TBB Parallel For and Reduce"){
     int size = 10000;

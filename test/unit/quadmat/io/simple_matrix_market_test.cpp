@@ -1,11 +1,11 @@
 // Copyright (C) 2019 Adam Lugowski
 // All Rights Reserved.
 
-#include "../../catch.hpp"
+#include "../../../test_dependencies/catch.hpp"
 
 #include "quadmat/quadmat.h"
 
-#include "../../testing_utilities.h"
+#include "../../../test_utilities/testing_utilities.h"
 
 using namespace quadmat;
 
@@ -27,7 +27,7 @@ TEST_CASE("I/O - Matrix Market") {
         const canned_matrix<double, index_t>& problem = canned_matrices_with_files[problem_num];
 
         SECTION(problem.description) {
-            std::ifstream infile{test_cwd + "matrices/" + problem.filename};
+            std::ifstream infile{unittest_matrix_dir + problem.filename};
             auto mat = matrix_market::load(infile);
 
             REQUIRE(mat.get_shape() == problem.shape);
@@ -38,12 +38,12 @@ TEST_CASE("I/O - Matrix Market") {
     SECTION("load - invalid inputs") {
         {
             simple_matrix_market_loader loader{ignoring_error_consumer()};
-            loader.load(test_cwd + "matrices/" + "invalid_bad_banner.mtx");
+            loader.load(unittest_matrix_dir + "invalid_bad_banner.mtx");
             REQUIRE(!loader.is_load_successful());
         }
         {
             simple_matrix_market_loader loader{ignoring_error_consumer()};
-            loader.load(test_cwd + "matrices/" + "invalid_indices_out_of_range_1.mtx");
+            loader.load(unittest_matrix_dir + "invalid_indices_out_of_range_1.mtx");
             REQUIRE(!loader.is_load_successful());
         }
 
@@ -67,7 +67,7 @@ TEST_CASE("I/O - Matrix Market") {
         );
 
         SECTION(filename) {
-            REQUIRE_THROWS(simple_matrix_market_loader().load(test_cwd + "matrices/" + filename));
+            REQUIRE_THROWS(simple_matrix_market_loader().load(unittest_matrix_dir + filename));
         }
     }
 

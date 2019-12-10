@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include "../../catch.hpp"
+#include "../../../test_dependencies/catch.hpp"
 
 #include "quadmat/quadmat.h"
 

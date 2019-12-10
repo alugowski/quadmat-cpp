@@ -1,11 +1,11 @@
 // Copyright (C) 2019 Adam Lugowski
 // All Rights Reserved.
 
-#include "../../../catch.hpp"
+#include "../../../../test_dependencies/catch.hpp"
 
 #include "quadmat/quadmat.h"
 
-#include "../../../problem_generator.h"
+#include "../../../../test_utilities/problem_generator.h"
 
 using Catch::Matchers::Equals;
 

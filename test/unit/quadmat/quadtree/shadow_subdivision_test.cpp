@@ -1,11 +1,11 @@
 // Copyright (C) 2019 Adam Lugowski
 // All Rights Reserved.
 
-#include "../../catch.hpp"
+#include "../../../test_dependencies/catch.hpp"
 
 #include "quadmat/quadmat.h"
 
-#include "../../testing_utilities.h"
+#include "../../../test_utilities/testing_utilities.h"
 
 using Catch::Matchers::UnorderedEquals;
 

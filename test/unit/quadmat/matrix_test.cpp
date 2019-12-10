@@ -2,7 +2,7 @@
 // All Rights Reserved.
 
 #define CATCH_CONFIG_MAIN
-#include "../catch.hpp"
+#include "../../test_dependencies/catch.hpp"
 
 #include "quadmat/quadmat.h"
 
