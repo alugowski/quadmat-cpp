@@ -10,9 +10,9 @@ pip3 install -r requirements.txt
 
 ### Usage
 
-`generate_test_matrices.py` output is already checked in so you likely won't have to use it unless you modify it to
+`generate_test_problems.py` output is already checked in so you likely won't have to use it unless you modify it to
 create new tests:
 
 ```bash
-python3 generate_test_matrices.py
+python3 generate_test_problems.py
 ```

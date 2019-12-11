@@ -13,7 +13,7 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
     auto ret = get_canned_multiply_problems<T, IT>();
 
     // add fs problems
-    auto fs_problems = get_fs_multiply_problems<T, IT>("unit");
+    auto fs_problems = load_fs_multiply_problems<T, IT>("unit");
     for (auto problem : fs_problems) {
         // add the problem
         ret.push_back(std::move(problem));

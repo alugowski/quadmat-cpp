@@ -1,4 +1,4 @@
-%%MatrixMarket matrix coordinate real general
+%%MatrixMarket matrix coordinate integer general
 % This directed graph appears on the cover of "Graph Algorithms in the Language of Linear Algebra" edited by Jeremy Kepner and John Gilbert
 7 7 12
 2 1 1
