@@ -10,13 +10,12 @@ from . import medium_test_multiply_matrix_dir
 from . import matrix_generators as matgen
 
 
-def generate_medium_test_multiply_problem(name, a, b, gitignored=True,
-                                          a_field='integer', b_field='integer',
-                                          a_symmetry='general', b_symmetry='general'):
+def generate_medium_test_multiply_problem(name, a, b, c=None, gitignored=True,
+                                          a_field='integer', b_field='integer', c_field='integer',
+                                          a_symmetry='general', b_symmetry='general', c_symmetry='general'):
     """
     Given input matrices, compute results and save everything in a directory where medium tests will pick it up.
     """
-    ab = a.dot(b)
 
     if gitignored:
         name = "gitignored - " + name
@@ -27,8 +26,17 @@ def generate_medium_test_multiply_problem(name, a, b, gitignored=True,
     scipy.io.mmwrite(os.path.join(dirname, "a.mtx"), a, field=a_field, symmetry=a_symmetry)
     scipy.io.mmwrite(os.path.join(dirname, "b.mtx"), b, field=b_field, symmetry=b_symmetry)
 
-    product_ab_field = a_field if a_field == b_field else None
-    scipy.io.mmwrite(os.path.join(dirname, "product_ab.mtx"), ab, field=product_ab_field, symmetry='general')
+    if c is None:
+        ab = a.dot(b)
+
+        product_ab_field = a_field if a_field == b_field else None
+        scipy.io.mmwrite(os.path.join(dirname, "product_ab.mtx"), ab, field=product_ab_field, symmetry='general')
+    else:
+        abc = a * b * c
+        scipy.io.mmwrite(os.path.join(dirname, "c.mtx"), c, field=c_field, symmetry=c_symmetry)
+
+        product_abc_field = a_field if a_field == b_field == c_field else None
+        scipy.io.mmwrite(os.path.join(dirname, "product_abc.mtx"), abc, field=product_abc_field, symmetry='general')
 
 
 def randomly_permute(mat):
@@ -48,6 +56,7 @@ def generate_er_problems(scale, fill_factor=32, gitignored=True):
 
     er = matgen.generate_er_matrix(2**scale, 2**scale, nnn=2**scale*fill_factor, dedupe=True)
     perm = matgen.generate_permutation_matrix(er.get_shape()[0])
+    left_sub, right_sub = matgen.generate_submatrix_extraction(er.get_shape())
 
     generate_medium_test_multiply_problem(
         name=f"ER squared scale {scale}",
@@ -59,6 +68,13 @@ def generate_er_problems(scale, fill_factor=32, gitignored=True):
         name=f"row perm of ER scale {scale}",
         a=perm,
         b=er,
+        gitignored=gitignored)
+
+    generate_medium_test_multiply_problem(
+        name=f"submatrix of ER scale {scale}",
+        a=left_sub,
+        b=er,
+        c=right_sub,
         gitignored=gitignored)
 
 

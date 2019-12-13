@@ -31,7 +31,9 @@ struct fs_multiply_problem {
     std::string description;
     std::string a_path;
     std::string b_path;
+    std::string c_path;
     std::string product_ab_path;
+    std::string product_abc_path;
 };
 
 /**
@@ -57,7 +59,9 @@ inline vector<fs_multiply_problem> get_fs_multiply_problems(std::string which = 
         // read the matrices inside.
         fs::path a_path = problem_entry.path() / "a.mtx";
         fs::path b_path = problem_entry.path() / "b.mtx";
+        fs::path c_path = problem_entry.path() / "c.mtx";
         fs::path product_ab = problem_entry.path() / "product_ab.mtx";
+        fs::path product_abc = problem_entry.path() / "product_abc.mtx";
 
         if (fs::exists(a_path) && fs::is_regular_file(a_path)) {
             problem.a_path = a_path;
@@ -73,10 +77,19 @@ inline vector<fs_multiply_problem> get_fs_multiply_problems(std::string which = 
             break;
         }
 
+        if (fs::exists(c_path) && fs::is_regular_file(c_path)) {
+            problem.c_path = c_path;
+        }
+
         if (fs::exists(product_ab) && fs::is_regular_file(product_ab)) {
             problem.product_ab_path = product_ab;
-        } else {
-            std::cerr << "Can't find expected matrix file " << product_ab << std::endl;
+        }
+        if (fs::exists(product_abc) && fs::is_regular_file(product_abc)) {
+            problem.product_abc_path = product_abc;
+        }
+
+        if (problem.product_ab_path.empty() && problem.product_abc_path.empty()) {
+            std::cerr << "Can't find expected product matrix files " << product_ab << " or " << product_abc << std::endl;
             break;
         }
 
@@ -128,6 +141,11 @@ vector<multiply_problem<T, IT>> load_fs_multiply_problems(std::string which = "u
 
     for (fs_multiply_problem fs_problem : get_fs_multiply_problems(which)) {
         multiply_problem<T, IT> problem;
+
+        if (fs_problem.product_ab_path.empty()) {
+            // skip triple products
+            continue;
+        }
 
         problem.description = fs_problem.description;
         load_canned_matrix(fs_problem.a_path, problem.a);

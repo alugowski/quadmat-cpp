@@ -113,5 +113,22 @@ def generate_permutation_matrix(n):
     return scipy.sparse.csc_matrix((vals, (rows, cols)), shape=(n, n))
 
 
-def generate_submatrix_extraction(input_shape, output_shape):
-    pass
+def generate_submatrix_extraction(shape, divisor=2):
+    """
+    Generate left and right matrices to perform a submatrix extraction. The columns to extract are selected evenly.
+    """
+    if shape[0] != shape[1]:
+        raise ValueError("only square matrices supported")
+
+    n = shape[0]
+    k = int(n/divisor)
+
+    vals = np.ones(k)
+    left_rows = np.arange(k)
+    left_cols = left_rows * divisor
+    left = scipy.sparse.csc_matrix((vals, (left_rows, left_cols)), shape=(k, n))
+
+    right = scipy.sparse.csc_matrix((vals, (left_cols, left_rows)), shape=(n, k))
+
+    return left, right
+
