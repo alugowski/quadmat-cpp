@@ -28,3 +28,6 @@ Medium tests run medium-scale problems to make sure the code works on non-trivia
 Medium tests do not need 100% code coverage. Commits should have a 100% pass rate.
 
 Medium tests are organized by functionality.
+
+Inputs and expected outputs can be large. Medium test files are generated using a
+Python script to avoid making the Git repo unwieldy. See the [gen](../gen) directory.

@@ -10,9 +10,10 @@ pip3 install -r requirements.txt
 
 ### Usage
 
-`generate_test_problems.py` output is already checked in so you likely won't have to use it unless you modify it to
-create new tests:
-
 ```bash
 python3 generate_test_problems.py
 ```
+
+Unit test output of `generate_test_problems.py` is checked in.
+
+Only medium tests require running the test generator. This is due to the large size of medium test matrices.
