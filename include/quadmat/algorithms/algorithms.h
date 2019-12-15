@@ -36,7 +36,9 @@ namespace quadmat {
                     a.get_root_bc()->get_child(0),
                     b.get_root_bc()->get_child(0),
                     a.get_shape(),
-                    b.get_shape()
+                    b.get_shape(),
+                    a.get_root_bc()->get_discriminating_bit(),
+                    b.get_root_bc()->get_discriminating_bit()
                     },
                 ret.get_root_bc(), 0, {0, 0}, ret.get_shape(), semiring);
 

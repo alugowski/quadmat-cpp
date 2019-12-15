@@ -39,7 +39,7 @@ namespace quadmat {
      */
     template <typename T, typename IT, typename CONFIG>
     tree_node_t<T, CONFIG> subdivide_impl(const shared_ptr<triples_block<T, IT, CONFIG>>& block,
-                                          const offset_t offsets, const shape_t& shape,
+                                          const offset_t offsets, const shape_t& shape, index_t parent_discriminating_bit,
                                           shared_ptr<typename triples_block<T, IT, CONFIG>::permutation_vector_type> permutation,
                                           typename triples_block<T, IT, CONFIG>::permutation_vector_type::iterator perm_begin,
                                           typename triples_block<T, IT, CONFIG>::permutation_vector_type::iterator perm_end) {
@@ -69,7 +69,7 @@ namespace quadmat {
         }
 
         // subdivision is required
-        const index_t discriminating_bit = get_discriminating_bit(shape);
+        const index_t discriminating_bit = get_child_discriminating_bit(parent_discriminating_bit);
         auto ret = std::make_shared<inner_block<T, CONFIG>>(discriminating_bit);
 
         // partition east and west children by column
@@ -110,8 +110,8 @@ namespace quadmat {
                         return block->get_row(i) - offsets.row_offset < value;
                     });
 
-            ret->set_child(north_child, subdivide_impl(block, ret->get_offsets(north_child, offsets), ret->get_child_shape(north_child, shape), permutation, chunk_begin, ns_i));
-            ret->set_child(south_child, subdivide_impl(block, ret->get_offsets(south_child, offsets), ret->get_child_shape(south_child, shape), permutation, ns_i, chunk_end));
+            ret->set_child(north_child, subdivide_impl(block, ret->get_offsets(north_child, offsets), ret->get_child_shape(north_child, shape), discriminating_bit, permutation, chunk_begin, ns_i));
+            ret->set_child(south_child, subdivide_impl(block, ret->get_offsets(south_child, offsets), ret->get_child_shape(south_child, shape), discriminating_bit, permutation, ns_i, chunk_end));
         }
         return ret;
     }
@@ -130,7 +130,7 @@ namespace quadmat {
     tree_node_t<T, CONFIG> subdivide(const shared_ptr<triples_block<T, IT, CONFIG>> block, const shape_t& shape) {
         auto permutation = std::make_shared<typename triples_block<T, IT, CONFIG>::permutation_vector_type>(block->nnn());
         std::iota(permutation->begin(), permutation->end(), 0);
-        return subdivide_impl(block, offset_t{0, 0}, shape, permutation, permutation->begin(), permutation->end());
+        return subdivide_impl(block, offset_t{0, 0}, shape, get_discriminating_bit(shape) << 1, permutation, permutation->begin(), permutation->end()); // NOLINT(hicpp-signed-bitwise)
     }
 }
 

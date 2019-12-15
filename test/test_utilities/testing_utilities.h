@@ -275,11 +275,6 @@ public:
                    std::to_string(info.expected_discriminating_bit);
         }
 
-        if (info.shape.nrows < info.expected_discriminating_bit ||
-            info.shape.ncols < info.expected_discriminating_bit) {
-            return "inner_block dimensions < discriminating_bit";
-        }
-
         // verify child shapes
         shape_t nw_shape = inner->get_child_shape(NW, info.shape);
         shape_t se_shape = inner->get_child_shape(SE, info.shape);

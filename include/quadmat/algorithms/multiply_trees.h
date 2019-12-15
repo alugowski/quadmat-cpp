@@ -67,8 +67,15 @@ namespace quadmat {
         tree_node_t<RT, CONFIG> b;
         shape_t a_shape;
         shape_t b_shape;
+        index_t a_parent_disc_bit;
+        index_t b_parent_disc_bit;
 
-        tree_node_pair_t(const tree_node_t<LT, CONFIG> &a, const tree_node_t<RT, CONFIG> &b, const shape_t& a_shape, const shape_t& b_shape) : a(a), b(b), a_shape(a_shape), b_shape(b_shape) {}
+        tree_node_pair_t(
+                const tree_node_t<LT, CONFIG> &a, const tree_node_t<RT, CONFIG> &b,
+                const shape_t& a_shape, const shape_t& b_shape,
+                const index_t a_parent_disc_bit, const index_t b_parent_disc_bit
+                ) : a(a), b(b), a_shape(a_shape), b_shape(b_shape),
+                a_parent_disc_bit(a_parent_disc_bit), b_parent_disc_bit(b_parent_disc_bit) {}
 
         /**
          * Visitor that describes the contents of this tree_node_pair.
@@ -129,7 +136,10 @@ namespace quadmat {
         vector<tree_node_pair_t<LT, RT, CONFIG>, typename CONFIG::template TEMP_ALLOC<tree_node_pair_t<LT, RT, CONFIG>>> pairs;
 
         pair_set_t() = default;
-        explicit pair_set_t(const tree_node_t<LT, CONFIG>& a, const tree_node_t<LT, CONFIG>& b, const shape_t& a_shape, const shape_t& b_shape) : pairs{{a, b, a_shape, b_shape}} {}
+        explicit pair_set_t(
+                const tree_node_t<LT, CONFIG>& a, const tree_node_t<LT, CONFIG>& b,
+                const shape_t& a_shape, const shape_t& b_shape,
+                const index_t a_parent_disc_bit, const index_t b_parent_disc_bit) : pairs{{a, b, a_shape, b_shape, a_parent_disc_bit, b_parent_disc_bit}} {}
 
         /**
          * Prune any pair in the pair set that has an empty block. The result of that multiplication is also an empty block.
@@ -289,27 +299,27 @@ namespace quadmat {
              */
             void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& a, const std::shared_ptr<inner_block<RT, CONFIG>>& b) {
                 // NW
-                ret_sets[NW].pairs.emplace_back(a->get_child(NW), b->get_child(NW), a->get_child_shape(NW, node_pair.a_shape), b->get_child_shape(NW, node_pair.b_shape));
-                ret_sets[NW].pairs.emplace_back(a->get_child(NE), b->get_child(SW), a->get_child_shape(NE, node_pair.a_shape), b->get_child_shape(SW, node_pair.b_shape));
+                ret_sets[NW].pairs.emplace_back(a->get_child(NW), b->get_child(NW), a->get_child_shape(NW, node_pair.a_shape), b->get_child_shape(NW, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
+                ret_sets[NW].pairs.emplace_back(a->get_child(NE), b->get_child(SW), a->get_child_shape(NE, node_pair.a_shape), b->get_child_shape(SW, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
 
                 // NE
-                ret_sets[NE].pairs.emplace_back(a->get_child(NW), b->get_child(NE), a->get_child_shape(NW, node_pair.a_shape), b->get_child_shape(NE, node_pair.b_shape));
-                ret_sets[NE].pairs.emplace_back(a->get_child(NE), b->get_child(SE), a->get_child_shape(NE, node_pair.a_shape), b->get_child_shape(SE, node_pair.b_shape));
+                ret_sets[NE].pairs.emplace_back(a->get_child(NW), b->get_child(NE), a->get_child_shape(NW, node_pair.a_shape), b->get_child_shape(NE, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
+                ret_sets[NE].pairs.emplace_back(a->get_child(NE), b->get_child(SE), a->get_child_shape(NE, node_pair.a_shape), b->get_child_shape(SE, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
 
                 // SW
-                ret_sets[SW].pairs.emplace_back(a->get_child(SW), b->get_child(NW), a->get_child_shape(SW, node_pair.a_shape), b->get_child_shape(NW, node_pair.b_shape));
-                ret_sets[SW].pairs.emplace_back(a->get_child(SE), b->get_child(SW), a->get_child_shape(SE, node_pair.a_shape), b->get_child_shape(SW, node_pair.b_shape));
+                ret_sets[SW].pairs.emplace_back(a->get_child(SW), b->get_child(NW), a->get_child_shape(SW, node_pair.a_shape), b->get_child_shape(NW, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
+                ret_sets[SW].pairs.emplace_back(a->get_child(SE), b->get_child(SW), a->get_child_shape(SE, node_pair.a_shape), b->get_child_shape(SW, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
 
                 // SE
-                ret_sets[SE].pairs.emplace_back(a->get_child(SW), b->get_child(NE), a->get_child_shape(SW, node_pair.a_shape), b->get_child_shape(NE, node_pair.b_shape));
-                ret_sets[SE].pairs.emplace_back(a->get_child(SE), b->get_child(SE), a->get_child_shape(SE, node_pair.a_shape), b->get_child_shape(SE, node_pair.b_shape));
+                ret_sets[SE].pairs.emplace_back(a->get_child(SW), b->get_child(NE), a->get_child_shape(SW, node_pair.a_shape), b->get_child_shape(NE, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
+                ret_sets[SE].pairs.emplace_back(a->get_child(SE), b->get_child(SE), a->get_child_shape(SE, node_pair.a_shape), b->get_child_shape(SE, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
             }
 
             /**
              * Reached an inner block and a leaf block.
              */
             void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
-                auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape);
+                auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape, node_pair.b_parent_disc_bit);
                 operator()(lhs, rhs_inner);
             }
 
@@ -317,7 +327,7 @@ namespace quadmat {
              * Reached a leaf block and an inner block.
              */
             void operator()(const leaf_node_t<LT, CONFIG>& lhs, const std::shared_ptr<inner_block<RT, CONFIG>>& rhs) {
-                auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape);
+                auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape, node_pair.a_parent_disc_bit);
                 operator()(lhs_inner, rhs);
             }
 
@@ -325,8 +335,8 @@ namespace quadmat {
              * Reached two leaf blocks. This happens when two leaves are in a pair set where another pair has an inner block.
              */
             void operator()(const leaf_node_t<LT, CONFIG>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
-                auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape);
-                auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape);
+                auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape, node_pair.a_parent_disc_bit);
+                auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape, node_pair.b_parent_disc_bit);
                 operator()(lhs_inner, rhs_inner);
             }
 

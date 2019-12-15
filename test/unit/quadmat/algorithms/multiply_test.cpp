@@ -186,7 +186,9 @@ TEST_CASE("Multiply") {
                             matrix_inner_10x10.get_root_bc()->get_child(0),
                             empty_matrix_10x10.get_root_bc()->get_child(0),
                             matrix_inner_10x10.get_shape(),
-                            empty_matrix_10x10.get_shape()
+                            empty_matrix_10x10.get_shape(),
+                            matrix_inner_10x10.get_root_bc()->get_discriminating_bit(),
+                            empty_matrix_10x10.get_root_bc()->get_discriminating_bit()
                     },
                     ret.get_root_bc(), 0, {0, 0}, ret.get_shape());
 

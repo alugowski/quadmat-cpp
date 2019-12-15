@@ -166,5 +166,11 @@ TEST_CASE("Numeric Utilities") {
         REQUIRE(quadmat::get_discriminating_bit({7, 7}) == 4);
         REQUIRE(quadmat::get_discriminating_bit({8, 8}) == 4);
         REQUIRE(quadmat::get_discriminating_bit({9, 9}) == 8);
+
+        REQUIRE(quadmat::get_child_discriminating_bit(0) == 1);
+        REQUIRE(quadmat::get_child_discriminating_bit(1) == 1);
+        REQUIRE(quadmat::get_child_discriminating_bit(2) == 1);
+        REQUIRE(quadmat::get_child_discriminating_bit(4) == 2);
+        REQUIRE(quadmat::get_child_discriminating_bit(1ul << 62ul) == 1ul << 61ul);
     }
 }

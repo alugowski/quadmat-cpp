@@ -264,6 +264,13 @@ namespace quadmat {
         }
         return clear_all_except_msb(dim_max - 1); // NOLINT(hicpp-signed-bitwise),
     }
+
+    /**
+     * Find the discriminating bit of a child inner node given the parent inner node's bit.
+     */
+    inline index_t get_child_discriminating_bit(const index_t parent_discriminating_bit) {
+        return parent_discriminating_bit > 1 ? parent_discriminating_bit >> 1 : 1; // NOLINT(hicpp-signed-bitwise)
+    }
 }
 
 #endif //QUADMAT_UTIL_H

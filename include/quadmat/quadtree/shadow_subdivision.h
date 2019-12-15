@@ -16,7 +16,7 @@ namespace quadmat {
     template <typename T, typename CONFIG>
     class subdivision_visitor_t {
     public:
-        explicit subdivision_visitor_t(const shape_t& shape) : node_shape(shape) {}
+        explicit subdivision_visitor_t(const shape_t& shape, const index_t parent_discriminating_bit) : node_shape(shape), parent_discriminating_bit(parent_discriminating_bit) {}
 
         /**
          * Reached a leaf block category.
@@ -44,7 +44,7 @@ namespace quadmat {
          */
         template <typename LEAF_TYPE>
         std::shared_ptr<inner_block<T, CONFIG>> operator()(const std::shared_ptr<LEAF_TYPE>& leaf) {
-            index_t discriminating_bit = get_discriminating_bit(node_shape);
+            index_t discriminating_bit = get_child_discriminating_bit(parent_discriminating_bit);
 
             // find the column splits
             auto begin_column = leaf->columns_begin();
@@ -82,6 +82,7 @@ namespace quadmat {
 
     protected:
         const shape_t node_shape;
+        const index_t parent_discriminating_bit;
     };
 
     /**
@@ -93,8 +94,8 @@ namespace quadmat {
      * @return an inner block
      */
     template <typename T, typename CONFIG = default_config>
-    std::shared_ptr<inner_block<T, CONFIG>> shadow_subdivide(const leaf_node_t<T, CONFIG>& node, const shape_t& shape) {
-        return std::visit(subdivision_visitor_t<T, CONFIG>(shape), node);
+    std::shared_ptr<inner_block<T, CONFIG>> shadow_subdivide(const leaf_node_t<T, CONFIG>& node, const shape_t& shape, const index_t parent_discriminating_bit) {
+        return std::visit(subdivision_visitor_t<T, CONFIG>(shape, parent_discriminating_bit), node);
     }
 }
 
