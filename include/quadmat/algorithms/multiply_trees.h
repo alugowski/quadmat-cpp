@@ -160,6 +160,18 @@ namespace quadmat {
 
             return ret;
         }
+
+        /**
+         * @return a pair of discriminating bits, one for a and one for b sides
+         */
+        [[nodiscard]] std::pair<index_t, index_t> get_parent_discriminating_bits() const {
+            index_t a = 0, b = 0;
+            for (auto pair : pairs) {
+                a |= pair.a_parent_disc_bit;
+                b |= pair.b_parent_disc_bit;
+            }
+            return std::pair<index_t, index_t>{a, b};
+        }
     };
 
     /**
@@ -224,9 +236,6 @@ namespace quadmat {
          * and recurse.
          */
         bool recurse() {
-            // construct result
-            std::shared_ptr<inner_block<RETT, CONFIG>> recursive_dest_block = dest_bc->create_inner(dest_position);
-
             // build recursive pair sets
             array<pair_set_t<LT, RT, CONFIG>, 4> recursive_pair_sets{};
 
@@ -234,20 +243,49 @@ namespace quadmat {
                 std::visit(recursive_visitor_t(recursive_pair_sets, pair), pair.a, pair.b);
             }
 
-            // recurse
-            for (auto recursive_child_pos : all_inner_positions) {
+            auto [a_parent_disc_bit, b_parent_disc_bit] = pair_set.get_parent_discriminating_bits();
+            index_t a_disc_bit = a_parent_disc_bit >> 1;
+            index_t b_disc_bit = b_parent_disc_bit >> 1;
+
+            if (a_disc_bit >= dest_bc->get_discriminating_bit()) {
+                // the inputs are subdivided, but the result shouldn't be
+                // For example, inputs might be a short-fat matrix * tall-skinny. Result has small dimensions and
+                // does not require subdivision even though inputs do.
+
+                // all 4 recursive pair sets should be merged into one
+                pair_set_t<LT, RT, CONFIG> recursive_pair_set;
+                for (auto rec_pair_set_chunk : recursive_pair_sets) {
+                    std::copy(rec_pair_set_chunk.pairs.begin(), rec_pair_set_chunk.pairs.end(), back_inserter(recursive_pair_set.pairs));
+                }
+
+                // spawn single recursive job
                 spawn_multiply_job job(
-                        recursive_pair_sets[recursive_child_pos],
-                        recursive_dest_block,
-                        recursive_child_pos,
-                        recursive_dest_block->get_offsets(recursive_child_pos, dest_offsets),
-                        recursive_dest_block->get_child_shape(recursive_child_pos, dest_shape));
+                        recursive_pair_set,
+                        dest_bc,
+                        dest_position,
+                        dest_offsets,
+                        dest_shape);
 
                 job.run();
-            }
+            } else {
+                // construct result
+                std::shared_ptr<inner_block<RETT, CONFIG>> recursive_dest_block = dest_bc->create_inner(dest_position);
 
-            // clean up result
-            clean_recurse_result(recursive_dest_block);
+                // recurse
+                for (auto recursive_child_pos : all_inner_positions) {
+                    spawn_multiply_job job(
+                            recursive_pair_sets[recursive_child_pos],
+                            recursive_dest_block,
+                            recursive_child_pos,
+                            recursive_dest_block->get_offsets(recursive_child_pos, dest_offsets),
+                            recursive_dest_block->get_child_shape(recursive_child_pos, dest_shape));
+
+                    job.run();
+                }
+
+                // clean up result
+                clean_recurse_result(recursive_dest_block);
+            }
 
             return true;
         }

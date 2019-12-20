@@ -294,6 +294,57 @@ vector<multiply_problem<T, IT>> get_canned_multiply_problems() {
         });
     }
 
+    {
+        vector<std::tuple<IT, IT, T>> row_vector;
+        vector<std::tuple<IT, IT, T>> col_vector;
+        const size_t length = 16;
+
+        for (IT i = 0; i < length; i++) {
+            row_vector.emplace_back(0, i, 1);
+            col_vector.emplace_back(i, 0, 1);
+        }
+
+        vector<std::tuple<IT, IT, T>> dot_product{
+                {0, 0, length}
+        };
+
+        full_tuples_generator<T, IT> cross_product({length, length}, 1);
+
+        // dot product: row vector * col vector
+        ret.emplace_back(multiply_problem<T, IT>{
+                .description = join::to_string("vector dot product length ", length),
+                .a = {
+                        .shape = {1, length},
+                        .sorted_tuples = row_vector,
+                },
+                .b = {
+                        .shape = {length, 1},
+                        .sorted_tuples = col_vector,
+                },
+                .result = {
+                        .shape = {1, 1},
+                        .sorted_tuples = dot_product,
+                },
+        });
+
+        // cross product: col vector * row vector
+        ret.emplace_back(multiply_problem<T, IT>{
+                .description = join::to_string("vector cross product length ", length),
+                .a = {
+                        .shape = {length, 1},
+                        .sorted_tuples = col_vector,
+                },
+                .b = {
+                        .shape = {1, length},
+                        .sorted_tuples = row_vector,
+                },
+                .result = {
+                        .shape = {length, length},
+                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(cross_product.begin(), cross_product.end()),
+                },
+        });
+    }
+
     return ret;
 }
 
