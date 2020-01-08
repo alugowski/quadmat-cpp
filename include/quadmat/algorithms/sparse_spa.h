@@ -33,7 +33,7 @@ namespace quadmat {
          * @param values_iter input iterator. Start of the values range. End assumed to be values_iter + (rows_end - rows_iter)
          */
         template <typename ROW_ITER, typename VAL_ITER>
-        void update(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter) {
+        void scatter(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter) {
             while (rows_iter != rows_end) {
                 update(*rows_iter, *values_iter);
 
@@ -55,7 +55,7 @@ namespace quadmat {
          * @param values_iter input iterator over SR::map_type_l. Start of the values range, with end assumed to be values_iter + (rows_end - rows_iter)
          */
         template <typename ROW_ITER, typename VAL_ITER>
-        void update(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter, const typename SR::map_type_r& b_val) {
+        void scatter(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter, const typename SR::map_type_r& b_val) {
             while (rows_iter != rows_end) {
                 update(*rows_iter, semiring.multiply(*values_iter, b_val));
 

@@ -40,7 +40,7 @@ namespace quadmat {
                 if (a_i != a->columns_end()) {
                     // perform the multiply and add in the SpA
                     auto a_i_column = *a_i;
-                    spa.update(a_i_column.rows_begin, a_i_column.rows_end, a_i_column.values_begin, *b_j_value);
+                    spa.scatter(a_i_column.rows_begin, a_i_column.rows_end, a_i_column.values_begin, *b_j_value);
                 }
 
                 ++b_j_row;

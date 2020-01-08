@@ -23,7 +23,7 @@ TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
         TestType spa(size);
 
         // fill spa
-        spa.update(begin(original_rows), end(original_rows), begin(original_values));
+        spa.scatter(begin(original_rows), end(original_rows), begin(original_values));
 
         // test contents
         {
@@ -36,7 +36,7 @@ TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
         }
 
         // add again
-        spa.update(begin(original_rows), end(original_rows), begin(original_values));
+        spa.scatter(begin(original_rows), end(original_rows), begin(original_values));
 
         // test contents, values should be doubled
         {
@@ -62,7 +62,7 @@ TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
         }
 
         // fill spa while doubling
-        spa.update(begin(original_rows), end(original_rows), begin(original_values), 2);
+        spa.scatter(begin(original_rows), end(original_rows), begin(original_values), 2);
 
         // test contents, values should be doubled
         {

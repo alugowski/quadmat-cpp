@@ -100,7 +100,7 @@ namespace quadmat {
 
                 // fill the SpA with this column
                 auto current_col = *cr.current;
-                spa.update(current_col.rows_begin, current_col.rows_end, current_col.values_begin);
+                spa.scatter(current_col.rows_begin, current_col.rows_end, current_col.values_begin);
 
                 // if this is the last block with this column then dump the spa into the result
                 if (column_queue.empty() || column_queue.top().col() != current_col.col) {
