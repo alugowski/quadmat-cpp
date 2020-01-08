@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_TESTING_UTILITIES_H
@@ -199,6 +199,19 @@ public:
     }
 
     explicit MatrixEquals(const canned_matrix<T, index_t> &mat, const CONFIG& = CONFIG()) : shape(mat.shape), my_tuples(mat.sorted_tuples) {
+        std::sort(my_tuples.begin(), my_tuples.end());
+    }
+
+    template <typename GEN>
+    explicit MatrixEquals(const shape_t& shape, GEN tuple_gen, const CONFIG& = CONFIG()) : shape(shape) {
+        for (auto tup : tuple_gen) {
+            const index_t row = std::get<0>(tup);
+            const index_t col = std::get<1>(tup);
+            const T& value = std::get<2>(tup);
+
+            my_tuples.emplace_back(row, col, value);
+        }
+
         std::sort(my_tuples.begin(), my_tuples.end());
     }
 

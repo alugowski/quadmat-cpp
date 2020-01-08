@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_DCSC_ACCUMULATOR_H
@@ -59,7 +59,11 @@ namespace quadmat {
          */
         template <class SR = plus_times_semiring<T>>
         std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse(const SR& semiring = SR()) {
-            return collapse_SpA<sparse_spa<IT, SR, CONFIG>, SR>(semiring);
+            if (CONFIG::template use_dense_spa<T>(shape.nrows)) {
+                return collapse_SpA<dense_spa<IT, SR, CONFIG>, SR>(semiring);
+            } else {
+                return collapse_SpA<sparse_spa<IT, SR, CONFIG>, SR>(semiring);
+            }
         }
 
     protected:

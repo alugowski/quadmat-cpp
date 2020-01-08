@@ -474,8 +474,13 @@ namespace quadmat {
              */
             template <typename LHS, typename RHS>
             void operator()(const std::shared_ptr<LHS>& lhs, const std::shared_ptr<RHS>& rhs) {
-                auto result = multiply_pair<LHS, RHS, RETIT, SR, sparse_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs, job.dest_shape, job.semiring);
-                accumulator.add(result);
+                if (CONFIG::template use_dense_spa<RETT>(job.dest_shape.nrows)) {
+                    auto result = multiply_pair<LHS, RHS, RETIT, SR, dense_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs, job.dest_shape, job.semiring);
+                    accumulator.add(result);
+                } else {
+                    auto result = multiply_pair<LHS, RHS, RETIT, SR, sparse_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs, job.dest_shape, job.semiring);
+                    accumulator.add(result);
+                }
             }
 
         protected:

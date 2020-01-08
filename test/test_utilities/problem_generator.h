@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_PROBLEM_GENERATOR_H
@@ -107,8 +107,13 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
     }
 
     if (!only_with_files) {
+        const auto& orig = ret.back();
+
         // expand into 32-bit indices
-        ret.push_back(expand_matrix(ret.back(), 10000));
+        ret.push_back(expand_matrix(orig, 10000));
+
+        // expand into sparse SpA
+        ret.push_back(expand_matrix(orig, 5000000));
     }
 
     if (!only_with_files) {

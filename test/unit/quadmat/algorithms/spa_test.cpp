@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
@@ -7,8 +7,11 @@
 
 using Catch::Matchers::Equals;
 
-TEST_CASE("SpA") {
-    SECTION("sparse basic") {
+TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
+        (quadmat::dense_spa<int, quadmat::plus_times_semiring<double>>),
+        (quadmat::sparse_spa<int, quadmat::plus_times_semiring<double>>)) {
+
+    SECTION("basic") {
         int size = 10;
 
         vector<int> original_rows(size);
@@ -17,7 +20,7 @@ TEST_CASE("SpA") {
         vector<double> original_values(size, 1.0);
         vector<double> doubled_values(size, 2.0);
 
-        quadmat::sparse_spa<int, quadmat::plus_times_semiring<double>> spa(size);
+        TestType spa(size);
 
         // fill spa
         spa.update(begin(original_rows), end(original_rows), begin(original_values));

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
@@ -45,7 +45,10 @@ TEST_CASE("DCSC Accumulator") {
                 // collapse
                 auto sum = accum.collapse();
 
-                // get tuples back
+                // matrix comparison
+                REQUIRE_THAT(matrix<double>(problem.shape, sum), MatrixEquals<double>(problem.shape, problem.accumulated_tuples()));
+
+                // tuple comparison
                 auto sorted_range = sum->tuples();
                 vector<std::tuple<index_t, index_t, double>> v(sorted_range.begin(), sorted_range.end());
                 REQUIRE_THAT(v, Equals(problem.accumulated_tuples()));
@@ -91,7 +94,10 @@ TEST_CASE("DCSC Accumulator") {
                 // collapse
                 auto sum = accum.collapse();
 
-                // get tuples back
+                // matrix comparison
+                REQUIRE_THAT(matrix<double>(problem.shape, sum), MatrixEquals<double>(problem.shape, problem_accumulated_tuples));
+
+                // tuple comparison
                 auto sorted_range = sum->tuples();
                 vector<std::tuple<index_t, index_t, double>> v(sorted_range.begin(), sorted_range.end());
                 REQUIRE_THAT(v, Equals(problem_accumulated_tuples));
@@ -125,7 +131,10 @@ TEST_CASE("DCSC Accumulator") {
             // collapse
             auto sum = accum.collapse();
 
-            // get doubled tuples back
+            // matrix comparison
+            REQUIRE_THAT(matrix<double>(problem.shape, sum), MatrixEquals<double>(problem.shape, expected_tuples));
+
+            // tuple comparison
             auto sorted_range = sum->tuples();
             vector<std::tuple<index_t, index_t, double>> v(sorted_range.begin(), sorted_range.end());
             REQUIRE_THAT(v, Equals(expected_tuples));

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_CONFIG_H
@@ -18,7 +18,35 @@ namespace quadmat {
         /**
          * leaf blocks larger than this should be split
          */
-        static constexpr blocknnn_t leaf_split_threshold = 10 * 1024;
+        static const blocknnn_t leaf_split_threshold = 10 * 1024;
+
+        /**
+         * Maximum number of entries in a dense SpA. Larger problems use a sparse SpA.
+         */
+        static const size_t dense_spa_max_count = 100 * 1024 * 1024;
+
+        /**
+         * Largest size of a dense SpA's array. Larger problems use a sparse SpA.
+         */
+        static const size_t dense_spa_max_bytes = 10  * 1024 * 1024;
+
+        /**
+         * Decide whether to use a dense or sparse SpA.
+         *
+         * A dense SpA is an array, so lookups are fast. However for large matrices this can become unusable,
+         * and a sparse SpA based on a map is a better choice.
+         *
+         * A dense SpA also requires the type to be default constructable.
+         *
+         * @tparam T type in the SpA
+         * @param nrows size of the SpA
+         * @return true if a dense SpA should be used, false if a sparse SpA should be used.
+         */
+        template <typename T>
+        static bool use_dense_spa(size_t nrows) {
+            // choose based on count or size in bytes
+            return nrows <= dense_spa_max_count && nrows * sizeof(T) <= dense_spa_max_bytes;
+        }
 
         /**
          * default allocator, and for long-lived objects

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_PROBLEMS_H
@@ -18,8 +18,13 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
         // add the problem
         ret.push_back(std::move(problem));
 
+        const auto& orig = ret.back();
+
         // add a version blown-up to 32-bits
-        ret.push_back(expand_multiply_problem(ret.back(), 10000));
+        ret.push_back(expand_multiply_problem(orig, 10000));
+
+        // add a version blown-up to require sparse SpA
+        ret.push_back(expand_multiply_problem(orig, 5000000));
     }
 
     return ret;
