@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_PROBLEM_LOADER_H
@@ -20,14 +20,14 @@
 #endif
 
 // TODO: figure out how to set the working directory through CMake
-static const std::string test_cwd = "/Users/enos/projects/quadmat/test/";
-static const std::string test_matrix_dir = test_cwd + "matrices/";
-static const std::string unittest_matrix_dir = test_matrix_dir + "unit/";
+static const std::string kTestCwd = "/Users/enos/projects/quadmat/test/";
+static const std::string kTestMatrixDir = kTestCwd + "matrices/";
+static const std::string kUnitTestMatrixDir = kTestMatrixDir + "unit/";
 
 /**
  * Describe a multiply problem specified as matrix files on the filesystem.
  */
-struct fs_multiply_problem {
+struct FsMultiplyProblem {
     std::string description;
     std::string a_path;
     std::string b_path;
@@ -42,17 +42,17 @@ struct fs_multiply_problem {
  * @param which one of "unit" or "medium"
  * @return
  */
-inline vector<fs_multiply_problem> get_fs_multiply_problems(std::string which = "unit") {
-    const fs::path multiply_dir{test_matrix_dir + which + "/multiply/" };
+inline std::vector<FsMultiplyProblem> GetFsMultiplyProblems(std::string which = "unit") {
+    const fs::path multiply_dir{kTestMatrixDir + which + "/multiply/" };
 
-    vector<fs_multiply_problem> ret;
+    std::vector<FsMultiplyProblem> ret;
 
     for (const auto& problem_entry : fs::directory_iterator(multiply_dir)) {
         if (!problem_entry.is_directory()) {
             continue;
         }
 
-        fs_multiply_problem problem;
+        FsMultiplyProblem problem;
 
         problem.description = problem_entry.path().filename().string();
 
@@ -107,21 +107,21 @@ inline vector<fs_multiply_problem> get_fs_multiply_problems(std::string which = 
  * @param cm matrix to load into.
  */
 template <typename T, typename IT>
-void load_canned_matrix(fs::path path, canned_matrix<T, IT>& cm) {
+void LoadCannedMatrix(fs::path path, CannedMatrix<T, IT>& cm) {
 
     // use a triples block to sort tuples
-    triples_block<T, IT> tb;
+    TriplesBlock<T, IT> tb;
 
     {
         std::ifstream infile{path};
-        auto mat = matrix_market::load<T>(infile);
+        auto mat = MatrixMarket::Load<T>(infile);
 
-        cm.shape = mat.get_shape();
+        cm.shape = mat.GetShape();
 
-        tb.add(dump_tuples(mat));
+        tb.Add(DumpTuples(mat));
     }
 
-    auto sorted_tuple_range = tb.sorted_tuples();
+    auto sorted_tuple_range = tb.SortedTuples();
 
     std::copy(std::begin(sorted_tuple_range), std::end(sorted_tuple_range), std::back_inserter(cm.sorted_tuples));
 }
@@ -136,11 +136,11 @@ void load_canned_matrix(fs::path path, canned_matrix<T, IT>& cm) {
  * @param which Which tests to read from. I.e. one of "unit" or "medium".
  */
 template <typename T, typename IT>
-vector<multiply_problem<T, IT>> load_fs_multiply_problems(std::string which = "unit") {
-    vector<multiply_problem<T, IT>> ret;
+std::vector<MultiplyProblem<T, IT>> LoadFsMultiplyProblems(std::string which = "unit") {
+    std::vector<MultiplyProblem<T, IT>> ret;
 
-    for (fs_multiply_problem fs_problem : get_fs_multiply_problems(which)) {
-        multiply_problem<T, IT> problem;
+    for (FsMultiplyProblem fs_problem : GetFsMultiplyProblems(which)) {
+        MultiplyProblem<T, IT> problem;
 
         if (fs_problem.product_ab_path.empty()) {
             // skip triple products
@@ -148,9 +148,9 @@ vector<multiply_problem<T, IT>> load_fs_multiply_problems(std::string which = "u
         }
 
         problem.description = fs_problem.description;
-        load_canned_matrix(fs_problem.a_path, problem.a);
-        load_canned_matrix(fs_problem.b_path, problem.b);
-        load_canned_matrix(fs_problem.product_ab_path, problem.result);
+        LoadCannedMatrix(fs_problem.a_path, problem.a);
+        LoadCannedMatrix(fs_problem.b_path, problem.b);
+        LoadCannedMatrix(fs_problem.product_ab_path, problem.result);
 
         ret.push_back(problem);
     }

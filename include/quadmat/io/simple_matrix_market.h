@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_SIMPLE_MATRIX_MARKET_H
@@ -9,22 +9,25 @@
 #include <sstream>
 #include <vector>
 
+#include "quadmat/config.h"
+#include "quadmat/matrix.h"
+#include "quadmat/quadtree/tree_visitors.h"
 #include "quadmat/util/base_iterators.h"
 #include "quadmat/util/types.h"
 
 namespace quadmat {
 
-    struct matrix_market_header {
+    struct MatrixMarketHeader {
         // some format definitions
         const std::string MatrixMarketBanner = "%MatrixMarket";
         const std::string MatrixMarketBanner2 = "%%MatrixMarket";
 
-        static bool is_comment(const std::string& line) {
+        static bool IsComment(const std::string& line) {
             return !line.empty() && line[0] == '%';
         }
 
-        template <typename EC>
-        bool read_header(std::istream& instream, EC& ec) {
+        template <typename ErrorConsumer>
+        bool ReadHeader(std::istream& instream, ErrorConsumer& ec) {
             std::string line;
             std::string delimiter = " ";
 
@@ -35,7 +38,7 @@ namespace quadmat {
             if (line.rfind(MatrixMarketBanner, 0) != 0
                 && line.rfind(MatrixMarketBanner2, 0) != 0) {
                 // not a matrix market file because the banner is missing
-                ec.error("Not a Matrix Market file. Missing banner.");
+                ec.Error("Not a Matrix Market file. Missing banner.");
                 return false;
             }
 
@@ -51,7 +54,7 @@ namespace quadmat {
                 } else if (f_object == "vector") {
                     object = vector;
                 } else {
-                    ec.error("Unknown object type");
+                    ec.Error("Unknown object type");
                     return false;
                 }
 
@@ -61,7 +64,7 @@ namespace quadmat {
                 } else if (f_format == "coordinate") {
                     format = coordinate;
                 } else {
-                    ec.error("Unknown format type");
+                    ec.Error("Unknown format type");
                     return false;
                 }
 
@@ -77,7 +80,7 @@ namespace quadmat {
                 } else if (f_field == "pattern") {
                     field = pattern;
                 } else {
-                    ec.error("Unknown field type");
+                    ec.Error("Unknown field type");
                     return false;
                 }
 
@@ -91,7 +94,7 @@ namespace quadmat {
                 } else if (f_symmetry == "hermitian") {
                     symmetry = hermitian;
                 } else {
-                    ec.error("Unknown symmetry type");
+                    ec.Error("Unknown symmetry type");
                     return false;
                 }
             }
@@ -102,10 +105,10 @@ namespace quadmat {
                 lines_read++;
 
                 if (!instream) {
-                    ec.error("Premature EOF");
+                    ec.Error("Premature EOF");
                     return false;
                 }
-            } while (is_comment(line));
+            } while (IsComment(line));
 
             // parse the dimension line
             {
@@ -120,8 +123,8 @@ namespace quadmat {
             return true;
         }
 
-        template <typename EC>
-        bool write_header(std::ostream& os, EC& ec) {
+        template <typename ErrorConsumer>
+        bool WriteHeader(std::ostream& os, ErrorConsumer& ec) {
             std::string delim = " ";
 
             // write the banner
@@ -143,9 +146,9 @@ namespace quadmat {
         enum {real, double_, complex, integer, pattern} field = real;
         enum {general, symmetric, skew_symmetric, hermitian} symmetry = general;
 
-        long long nrows = 0;
-        long long ncols = 0;
-        long long nnz = 0;
+        int64_t nrows = 0;
+        int64_t ncols = 0;
+        int64_t nnz = 0;
 
         size_t lines_read = 0;
     };
@@ -155,90 +158,90 @@ namespace quadmat {
      *
      * Matrix Market format declared here: http://networkrepository.com/mtx-matrix-market-format.html
      */
-    template <typename EC = throwing_error_consumer<>, typename T = double, typename IT = long long>
-    class simple_matrix_market_loader {
+    template <typename ErrorConsumer = ThrowingErrorConsumer<>, typename T = double, typename IT = int64_t>
+    class SimpleMatrixMarketLoader {
     public:
 
-        explicit simple_matrix_market_loader(EC ec = EC()) : ec(ec) {};
+        explicit SimpleMatrixMarketLoader(ErrorConsumer ec = ErrorConsumer()) : ec_(ec) {};
 
         /**
          * @return A begin,end pair of iterators over the tuples that have been loaded in the constructor
          */
         [[nodiscard]] auto tuples() const {
-            return range_t{loaded_tuples.cbegin(), loaded_tuples.cend()};
+            return Range{loaded_tuples_.cbegin(), loaded_tuples_.cend()};
         }
 
         /**
          * Load from a stream object.
          *
-         * @tparam EC
+         * @tparam ErrorConsumer
          * @param instream stream to load from
          * @param ec error consumer to use
          * @param pattern_value value to insert if the matrix market file uses a pattern field
          * @return loaded matrix
          */
-        template <typename CONFIG = default_config>
-        matrix<T, CONFIG> load(std::istream& instream, const T& pattern_value = 1) {
-            load_successful = load_impl(instream, pattern_value);
+        template <typename Config = DefaultConfig>
+        Matrix<T, Config> Load(std::istream& instream, const T& pattern_value = 1) {
+            load_successful_ = LoadImpl(instream, pattern_value);
 
-            return matrix_from_tuples<T, CONFIG>(shape, loaded_tuples.size(), loaded_tuples);
+            return MatrixFromTuples<T, Config>(shape_, loaded_tuples_.size(), loaded_tuples_);
         }
 
         /**
          * Load from a filename.
          *
-         * @tparam CONFIG
+         * @tparam Config
          * @param filename filename to load from
          * @param pattern_value value to insert if the matrix market file uses a pattern field
          * @return loaded matrix
          */
-        template <typename CONFIG = default_config>
-        matrix<T, CONFIG> load(const std::string& filename, const T& pattern_value = 1) {
-            ec.set_prefix(filename + ": ");
+        template <typename Config = DefaultConfig>
+        Matrix<T, Config> Load(const std::string& filename, const T& pattern_value = 1) {
+            ec_.SetPrefix(filename + ": ");
 
             if (std::ifstream infile{filename}) {
-                return load(infile, pattern_value);
+                return Load(infile, pattern_value);
             } else {
-                ec.error("Cannot open file");
-                return matrix<T, CONFIG>{shape_t{-1, -1}};
+                ec_.Error("Cannot open file");
+                return Matrix<T, Config>{Shape{-1, -1}};
             }
         }
 
         /**
          * @return true if the constructor managed to load a file with no errors. Warnings ok.
          */
-        [[nodiscard]] bool is_load_successful() const {
-            return load_successful;
+        [[nodiscard]] bool IsLoadSuccessful() const {
+            return load_successful_;
         }
 
     protected:
-        bool load_impl(std::istream& instream, const T& pattern_value) {
+        bool LoadImpl(std::istream& instream, const T& pattern_value) {
             bool has_warnings = false;
 
             // read the header
-            matrix_market_header header;
-            if (!header.read_header(instream, ec)) {
+            MatrixMarketHeader header;
+            if (!header.ReadHeader(instream, ec_)) {
                 return false;
             }
 
-            shape = {header.nrows, header.ncols};
+            shape_ = {header.nrows, header.ncols};
 
             // make sure it's a format we support
-            if (header.object != matrix_market_header::matrix) {
-                ec.error("Only matrix objects are supported");
+            if (header.object != MatrixMarketHeader::matrix) {
+                ec_.Error("Only matrix objects are supported");
                 return false;
             }
 
-            if (header.format != matrix_market_header::coordinate) {
-                ec.error("Only coordinate matrix market files supported at this time");
+            if (header.format != MatrixMarketHeader::coordinate) {
+                ec_.Error("Only coordinate matrix market files supported at this time");
                 return false;
             }
 
-            if (header.field != matrix_market_header::real &&
-                    header.field != matrix_market_header::double_ &&
-                    header.field != matrix_market_header::integer &&
-                    header.field != matrix_market_header::pattern) {
-                ec.error("Only fields convertible to double supported at this time");
+            if (header.field != MatrixMarketHeader::real &&
+                    header.field != MatrixMarketHeader::double_ &&
+                    header.field != MatrixMarketHeader::integer &&
+                    header.field != MatrixMarketHeader::pattern) {
+                ec_.Error("Only fields convertible to double supported at this time");
                 return false;
             }
 
@@ -255,73 +258,73 @@ namespace quadmat {
 
                 std::istringstream iss(line);
 
-                index_t row;
-                index_t col;
+                Index row;
+                Index col;
 
                 iss >> row >> col;
 
-                if (row < 1 || row > shape.nrows) {
-                    ec.warning("line ", line_num, ": row index out of range");
+                if (row < 1 || row > shape_.nrows) {
+                    ec_.Warning("line ", line_num, ": row index out of range");
                     has_warnings = true;
                     continue;
                 }
-                if (col < 1 || col > shape.ncols) {
-                    ec.warning("line ", line_num, ": column index out of range");
+                if (col < 1 || col > shape_.ncols) {
+                    ec_.Warning("line ", line_num, ": column index out of range");
                     has_warnings = true;
                     continue;
                 }
 
-                if (header.field == matrix_market_header::pattern) {
-                    loaded_tuples.emplace_back(row - 1, col - 1, pattern_value);
+                if (header.field == MatrixMarketHeader::pattern) {
+                    loaded_tuples_.emplace_back(row - 1, col - 1, pattern_value);
                 } else {
                     T value;
                     iss >> value;
-                    loaded_tuples.emplace_back(row - 1, col - 1, value);
+                    loaded_tuples_.emplace_back(row - 1, col - 1, value);
                 }
             }
 
             // sanity check length of what we read
-            if (loaded_tuples.size() != header.nnz) {
-                ec.warning("File is truncated. Expected ", header.nnz, " nonzeros but loaded ", loaded_tuples.size());
+            if (loaded_tuples_.size() != header.nnz) {
+                ec_.Warning("File is truncated. Expected ", header.nnz, " nonzeros but loaded ", loaded_tuples_.size());
             }
 
             // if the file used a symmetry then duplicate tuples accordingly
-            expand_symmetry(header);
+            ExpandSymmetry(header);
 
             return !has_warnings;
         }
 
-        void expand_symmetry(const matrix_market_header& header) {
+        void ExpandSymmetry(const MatrixMarketHeader& header) {
             switch (header.symmetry) {
-                case matrix_market_header::general:
+                case MatrixMarketHeader::general:
                     // no symmetry
                     break;
 
-                case matrix_market_header::hermitian:
+                case MatrixMarketHeader::hermitian:
                     // Hermitian not supported due to no complex value support
-                case matrix_market_header::symmetric: {
+                case MatrixMarketHeader::symmetric: {
                     // only the entries on or below the main diagonal are listed
                     // duplicate entries below the diagonal, transposing row/column
 
-                    size_t end = loaded_tuples.size();
+                    size_t end = loaded_tuples_.size();
                     for (size_t i = 0; i < end; i++) {
-                        const auto &tup = loaded_tuples[i];
+                        const auto &tup = loaded_tuples_[i];
 
                         if (std::get<1>(tup) != std::get<0>(tup)) {
-                            loaded_tuples.emplace_back(std::get<1>(tup), std::get<0>(tup), std::get<2>(tup));
+                            loaded_tuples_.emplace_back(std::get<1>(tup), std::get<0>(tup), std::get<2>(tup));
                         }
                     }
                     break;
                 }
 
-                case matrix_market_header::skew_symmetric: {
+                case MatrixMarketHeader::skew_symmetric: {
                     // only the entries strictly below the main diagonal are to be listed
                     // duplicate all entries, transposing row/column and negating values
 
-                    size_t end = loaded_tuples.size();
+                    size_t end = loaded_tuples_.size();
                     for (size_t i = 0; i < end; i++) {
-                        const auto &tup = loaded_tuples[i];
-                        loaded_tuples.emplace_back(std::get<1>(tup), std::get<0>(tup), -std::get<2>(tup));
+                        const auto &tup = loaded_tuples_[i];
+                        loaded_tuples_.emplace_back(std::get<1>(tup), std::get<0>(tup), -std::get<2>(tup));
                     }
                     break;
                 }
@@ -331,85 +334,85 @@ namespace quadmat {
         /**
          * In-memory storage of loaded tuples
          */
-        std::vector<std::tuple<IT, IT, T>> loaded_tuples;
+        std::vector<std::tuple<IT, IT, T>> loaded_tuples_;
 
-        shape_t shape;
+        Shape shape_;
 
-        bool load_successful = false;
+        bool load_successful_ = false;
 
-        EC ec;
+        ErrorConsumer ec_;
     };
 
     /**
      * Users should use this alias
      */
-    template <typename T = double, typename IT = long long>
-    using matrix_market_loader = simple_matrix_market_loader<T, IT>;
+    template <typename T = double, typename IT = int64_t>
+    using MatrixMarketLoader = SimpleMatrixMarketLoader<T, IT>;
 
     /**
      * Matrix Market I/O
      */
-    class matrix_market {
+    class MatrixMarket {
     public:
 
         /**
          * Load a Matrix Market file into a matrix.
          *
          * @tparam T
-         * @tparam CONFIG
-         * @tparam EC
+         * @tparam Config
+         * @tparam ErrorConsumer
          * @param input
          * @param ec
          * @return a matrix
          */
-        template <typename T = double, typename CONFIG = default_config, typename EC = throwing_error_consumer<>>
-        static matrix<T, CONFIG> load(std::istream& input, EC ec = EC(), const T& pattern_value = 1) {
-            simple_matrix_market_loader loader;
-            return loader.load<CONFIG>(input);
+        template <typename T = double, typename Config = DefaultConfig, typename ErrorConsumer = ThrowingErrorConsumer<>>
+        static Matrix<T, Config> Load(std::istream& input, ErrorConsumer ec = ErrorConsumer(), const T& pattern_value = 1) {
+            SimpleMatrixMarketLoader loader;
+            return loader.Load<Config>(input);
         }
 
         /**
          * Save a matrix to a Matrix Market file.
          *
          * @tparam T
-         * @tparam CONFIG
-         * @tparam EC
+         * @tparam Config
+         * @tparam ErrorConsumer
          * @param mat matrix to write
          * @param ec error consumer
          * @return `true` on success
          */
-        template <typename T, typename CONFIG, typename EC = throwing_error_consumer<>>
-        static bool save(matrix<T, CONFIG> mat, std::ostream& output, EC ec = EC()) {
+        template <typename T, typename Config, typename ErrorConsumer = ThrowingErrorConsumer<>>
+        static bool Save(Matrix<T, Config> mat, std::ostream& output, ErrorConsumer ec = ErrorConsumer()) {
             // write the header
-            matrix_market_header header;
-            header.object = matrix_market_header::matrix;
-            header.format = matrix_market_header::coordinate;
-            header.field = matrix_market_header::real;
-            header.symmetry = matrix_market_header::general;
+            MatrixMarketHeader header;
+            header.object = MatrixMarketHeader::matrix;
+            header.format = MatrixMarketHeader::coordinate;
+            header.field = MatrixMarketHeader::real;
+            header.symmetry = MatrixMarketHeader::general;
 
-            header.nrows = mat.get_shape().nrows;
-            header.ncols = mat.get_shape().ncols;
-            header.nnz = mat.get_nnn();
+            header.nrows = mat.GetShape().nrows;
+            header.ncols = mat.GetShape().ncols;
+            header.nnz = mat.GetNnn();
 
-            header.write_header(output, ec);
+            header.WriteHeader(output, ec);
 
             // write the tuples
             std::mutex output_mutex;
-            std::visit(leaf_visitor<T, CONFIG>([&](auto leaf, const offset_t& offsets, shape_t) {
-                // format the string
-                std::ostringstream oss;
-                for (auto tup : leaf->tuples()) {
-                    oss << 1 + offsets.row_offset + std::get<0>(tup) << " "
-                        << 1 + offsets.col_offset + std::get<1>(tup) << " "
-                        << std::get<2>(tup) << "\n";
-                }
+            std::visit(GetLeafVisitor<T, Config>([&](auto leaf, const Offset &offsets, Shape) {
+              // format the string
+              std::ostringstream oss;
+              for (auto tup : leaf->Tuples()) {
+                  oss << 1 + offsets.row_offset + std::get<0>(tup) << " "
+                      << 1 + offsets.col_offset + std::get<1>(tup) << " "
+                      << std::get<2>(tup) << "\n";
+              }
 
-                // dump the formatted chunk
-                {
-                    std::lock_guard lock(output_mutex);
-                    output << oss.str();
-                }
-            }), mat.get_root_bc()->get_child(0));
+              // dump the formatted chunk
+              {
+                  std::lock_guard lock(output_mutex);
+                  output << oss.str();
+              }
+            }), mat.GetRootBC()->GetChild(0));
 
             return true;
         }

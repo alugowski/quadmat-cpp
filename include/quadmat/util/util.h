@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_UTIL_H
@@ -14,20 +14,17 @@
 
 #include "quadmat/util/types.h"
 
-using std::size_t;
-using std::string;
-using std::vector;
 
 namespace quadmat {
 
     /**
      * Class for pretty-printing a matrix into a grid.
      */
-    class dense_string_matrix {
+    class DenseStringMatrix {
     public:
-        explicit dense_string_matrix(const shape_t shape) : strings(shape.nrows), column_widths(shape.ncols) {
+        explicit DenseStringMatrix(const Shape shape) : strings_(shape.nrows), column_widths_(shape.ncols) {
             // pre-fill with empty strings
-            for (auto& row_v : strings) {
+            for (auto& row_v : strings_) {
                 row_v.resize(shape.ncols);
             }
         }
@@ -35,11 +32,11 @@ namespace quadmat {
         /**
          * Populate the matrix with tuples from the generator.
          *
-         * @tparam GEN has a begin() and end()
+         * @tparam Gen has a begin() and end()
          * @param generator will be iterated once
          */
-        template <typename GEN>
-        void fill_tuples(const GEN& generator) {
+        template <typename Gen>
+        void FillTuples(const Gen& generator) {
             for (auto tup : generator) {
                 auto row = std::get<0>(tup);
                 auto col = std::get<1>(tup);
@@ -49,10 +46,10 @@ namespace quadmat {
                 ss.precision(5);
                 ss << value;
 
-                string sval = ss.str();
+                std::string sval = ss.str();
 
-                strings[row][col] = sval;
-                column_widths[col] = std::max(column_widths[col], sval.size());
+                strings_[row][col] = sval;
+                column_widths_[col] = std::max(column_widths_[col], sval.size());
             }
         }
 
@@ -61,12 +58,12 @@ namespace quadmat {
          *
          * @return
          */
-        [[nodiscard]] string to_string(const string& line_delimiter = "\n", const string& col_delimiter = " ") const {
+        [[nodiscard]] std::string ToString(const std::string& line_delimiter = "\n", const std::string& col_delimiter = " ") const {
             std::ostringstream ss;
             ss << std::left << std::setfill(' ');
 
             bool first = true;
-            for (auto row_v : strings) {
+            for (auto row_v : strings_) {
                 // delimit with newline on 2nd and subsequent lines
                 if (!first) {
                     ss << line_delimiter;
@@ -75,12 +72,12 @@ namespace quadmat {
                 }
 
                 // dump values
-                for (size_t i = 0; i < row_v.size(); i++) {
+                for (std::size_t i = 0; i < row_v.size(); i++) {
                     if (i > 0) {
                         ss << col_delimiter;
                     }
 
-                    ss << std::setw(column_widths[i]) << row_v[i];
+                    ss << std::setw(column_widths_[i]) << row_v[i];
                 }
             }
 
@@ -88,26 +85,26 @@ namespace quadmat {
         }
 
     private:
-        vector<vector<string>> strings;
-        vector<size_t> column_widths;
+        std::vector<std::vector<std::string>> strings_;
+        std::vector<std::size_t> column_widths_;
     };
 
      /**
       * Get a permutation vector
       *
-      * @tparam ITER iterator type
+      * @tparam Iterator iterator type
       * @tparam Compare comparison function type
       * @param begin beginning of range to sort
       * @param end end of range to sort
       * @param compare comparison function, same as used by std::sort.
       * @return a permutation vector of size (end - begin)
       */
-    template <typename ITER, typename Compare, typename ALLOC=std::allocator<size_t>>
-    vector<size_t> get_sort_permutation(const ITER begin, const ITER end, const Compare& compare) {
-        vector<std::size_t, ALLOC> perm(end - begin);
+    template <typename Iterator, typename Compare, typename Allocator=std::allocator<std::size_t>>
+    std::vector<std::size_t> GetSortPermutation(const Iterator begin, const Iterator end, const Compare& compare) {
+        std::vector<std::size_t, Allocator> perm(end - begin);
         std::iota(perm.begin(), perm.end(), 0);
         std::sort(perm.begin(), perm.end(),
-                  [&](size_t i, size_t j){ return compare(*(begin + i), *(begin + j)); });
+                  [&](std::size_t i, std::size_t j){ return compare(*(begin + i), *(begin + j)); });
         return perm;
     }
 
@@ -119,9 +116,9 @@ namespace quadmat {
      * @param perm permutation vector
      * @return a new vector with items in `vec` permuted by `perm`.
      */
-    template <typename T, typename ALLOC=std::allocator<T>>
-    vector<T> apply_permutation(const vector<T>& vec, const vector<size_t>& perm) {
-        vector<T, ALLOC> permuted_vec(vec.size());
+    template <typename T, typename Allocator=std::allocator<T>>
+    std::vector<T> ApplyPermutation(const std::vector<T>& vec, const std::vector<std::size_t>& perm) {
+        std::vector<T, Allocator> permuted_vec(vec.size());
         std::transform(perm.begin(), perm.end(), permuted_vec.begin(),
                        [&](std::size_t i){ return vec[i]; });
         return permuted_vec;
@@ -135,12 +132,12 @@ namespace quadmat {
      * @param perm permutation vector. This vector is modified!
      */
     template <typename T>
-    void apply_permutation_inplace(vector<T>& vec, vector<size_t>& perm)
+    void ApplyPermutationInplace(std::vector<T>& vec, std::vector<std::size_t>& perm)
     {
-        for (size_t i = 0; i < perm.size(); i++) {
-            size_t current = i;
+        for (std::size_t i = 0; i < perm.size(); i++) {
+            std::size_t current = i;
             while (i != perm[current]) {
-                size_t next = perm[current];
+                std::size_t next = perm[current];
                 std::swap(vec[current], vec[next]);
                 perm[current] = current;
                 current = next;
@@ -154,18 +151,18 @@ namespace quadmat {
      *
      * Serves as base case for variadic version below.
      */
-    template <typename ITER>
-    void swap_at(size_t a, size_t b, ITER dest_begin) {
+    template <typename Iterator>
+    void SwapAt(std::size_t a, std::size_t b, Iterator dest_begin) {
         std::swap(*(dest_begin + a), *(dest_begin + b));
     }
 
     /**
      * Swap elements (dest_begin + a, dest_begin + b) and similarly for every iterator in dest_rest.
      */
-    template <typename ITER, typename... ITERS>
-    void swap_at(size_t a, size_t b, ITER dest_begin, ITERS... dest_rest) {
+    template <typename Iterator, typename... Iterators>
+    void SwapAt(std::size_t a, std::size_t b, Iterator dest_begin, Iterators... dest_rest) {
         std::swap(*(dest_begin + a), *(dest_begin + b));
-        swap_at(a, b, dest_rest...);
+        SwapAt(a, b, dest_rest...);
     }
 
     /**
@@ -174,19 +171,19 @@ namespace quadmat {
      * The permutation vector is modified so this function is variadic to support permuting multiple ranges
      * using the same permutation vector.
      *
-     * @tparam ITERS writable iterator types
+     * @tparam Iterators writable iterator types
      * @param perm permutation vector. This vector is modified!
      * @param dest_begins start of the range to permute. end is dest_begin + perm.size()
      */
-    template <typename... ITERS>
-    void apply_permutation_inplace(vector<size_t>& perm, ITERS... dest_begins)
+    template <typename... Iterators>
+    void ApplyPermutationInplace(std::vector<std::size_t>& perm, Iterators... dest_begins)
     {
-        for (size_t i = 0; i < perm.size(); i++) {
-            size_t current = i;
+        for (std::size_t i = 0; i < perm.size(); i++) {
+            std::size_t current = i;
             while (i != perm[current]) {
-                size_t next = perm[current];
+                std::size_t next = perm[current];
                 // swap the elements indexed by current and next
-                swap_at(current, next, dest_begins...);
+                SwapAt(current, next, dest_begins...);
                 perm[current] = current;
                 current = next;
             }
@@ -197,8 +194,8 @@ namespace quadmat {
     /**
      * Same as std::shuffle but uses a stable RNG so the results are repeatable. Useful for tests.
      */
-    template <typename ITER>
-    void stable_shuffle(ITER begin, ITER end, int seed = 0) {
+    template <typename Iterator>
+    void StableShuffle(Iterator begin, Iterator end, int seed = 0) {
         auto rng = std::mt19937(seed);
         std::shuffle(begin, end, rng);
     }
@@ -206,28 +203,28 @@ namespace quadmat {
     /**
      * Slice up a range into n_parts ranges.
      *
-     * @tparam ITER random access iterator
+     * @tparam Iterator random access iterator
      * @param n_parts
      * @param start
      * @param end
      * @return
      */
-    template <typename ITER>
-    auto slice_ranges(int n_parts, const ITER& start, const ITER& end) {
+    template <typename Iterator>
+    auto SliceRanges(int n_parts, const Iterator& start, const Iterator& end) {
         auto n_elements = end - start;
         int size_per_slice = std::ceil((double)n_elements / n_parts);
 
-        vector<range_t<ITER>> ret;
+        std::vector<Range<Iterator>> ret;
 
         auto cur_start = start;
         while (end - cur_start > size_per_slice) {
-            ret.emplace_back(range_t<ITER>{
+            ret.emplace_back(Range<Iterator>{
                 cur_start,
                 cur_start + size_per_slice
             });
             cur_start += size_per_slice;
         }
-        ret.emplace_back(range_t<ITER>{
+        ret.emplace_back(Range<Iterator>{
             cur_start,
             end
         });
@@ -238,7 +235,7 @@ namespace quadmat {
     /**
      * Get the number with only the most significant bit set.
      */
-    inline index_t clear_all_except_msb(index_t n) {
+    inline Index ClearAllExceptMsb(Index n) {
         if (n <= 0) {
             return 0;
         }
@@ -257,18 +254,18 @@ namespace quadmat {
      * @param shape
      * @return
      */
-    inline index_t get_discriminating_bit(const shape_t& shape) {
-        index_t dim_max = std::max(shape.ncols, shape.nrows);
+    inline Index GetDiscriminatingBit(const Shape& shape) {
+        Index dim_max = std::max(shape.ncols, shape.nrows);
         if (dim_max < 2) {
             return 1;
         }
-        return clear_all_except_msb(dim_max - 1); // NOLINT(hicpp-signed-bitwise),
+        return ClearAllExceptMsb(dim_max - 1); // NOLINT(hicpp-signed-bitwise),
     }
 
     /**
      * Find the discriminating bit of a child inner node given the parent inner node's bit.
      */
-    inline index_t get_child_discriminating_bit(const index_t parent_discriminating_bit) {
+    inline Index GetChildDiscriminatingBit(const Index parent_discriminating_bit) {
         return parent_discriminating_bit > 1 ? parent_discriminating_bit >> 1 : 1; // NOLINT(hicpp-signed-bitwise)
     }
 }

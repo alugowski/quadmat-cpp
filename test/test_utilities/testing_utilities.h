@@ -14,8 +14,8 @@ using namespace quadmat;
 /**
  * A config with a very small split threshold of 4. Useful for testing subdivision.
  */
-struct config_split_4 : public default_config {
-    static constexpr blocknnn_t leaf_split_threshold = 4;
+struct ConfigSplit4 : public DefaultConfig {
+    static constexpr BlockNnn LeafSplitThreshold = 4;
 };
 
 /**
@@ -24,13 +24,13 @@ struct config_split_4 : public default_config {
  * @param node
  * @return true if node is a leaf node, false otherwise
  */
-template <typename T, typename CONFIG = default_config>
-bool is_leaf(tree_node_t<T, CONFIG> node) {
+template <typename T, typename Config = DefaultConfig>
+bool IsLeaf(TreeNode<T, Config> node) {
     return std::visit(overloaded{
             [](const std::monostate& ignored) { return false; },
-            [](const std::shared_ptr<future_block<T, CONFIG>>& ignored) { return false; },
-            [](const std::shared_ptr<inner_block<T, CONFIG>>& ignored) { return false; },
-            [](const leaf_node_t<T, CONFIG>& ignored) { return true; }
+            [](const std::shared_ptr<FutureBlock<T, Config>>& ignored) { return false; },
+            [](const std::shared_ptr<InnerBlock<T, Config>>& ignored) { return false; },
+            [](const LeafNode<T, Config>& ignored) { return true; }
     }, node);
 }
 
@@ -40,26 +40,26 @@ bool is_leaf(tree_node_t<T, CONFIG> node) {
  * @tparam T
  */
 template <typename T>
-class structure_printer {
+class StructurePrinter {
 public:
-    explicit structure_printer(std::ostream &os) : os(os) {}
+    explicit StructurePrinter(std::ostream &os) : os_(os) {}
 
-    template <typename LEAF>
-    void operator()(const std::shared_ptr<LEAF> leaf, const offset_t& offsets, const shape_t& shape) const {
+    template <typename LeafType>
+    void operator()(const std::shared_ptr<LeafType> leaf, const Offset& offsets, const Shape& shape) const {
         // stats
-        os << "leaf ( " << shape.nrows << " x " << shape.ncols << " ), at ( "
+        os_ << "leaf ( " << shape.nrows << " x " << shape.ncols << " ), at ( "
            << offsets.row_offset << ", " << offsets.col_offset << " )";
 
         // values
         if (shape.ncols < 40 && shape.nrows < 100) {
-            dense_string_matrix smat(shape);
-            smat.fill_tuples(leaf->tuples());
+            DenseStringMatrix smat(shape);
+            smat.FillTuples(leaf->tuples());
 
-            os << "\n" << smat.to_string() << "\n";
+            os_ << "\n" << smat.ToString() << "\n";
         }
     }
 protected:
-    std::ostream& os;
+    std::ostream& os_;
 };
 
 /**
@@ -68,10 +68,10 @@ protected:
  * @param node
  * @return human readable string
  */
-template <typename T, typename CONFIG = default_config>
-std::string print_structure(tree_node_t<T, CONFIG> node, const shape_t& shape) {
+template <typename T, typename Config = DefaultConfig>
+std::string PrintStructure(TreeNode<T, Config> node, const Shape& shape) {
     std::ostringstream ss;
-    std::visit(leaf_visitor<T>(structure_printer<T>(ss), shape), node);
+    std::visit(GetLeafVisitor<T>(StructurePrinter<T>(ss), shape), node);
     return ss.str();
 }
 
@@ -81,74 +81,74 @@ std::string print_structure(tree_node_t<T, CONFIG> node, const shape_t& shape) {
  * @param mat
  * @return human readable string
  */
-template <typename T, typename CONFIG = default_config>
-std::string print_structure(matrix<T, CONFIG> mat) {
-    return print_structure<T, CONFIG>(mat.get_root_bc()->get_child(0), mat.get_shape());
+template <typename T, typename Config = DefaultConfig>
+std::string PrintStructure(Matrix<T, Config> mat) {
+    return PrintStructure<T, Config>(mat.GetRootBC()->GetChild(0), mat.GetShape());
 }
 
 /**
  * Subdivide a node into an inner block and four children.
  */
-template <typename T, typename CONFIG = default_config>
-void subdivide_leaf(shared_ptr<block_container<T, CONFIG>> bc, int position, const shape_t& bc_shape) {
+template <typename T, typename Config = DefaultConfig>
+void SubdivideLeaf(std::shared_ptr<BlockContainer<T, Config>> bc, int position, const Shape& bc_shape) {
     // get the node to subdivide
-    tree_node_t<T, CONFIG> node = bc->get_child(position);
+    TreeNode<T, Config> node = bc->GetChild(position);
 
     // create inner block to hold subdivided children
-    auto new_inner = bc->create_inner(position);
-    shape_t new_inner_shape = bc->get_child_shape(position, bc_shape);
+    auto new_inner = bc->CreateInner(position);
+    Shape new_inner_shape = bc->GetChildShape(position, bc_shape);
 
     // use triples blocks as an intermediate data structure
-    std::array<triples_block<T, index_t, CONFIG>, all_inner_positions.size()> children;
+    std::array<TriplesBlock<T, Index, Config>, kAllInnerPositions.size()> children;
 
     // route tuples
-    vector<std::tuple<index_t, index_t, T>> tuples = dump_tuples(node);
-    offset_t offsets = new_inner->get_offsets(SE, {0, 0});
+    std::vector<std::tuple<Index, Index, T>> tuples = DumpTuples(node);
+    Offset offsets = new_inner->GetChildOffsets(SE, {0, 0});
     for (auto tuple : tuples) {
         auto [row, col, value] = tuple;
 
         // route this tuple
         if (row < offsets.row_offset) {
             if (col < offsets.col_offset) {
-                children[NW].add(row, col, value);
+                children[NW].Add(row, col, value);
             } else {
-                children[NE].add(row, col - offsets.col_offset, value);
+                children[NE].Add(row, col - offsets.col_offset, value);
             }
         } else {
             if (col < offsets.col_offset) {
-                children[SW].add(row - offsets.row_offset, col, value);
+                children[SW].Add(row - offsets.row_offset, col, value);
             } else {
-                children[SE].add(row - offsets.row_offset, col - offsets.col_offset, value);
+                children[SE].Add(row - offsets.row_offset, col - offsets.col_offset, value);
             }
         }
     }
 
     // convert to dcsc and place in tree
-    for (auto new_child_pos : all_inner_positions) {
-        new_inner->set_child(
-                new_child_pos,
-                create_leaf<T, CONFIG>(
-                        new_inner->get_child_shape(new_child_pos, new_inner_shape),
-                        children[new_child_pos].nnn(),
-                        children[new_child_pos].sorted_tuples()));
+    for (auto new_child_pos : kAllInnerPositions) {
+        new_inner->SetChild(
+            new_child_pos,
+            CreateLeaf<T, Config>(
+                new_inner->GetChildShape(new_child_pos, new_inner_shape),
+                children[new_child_pos].GetNnn(),
+                children[new_child_pos].SortedTuples()));
     }
 }
 
 /**
  * Matrix printer
  */
-template <typename T, typename CONFIG>
-std::ostream& operator<<(std::ostream& os, const matrix<T, CONFIG>& mat) {
-    shape_t shape = mat.get_shape();
+template <typename T, typename Config>
+std::ostream& operator<<(std::ostream& os, const Matrix<T, Config>& mat) {
+    Shape shape = mat.GetShape();
     // stats
     os << "matrix ( " << shape.nrows << " x " << shape.ncols << " )";
 
     // values
     if (shape.ncols < 40 && shape.nrows < 100) {
-        dense_string_matrix smat(shape);
-        smat.fill_tuples(dump_tuples(mat));
+        DenseStringMatrix smat(shape);
+        smat.FillTuples(DumpTuples(mat));
 
-        os << "\n" << smat.to_string();
+        os << "\n" << smat.ToString();
     }
     return os;
 }
@@ -157,9 +157,9 @@ std::ostream& operator<<(std::ostream& os, const matrix<T, CONFIG>& mat) {
  * Catch2 matrix printer
  */
 namespace Catch {
-    template <typename T, typename CONFIG>
-    struct StringMaker<matrix<T, CONFIG>> {
-        static std::string convert( matrix<T, CONFIG> const& value ) {
+    template <typename T, typename Config>
+    struct StringMaker<Matrix<T, Config>> {
+        static std::string convert(Matrix<T, Config> const& value ) {
             std::ostringstream ss;
             ::operator<<(ss, value);
             return ss.str();
@@ -171,17 +171,17 @@ namespace Catch {
  * problem printer
  */
 template <typename T, typename IT>
-std::ostream& operator<<(std::ostream& os, const canned_matrix<T, IT> mat) {
-    shape_t shape = mat.shape;
+std::ostream& operator<<(std::ostream& os, const CannedMatrix<T, IT> mat) {
+    Shape shape = mat.shape;
     // stats
     os << "matrix ( " << shape.nrows << " x " << shape.ncols << " )";
 
     // values
     if (shape.ncols < 40 && shape.nrows < 100) {
-        dense_string_matrix smat(shape);
-        smat.fill_tuples(mat.sorted_tuples);
+        DenseStringMatrix smat(shape);
+        smat.FillTuples(mat.sorted_tuples);
 
-        os << "\n" << smat.to_string();
+        os << "\n" << smat.ToString();
     }
     return os;
 }
@@ -189,52 +189,50 @@ std::ostream& operator<<(std::ostream& os, const canned_matrix<T, IT> mat) {
 /**
  * Catch2 matrix matcher
  */
-template <typename T, typename CONFIG = default_config>
-class MatrixEquals : public Catch::MatcherBase<matrix<T, CONFIG>> {
-    const shape_t shape;
-    vector<tuple<index_t, index_t, T>> my_tuples;
+template <typename T, typename Config = DefaultConfig>
+class MatrixEquals : public Catch::MatcherBase<Matrix<T, Config>> {
 public:
-    explicit MatrixEquals(const matrix<T, CONFIG> &mat) : shape(mat.get_shape()), my_tuples(dump_tuples(mat)) {
-        std::sort(my_tuples.begin(), my_tuples.end());
+    explicit MatrixEquals(const Matrix<T, Config> &mat) : shape_(mat.GetShape()), my_tuples_(DumpTuples(mat)) {
+        std::sort(my_tuples_.begin(), my_tuples_.end());
     }
 
-    explicit MatrixEquals(const canned_matrix<T, index_t> &mat, const CONFIG& = CONFIG()) : shape(mat.shape), my_tuples(mat.sorted_tuples) {
-        std::sort(my_tuples.begin(), my_tuples.end());
+    explicit MatrixEquals(const CannedMatrix<T, Index> &mat, const Config& = Config()) : shape_(mat.shape), my_tuples_(mat.sorted_tuples) {
+        std::sort(my_tuples_.begin(), my_tuples_.end());
     }
 
-    template <typename GEN>
-    explicit MatrixEquals(const shape_t& shape, GEN tuple_gen, const CONFIG& = CONFIG()) : shape(shape) {
+    template <typename Gen>
+    explicit MatrixEquals(const Shape& shape, Gen tuple_gen, const Config& = Config()) : shape_(shape) {
         for (auto tup : tuple_gen) {
-            const index_t row = std::get<0>(tup);
-            const index_t col = std::get<1>(tup);
+            const Index row = std::get<0>(tup);
+            const Index col = std::get<1>(tup);
             const T& value = std::get<2>(tup);
 
-            my_tuples.emplace_back(row, col, value);
+            my_tuples_.emplace_back(row, col, value);
         }
 
-        std::sort(my_tuples.begin(), my_tuples.end());
+        std::sort(my_tuples_.begin(), my_tuples_.end());
     }
 
     /**
      * Test against a matrix
      */
-    [[nodiscard]] bool match(const matrix<T, CONFIG> &test_value) const override {
+    [[nodiscard]] bool match(const Matrix<T, Config> &test_value) const override {
         // test shape
-        if (shape.nrows != test_value.get_shape().nrows ||
-            shape.ncols != test_value.get_shape().ncols) {
+        if (shape_.nrows != test_value.GetShape().nrows ||
+            shape_.ncols != test_value.GetShape().ncols) {
             return false;
         }
 
         // test tuples
-        auto rhs_tuples = dump_tuples(test_value);
+        auto rhs_tuples = DumpTuples(test_value);
 
-        if (my_tuples.size() != rhs_tuples.size()) {
+        if (my_tuples_.size() != rhs_tuples.size()) {
             return false;
         }
 
         std::sort(rhs_tuples.begin(), rhs_tuples.end());
 
-        return std::equal(my_tuples.begin(), my_tuples.end(), rhs_tuples.begin());
+        return std::equal(my_tuples_.begin(), my_tuples_.end(), rhs_tuples.begin());
     }
 
     /**
@@ -245,21 +243,25 @@ public:
      */
     [[nodiscard]] std::string describe() const override {
         std::ostringstream ss;
-        ss << "\nMatrixEquals \n" << canned_matrix<T, index_t>{
-                .shape = shape,
-                .sorted_tuples = my_tuples,
+        ss << "\nMatrixEquals \n" << CannedMatrix<T, Index>{
+                .shape = shape_,
+                .sorted_tuples = my_tuples_,
         };
         return ss.str();
     }
+
+private:
+    const Shape shape_;
+    std::vector<std::tuple<Index, Index, T>> my_tuples_;
 };
 
 /**
  * Argument grouping for the sanity check visitor
  */
-struct sanity_check_info {
-    offset_t offsets;
-    shape_t shape;
-    index_t expected_discriminating_bit;
+struct SanityCheckInfo {
+    Offset offsets;
+    Shape shape;
+    Index expected_discriminating_bit;
     bool are_futures_ok = false;
     bool check_tuples = false;
 };
@@ -267,52 +269,52 @@ struct sanity_check_info {
 /**
  * Visitor for sanity checking the quad tree
  */
-template <typename T, typename CONFIG>
-class sanity_check_visitor {
+template <typename T, typename Config>
+class SanityCheckVisitor {
 public:
-    explicit sanity_check_visitor(sanity_check_info& info) : info(info) {}
+    explicit SanityCheckVisitor(SanityCheckInfo& info) : info_(info) {}
 
-    string operator()(const std::monostate& ignored) {
+    std::string operator()(const std::monostate& ignored) {
         return "";
     }
 
-    string operator()(const std::shared_ptr<future_block<T, CONFIG>>& fb) {
-        return info.are_futures_ok ? "" : "future_block present";
+    std::string operator()(const std::shared_ptr<FutureBlock<T, Config>>& fb) {
+        return info_.are_futures_ok ? "" : "future_block present";
     }
 
-    string operator()(const std::shared_ptr<inner_block<T, CONFIG>> inner) {
+    std::string operator()(const std::shared_ptr<InnerBlock<T, Config>> inner) {
         // make sure the discriminating bit makes sense
-        if (inner->get_discriminating_bit() != info.expected_discriminating_bit) {
-            return std::to_string(inner->get_discriminating_bit()) +
+        if (inner->GetDiscriminatingBit() != info_.expected_discriminating_bit) {
+            return std::to_string(inner->GetDiscriminatingBit()) +
                    " is not the expected discriminating bit " +
-                   std::to_string(info.expected_discriminating_bit);
+                   std::to_string(info_.expected_discriminating_bit);
         }
 
         // verify child shapes
-        shape_t nw_shape = inner->get_child_shape(NW, info.shape);
-        shape_t se_shape = inner->get_child_shape(SE, info.shape);
-        if (nw_shape.nrows + se_shape.nrows != info.shape.nrows ||
-            nw_shape.ncols + se_shape.ncols != info.shape.ncols) {
+        Shape nw_shape = inner->GetChildShape(NW, info_.shape);
+        Shape se_shape = inner->GetChildShape(SE, info_.shape);
+        if (nw_shape.nrows + se_shape.nrows != info_.shape.nrows ||
+            nw_shape.ncols + se_shape.ncols != info_.shape.ncols) {
             return "child dimensions don't match inner block";
         }
 
         // recurse on children
-        for (auto pos : all_inner_positions) {
-            auto child = inner->get_child(pos);
+        for (auto pos : kAllInnerPositions) {
+            auto child = inner->GetChild(pos);
 
-            sanity_check_info child_info(info);
+            SanityCheckInfo child_info(info_);
 
-            child_info.offsets = inner->get_offsets(pos, info.offsets);
-            child_info.shape = inner->get_child_shape(pos, info.shape);
+            child_info.offsets = inner->GetChildOffsets(pos, info_.offsets);
+            child_info.shape = inner->GetChildShape(pos, info_.shape);
             child_info.expected_discriminating_bit >>= 1;  // NOLINT(hicpp-signed-bitwise)
 
-            if (child_info.shape.nrows > info.expected_discriminating_bit ||
-                child_info.shape.ncols > info.expected_discriminating_bit) {
-                return "child dimensions " + std::to_string(child_info.shape.nrows) + ", " + std::to_string(child_info.shape.ncols) +
-                       " > than inner block's discriminating_bit " + std::to_string(info.expected_discriminating_bit);
+            if (child_info.shape.nrows > info_.expected_discriminating_bit ||
+                child_info.shape.ncols > info_.expected_discriminating_bit) {
+                return Join::ToString("child dimensions ", child_info.shape.nrows, ", ", child_info.shape.ncols,
+                       " > than inner block's discriminating_bit ", info_.expected_discriminating_bit);
             }
 
-            string ret = std::visit(sanity_check_visitor<T, CONFIG>(child_info), child);
+            std::string ret = std::visit(SanityCheckVisitor<T, Config>(child_info), child);
             if (!ret.empty()) {
                 return ret;
             }
@@ -320,76 +322,76 @@ public:
         return "";
     }
 
-    string operator()(const leaf_node_t<T, CONFIG>& leaf) {
+    std::string operator()(const LeafNode<T, Config>& leaf) {
         return std::visit(*this, leaf);
     }
 
-    string operator()(const leaf_category_t<T, int64_t, CONFIG>& leaf) {
+    std::string operator()(const LeafCategory<T, int64_t, Config>& leaf) {
         return std::visit(*this, leaf);
     }
 
-    string operator()(const leaf_category_t<T, int32_t, CONFIG>& leaf) {
+    std::string operator()(const LeafCategory<T, int32_t, Config>& leaf) {
         return std::visit(*this, leaf);
     }
 
-    string operator()(const leaf_category_t<T, int16_t, CONFIG>& leaf) {
+    std::string operator()(const LeafCategory<T, int16_t, Config>& leaf) {
         return std::visit(*this, leaf);
     }
 
-    template <typename LEAF>
-    string operator()(const std::shared_ptr<LEAF>& leaf) {
-        if (info.shape.nrows <= 0 ||
-            info.shape.ncols <= 0) {
+    template <typename LeafType>
+    std::string operator()(const std::shared_ptr<LeafType>& leaf) {
+        if (info_.shape.nrows <= 0 ||
+            info_.shape.ncols <= 0) {
             return "leaf dimensions <= 0";
         }
 
-        if (!info.check_tuples) {
+        if (!info_.check_tuples) {
             // done
             return "";
         }
 
-        for (auto tup : leaf->tuples()) {
+        for (auto tup : leaf->Tuples()) {
             auto [row, col, value] = tup;
 
             // make sure tuple is within shape
-            if (row >= info.shape.nrows || col >= info.shape.ncols) {
-                return std::string("tuple <") + std::to_string(row) + ", " + std::to_string(col) + ", " + std::to_string(value) + "> outside of leaf shape " + info.shape.to_string();
+            if (row >= info_.shape.nrows || col >= info_.shape.ncols) {
+                return Join::ToString("tuple <", row, ", ", col, ", ", value, "> outside of leaf shape ", info_.shape.ToString());
             }
         }
         return "";
     }
 
 protected:
-    sanity_check_info info;
+    SanityCheckInfo info_;
 };
 
 /**
  * Make sure the matrix structure makes sense.
  */
-template <typename T, typename CONFIG = default_config>
-string sanity_check(matrix<T, CONFIG>& mat, bool slow=true) {
-    sanity_check_info info {
-        .shape = mat.get_shape(),
-        .expected_discriminating_bit = single_block_container<T>(mat.get_shape()).get_discriminating_bit() >> 1,
+template <typename T, typename Config = DefaultConfig>
+std::string SanityCheck(Matrix<T, Config>& mat, bool slow= true) {
+    SanityCheckInfo info {
+        .shape = mat.GetShape(),
+        .expected_discriminating_bit = single_block_container<T>(mat.GetShape()).GetDiscriminatingBit() >> 1,
         .check_tuples = slow,
     };
-    return std::visit(sanity_check_visitor<T, CONFIG>(info), mat.get_root_bc()->get_child(0));
+    return std::visit(SanityCheckVisitor<T, Config>(info), mat.GetRootBC()->GetChild(0));
 }
 
 /**
  * Construct a matrix from tuples. The matrix consists of a single leaf.
  *
- * @tparam GEN tuple generator. Must have a begin() and end() that return tuple<IT, IT, T> for some integer type IT
+ * @tparam Gen tuple generator. Must have a begin() and end() that return tuple<IT, IT, T> for some integer type IT
  * @param shape shape of leaf
  * @param nnn estimated number of non-nulls, i.e. col_ordered_gen.size().
  * @param col_ordered_gen tuple generator
  */
-template <typename T, typename CONFIG = default_config, typename GEN>
-matrix<T, CONFIG> single_leaf_matrix_from_tuples(const shape_t shape, const blocknnn_t nnn, const GEN& col_ordered_gen) {
-    matrix<T, CONFIG> ret{shape};
+template <typename T, typename Config = DefaultConfig, typename Gen>
+Matrix<T, Config> SingleLeafMatrixFromTuples(const Shape shape, const BlockNnn nnn, const Gen& col_ordered_gen) {
+    Matrix<T, Config> ret{shape};
 
-    tree_node_t<T, CONFIG> node = create_leaf<T, CONFIG>(shape, nnn, col_ordered_gen);
-    ret.get_root_bc()->set_child(0, node);
+    TreeNode<T, Config> node = CreateLeaf<T, Config>(shape, nnn, col_ordered_gen);
+    ret.GetRootBC()->SetChild(0, node);
     return ret;
 }
 

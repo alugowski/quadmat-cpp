@@ -1,10 +1,12 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_BASE_ITERATORS_H
 #define QUADMAT_BASE_ITERATORS_H
 
 #include <iterator>
+
+#include "quadmat/util/types.h"
 
 namespace quadmat {
 
@@ -22,17 +24,17 @@ namespace quadmat {
      *
      * @tparam derived implementation class
      */
-    template<typename derived>
-    class base_input_iterator {
+    template<typename Derived>
+    class BaseInputIterator {
     public:
-        derived operator++(int) { // NOLINT(cert-dcl21-cpp)
-            derived temp(*this);
-            derived::operator++();
+        Derived operator++(int) { // NOLINT(cert-dcl21-cpp)
+            Derived temp(*this);
+            Derived::operator++();
             return temp;
         }
 
-        bool operator!=(const derived& rhs) const {
-            return !static_cast<const derived*>(this)->operator==(rhs);
+        bool operator!=(const Derived& rhs) const {
+            return !static_cast<const Derived*>(this)->operator==(rhs);
         }
     };
 
@@ -52,42 +54,42 @@ namespace quadmat {
      *
      * The other arithmetic operators are built on the base of these.
      *
-     * @tparam derived implementation class
+     * @tparam Derived implementation class
      */
-    template<typename IT, typename derived>
-    class base_indexed_random_access_iterator {
+    template<typename IT, typename Derived>
+    class BaseIndexedRandomAccessIterator {
     public:
         // - default-constructible
-        base_indexed_random_access_iterator() = default;
+        BaseIndexedRandomAccessIterator() = default;
 
         // - copy-constructible, copy-assignable and destructible
-        explicit base_indexed_random_access_iterator(IT i) : i(i) {}
+        explicit BaseIndexedRandomAccessIterator(IT i) : i_(i) {}
 
-        derived& operator=(const derived& rhs) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
-            i = rhs.i;
-            return *static_cast<derived*>(this);
+        Derived& operator=(const Derived& rhs) const { // NOLINT(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
+            i_ = rhs.i;
+            return *static_cast<Derived*>(this);
         }
 
         // - Can be incremented
 
-        derived& operator++() {
-            ++i;
-            return *static_cast<derived*>(this);
+        Derived& operator++() {
+            ++i_;
+            return *static_cast<Derived*>(this);
         }
 
-        derived operator++(int) { // NOLINT(cert-dcl21-cpp)
-            derived temp(*this);
+        Derived operator++(int) { // NOLINT(cert-dcl21-cpp)
+            Derived temp(*this);
             operator++();
             return temp;
         }
 
         // - Supports equality/inequality comparisons
 
-        bool operator==(const derived& rhs) const {
-            return i == rhs.i;
+        bool operator==(const Derived& rhs) const {
+            return i_ == rhs.i_;
         }
 
-        bool operator!=(const derived& rhs) const {
+        bool operator!=(const Derived& rhs) const {
             return !operator==(rhs);
         }
 
@@ -97,146 +99,146 @@ namespace quadmat {
 
         // - Can be decremented
 
-        derived& operator--() {
-            *static_cast<derived*>(this) -= 1;
-            return *static_cast<derived*>(this);
+        Derived& operator--() {
+            *static_cast<Derived*>(this) -= 1;
+            return *static_cast<Derived*>(this);
         }
 
-        derived operator--(int) { // NOLINT(cert-dcl21-cpp)
-            derived temp(*this);
+        Derived operator--(int) { // NOLINT(cert-dcl21-cpp)
+            Derived temp(*this);
             temp -= 1;
             return temp;
         }
 
         // - Supports arithmetic operators + and -
 
-        derived operator+(std::ptrdiff_t n) const {
-            derived temp(*this);
+        Derived operator+(std::ptrdiff_t n) const {
+            Derived temp(*this);
             temp += n;
             return temp;
         }
 
-        friend derived operator+(std::ptrdiff_t lhs, const derived& rhs) {
-            derived temp(rhs);
+        friend Derived operator+(std::ptrdiff_t lhs, const Derived& rhs) {
+            Derived temp(rhs);
             temp += lhs;
             return temp;
         }
 
-        derived operator-(std::ptrdiff_t n) const {
-            derived temp(*this);
+        Derived operator-(std::ptrdiff_t n) const {
+            Derived temp(*this);
             temp += -n;
             return temp;
         }
 
-        std::ptrdiff_t operator-(const derived& rhs) const {
-            return i - rhs.i;
+        std::ptrdiff_t operator-(const Derived& rhs) const {
+            return i_ - rhs.i_;
         }
 
         // - Supports inequality comparisons (<, >, <= and >=) between iterators
 
-        bool operator<(const derived& rhs) const {
-            return i < rhs.i;
+        bool operator<(const Derived& rhs) const {
+            return i_ < rhs.i_;
         }
 
-        bool operator>(const derived& rhs) const {
-            return i > rhs.i;
+        bool operator>(const Derived& rhs) const {
+            return i_ > rhs.i_;
         }
 
-        bool operator<=(const derived& rhs) const {
-            return i <= rhs.i;
+        bool operator<=(const Derived& rhs) const {
+            return i_ <= rhs.i_;
         }
 
-        bool operator>=(const derived& rhs) const {
-            return i >= rhs.i;
+        bool operator>=(const Derived& rhs) const {
+            return i_ >= rhs.i_;
         }
 
         // - Supports compound assignment operations += and -=
 
-        derived& operator+=(std::ptrdiff_t n) {
-            i += n;
-            return *static_cast<derived*>(this);
+        Derived& operator+=(std::ptrdiff_t n) {
+            i_ += n;
+            return *static_cast<Derived*>(this);
         }
 
-        derived& operator-=(std::ptrdiff_t n) {
-            *static_cast<derived*>(this) += -n;
-            return *static_cast<derived*>(this);
+        Derived& operator-=(std::ptrdiff_t n) {
+            *static_cast<Derived*>(this) += -n;
+            return *static_cast<Derived*>(this);
         }
 
         // - Supports offset dereference operator ([])
         auto operator[](const std::ptrdiff_t n) const {
-            return *(*static_cast<derived*>(this) + n);
+            return *(*static_cast<Derived*>(this) + n);
         }
 
     protected:
-        IT i;
+        IT i_;
     };
 
     /**
      * Iterator that wraps another iterator and returns an offset version of the base iterator's values
      */
-    template <typename BASE_ITER>
-    class offset_iterator: public base_indexed_random_access_iterator<BASE_ITER, offset_iterator<BASE_ITER>> {
+    template <typename BaseIter>
+    class OffsetIterator: public BaseIndexedRandomAccessIterator<BaseIter, OffsetIterator<BaseIter>> {
     public:
-        using iterator_category = typename BASE_ITER::iterator_category;
-        using value_type = typename BASE_ITER::value_type;
-        using pointer = typename BASE_ITER::pointer;
-        using reference = typename BASE_ITER::reference;
-        using difference_type = typename BASE_ITER::difference_type;
+        using iterator_category = typename BaseIter::iterator_category;
+        using value_type = typename BaseIter::value_type;
+        using pointer = typename BaseIter::pointer;
+        using reference = typename BaseIter::reference;
+        using difference_type = typename BaseIter::difference_type;
 
-        offset_iterator() = default;
-        explicit offset_iterator(const BASE_ITER& iter, const typename BASE_ITER::value_type& offset) : base_indexed_random_access_iterator<BASE_ITER, offset_iterator<BASE_ITER>>(iter), offset(offset) {}
-        offset_iterator(const offset_iterator<BASE_ITER>& rhs) : base_indexed_random_access_iterator<BASE_ITER, offset_iterator<BASE_ITER>>(rhs.i), offset(rhs.offset) {}
+        OffsetIterator() = default;
+        explicit OffsetIterator(const BaseIter& iter, const typename BaseIter::value_type& offset) : BaseIndexedRandomAccessIterator<BaseIter, OffsetIterator<BaseIter>>(iter), offset_(offset) {}
+        OffsetIterator(const OffsetIterator<BaseIter>& rhs) : BaseIndexedRandomAccessIterator<BaseIter, OffsetIterator<BaseIter>>(rhs.i_), offset_(rhs.offset_) {}
 
         value_type operator*() const {
-            return *(this->i) + offset;
+            return *(this->i_) + offset_;
         }
 
     private:
-        typename BASE_ITER::value_type offset;
+        typename BaseIter::value_type offset_;
     };
 
     /**
      * Iterator that wraps a tuple iterator and returns an offset version of that iterator's tuples
      */
-    template <typename BASE_ITER>
-    class offset_tuples_iterator: public BASE_ITER {
+    template <typename BaseIter>
+    class OffsetTuplesIterator: public BaseIter {
     public:
-        using iterator_category = typename BASE_ITER::iterator_category;
-        using value_type = typename BASE_ITER::value_type;
-        using pointer = typename BASE_ITER::pointer;
-        using reference = typename BASE_ITER::reference;
-        using difference_type = typename BASE_ITER::difference_type;
+        using iterator_category = typename BaseIter::iterator_category;
+        using value_type = typename BaseIter::value_type;
+        using pointer = typename BaseIter::pointer;
+        using reference = typename BaseIter::reference;
+        using difference_type = typename BaseIter::difference_type;
 
-        offset_tuples_iterator() = default;
-        explicit offset_tuples_iterator(const BASE_ITER& iter, const offset_t& offsets) : BASE_ITER(iter), offsets(offsets) {}
-        offset_tuples_iterator(const offset_tuples_iterator<BASE_ITER>& rhs) : BASE_ITER(rhs), offsets(rhs.offsets) {}
+        OffsetTuplesIterator() = default;
+        explicit OffsetTuplesIterator(const BaseIter& iter, const Offset& offsets) : BaseIter(iter), offsets_(offsets) {}
+        OffsetTuplesIterator(const OffsetTuplesIterator<BaseIter>& rhs) : BaseIter(rhs), offsets_(rhs.offsets_) {}
 
         value_type operator*() const {
-            auto base_value = BASE_ITER::operator*();
+            auto base_value = BaseIter::operator*();
             return value_type(
-                    std::get<0>(base_value) + offsets.row_offset,
-                    std::get<1>(base_value) + offsets.col_offset,
+                    std::get<0>(base_value) + offsets_.row_offset,
+                    std::get<1>(base_value) + offsets_.col_offset,
                     std::get<2>(base_value));
         }
 
     private:
-        const offset_t offsets;
+        const Offset offsets_;
     };
 
     /**
      * Utility function to offset a range of tuple iterators.
      *
-     * @tparam ITER tuple iterator
+     * @tparam Iterator tuple iterator
      * @param range begin,end pair of tuple iterators
      * @param offsets offsets to subtract
      * @return a tuple iterator range that returns all tuples from `range` but subtracts `offsets` from each one.
      */
-    template <typename ITER>
-    range_t<offset_tuples_iterator<ITER>> offset_tuples_neg(const range_t<ITER>& range, const offset_t& offsets) {
-        offset_t negative_offsets = {-offsets.row_offset, -offsets.col_offset};
-        return range_t<offset_tuples_iterator<ITER>> {
-            offset_tuples_iterator<ITER>(range.begin(), negative_offsets),
-            offset_tuples_iterator<ITER>(range.end(), negative_offsets)
+    template <typename Iterator>
+    Range<OffsetTuplesIterator<Iterator>> OffsetTuplesNeg(const Range<Iterator>& range, const Offset& offsets) {
+        Offset negative_offsets = {-offsets.row_offset, -offsets.col_offset};
+        return Range<OffsetTuplesIterator<Iterator>> {
+                OffsetTuplesIterator<Iterator>(range.begin(), negative_offsets),
+                OffsetTuplesIterator<Iterator>(range.end(), negative_offsets)
         };
     }
 }

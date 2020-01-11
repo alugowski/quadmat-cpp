@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_PROBLEM_STRUCTS_H
@@ -11,17 +11,17 @@
  * Describe a single matrix
  */
 template <typename T, typename IT>
-struct canned_matrix {
+struct CannedMatrix {
     std::string description;
-    shape_t shape;
-    vector<std::tuple<IT, IT, T>> sorted_tuples;
+    Shape shape;
+    std::vector<std::tuple<IT, IT, T>> sorted_tuples;
     std::string filename; // only set if available
 
     /**
      * @return a version of `sorted_tuples` where duplicates are summed
      */
-    vector<std::tuple<IT, IT, T>> accumulated_tuples() const {
-        vector<std::tuple<IT, IT, T>> ret;
+    std::vector<std::tuple<IT, IT, T>> GetAccumulatedTuples() const {
+        std::vector<std::tuple<IT, IT, T>> ret;
 
         bool first = true;
         IT last_row, last_col;
@@ -49,11 +49,11 @@ struct canned_matrix {
  * Describe a result = a * b problem
  */
 template <typename T, typename IT>
-struct multiply_problem {
+struct MultiplyProblem {
     std::string description;
-    canned_matrix<T, IT> a;
-    canned_matrix<T, IT> b;
-    canned_matrix<T, IT> result;
+    CannedMatrix<T, IT> a;
+    CannedMatrix<T, IT> b;
+    CannedMatrix<T, IT> result;
 };
 
 #endif //QUADMAT_PROBLEM_STRUCTS_H

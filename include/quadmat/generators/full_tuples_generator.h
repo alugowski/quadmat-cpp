@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_FULL_TUPLES_GENERATOR_H
@@ -10,8 +10,6 @@
 #include "quadmat/util/types.h"
 #include "quadmat/util/base_iterators.h"
 
-using std::tuple;
-
 namespace quadmat {
 
     /**
@@ -21,72 +19,72 @@ namespace quadmat {
      * @tparam IT type of the indices
      */
     template<typename T, typename IT>
-    class full_tuples_generator {
+    class FullTuplesGenerator {
     public:
 
         /**
          * Input Iterator type that this generator emits
          */
-        class iterator: public base_input_iterator<iterator> {
+        class Iterator: public BaseInputIterator<Iterator> {
         public:
             using iterator_category = std::input_iterator_tag;
-            using value_type = tuple<IT, IT, T>;
+            using value_type = std::tuple<IT, IT, T>;
             using pointer = value_type*;
             using reference = value_type&;
             using difference_type = std::ptrdiff_t;
 
-            iterator(const shape_t &shape, const T &value, IT row, IT col) : shape(shape), value(value), row(row),
-                                                                             col(col) {}
+            Iterator(const Shape &shape, const T &value, IT row, IT col) : shape_(shape), value_(value), row_(row),
+                                                                           col_(col) {}
 
-            iterator(const iterator& rhs) : shape(rhs.shape), value(rhs.value), row(rhs.row),
-                                            col(rhs.col) {}
+            Iterator(const Iterator& rhs) : shape_(rhs.shape_), value_(rhs.value_), row_(rhs.row_),
+                                            col_(rhs.col_) {}
 
             value_type operator*() {
-                return tuple<IT, IT, T>(row, col, value);
+                return std::tuple<IT, IT, T>(row_, col_, value_);
             }
 
-            iterator& operator++() {
-                if (row == shape.nrows -1) {
-                    row = 0;
-                    col++;
+            Iterator& operator++() {
+                if (row_ == shape_.nrows -1) {
+                  row_ = 0;
+                    col_++;
                 } else {
-                    row++;
+                    row_++;
                 }
                 return *this;
             }
 
-            bool operator==(const iterator& rhs) const {
-                return row == rhs.row && col == rhs.col;
+            bool operator==(const Iterator& rhs) const {
+                return row_ == rhs.row_ && col_ == rhs.col_;
             }
 
         private:
-            const shape_t shape;
-            const T& value;
-            IT row;
-            IT col;
+            const Shape shape_;
+            const T& value_;
+            IT row_;
+            IT col_;
         };
 
         /**
          * Create a generator that will generate tuples (i, i, 1) in the range [0, n)
          * @param n
          */
-        explicit full_tuples_generator(shape_t shape, const T& value) :
-                begin_iter(shape, value, 0, 0),
-                end_iter(shape, value, 0, shape.ncols)
+        explicit FullTuplesGenerator(Shape shape, const T& value) :
+            begin_iter_(shape, value, 0, 0),
+            end_iter_(shape, value, 0, shape.ncols)
                 {}
 
 
-        iterator begin() const {
-            return iterator(begin_iter);
+        Iterator begin() const {
+            return Iterator(begin_iter_);
         }
 
-        iterator end() const {
-            return iterator(end_iter);
+        Iterator end() const {
+            return Iterator(end_iter_);
         }
 
     private:
-        const iterator begin_iter;
-        const iterator end_iter;
+        const Iterator begin_iter_;
+        const Iterator end_iter_;
     };
 
 }

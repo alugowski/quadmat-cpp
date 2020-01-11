@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_MATRIX_GENERATORS_H
@@ -16,13 +16,13 @@ namespace quadmat {
      * @tparam T matrix value type
      * @param n number of rows and columns
      */
-    template <typename T, typename CONFIG = default_config>
-    matrix<T> identity(index_t n) {
-        identity_tuples_generator<T, index_t> gen(n);
-        tree_node_t<T, CONFIG> node = create_leaf<T, CONFIG>({n, n}, n, gen);
+    template <typename T, typename Config = DefaultConfig>
+    Matrix<T> Identity(Index n) {
+        IdentityTuplesGenerator<T, Index> gen(n);
+        TreeNode<T, Config> node = CreateLeaf<T, Config>({n, n}, n, gen);
 
-        matrix<T, CONFIG> ret({n, n});
-        ret.get_root_bc()->set_child(0, node);
+        Matrix<T, Config> ret({n, n});
+        ret.GetRootBC()->SetChild(0, node);
         return ret;
     }
 

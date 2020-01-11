@@ -1,10 +1,11 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_WINDOW_SHADOW_BLOCK_H
 #define QUADMAT_WINDOW_SHADOW_BLOCK_H
 
 #include "quadmat/quadtree/block.h"
+#include "quadmat/quadtree/tree_visitors.h"
 #include "quadmat/util/base_iterators.h"
 #include "quadmat/util/util.h"
 
@@ -13,45 +14,45 @@ namespace quadmat {
     /**
      *
      * @tparam IT
-     * @tparam BASE_LEAF
+     * @tparam ShadowedLeaf
      */
-    template<typename IT, typename BASE_LEAF>
-    class window_shadow_block: public block<typename BASE_LEAF::value_type> {
+    template<typename IT, typename ShadowedLeaf>
+    class WindowShadowBlock: public Block<typename ShadowedLeaf::ValueType> {
     public:
-        using value_type = typename BASE_LEAF::value_type;
-        using index_type = IT;
-        using config_type = typename BASE_LEAF::config_type;
+        using ValueType = typename ShadowedLeaf::ValueType;
+        using IndexType = IT;
+        using ConfigType = typename ShadowedLeaf::ConfigType;
 
-        window_shadow_block(
-                const std::shared_ptr<BASE_LEAF> &base,
-                const typename BASE_LEAF::column_iterator& begin_column,
-                const typename BASE_LEAF::column_iterator& end_column,
-                const offset_t &offsets,
-                const shape_t &shape)
-                : base(base),
-                  begin_column(begin_column),
-                  end_column(end_column),
-                  end_iter(column_iterator(this, end_column, false)),
-                  offsets(offsets),
-                  row_begin(offsets.row_offset), row_inclusive_end(offsets.row_offset - 1 + shape.nrows) {}
+        WindowShadowBlock(
+                const std::shared_ptr<ShadowedLeaf> &base,
+                const typename ShadowedLeaf::ColumnIterator& begin_column,
+                const typename ShadowedLeaf::ColumnIterator& end_column,
+                const Offset &offsets,
+                const Shape &shape)
+                : shadowed_block_(base),
+                  begin_column_(begin_column),
+                  end_column_(end_column),
+                  end_iter_(ColumnIterator(this, end_column, false)),
+                  offsets_(offsets),
+                  row_begin_(offsets.row_offset), row_inclusive_end_(offsets.row_offset - 1 + shape.nrows) {}
 
         /**
          * Reference to a single column
          */
-        struct column_ref {
+        struct ColumnRef {
             IT col;
-            offset_iterator<typename BASE_LEAF::row_iter_type> rows_begin;
-            offset_iterator<typename BASE_LEAF::row_iter_type> rows_end;
-            typename BASE_LEAF::value_iter_type values_begin;
+            OffsetIterator<typename ShadowedLeaf::RowIterator> rows_begin;
+            OffsetIterator<typename ShadowedLeaf::RowIterator> rows_end;
+            typename ShadowedLeaf::ValueIterator values_begin;
         };
 
         /**
          * Iterator type for iterating over this block's columns
          */
-        class column_iterator: public base_input_iterator<column_iterator> {
+        class ColumnIterator: public BaseInputIterator<ColumnIterator> {
         public:
             using iterator_category = std::input_iterator_tag;
-            using value_type = column_ref;
+            using value_type = ColumnRef;
             using pointer = value_type*;
             using reference = value_type&;
             using difference_type = std::ptrdiff_t;
@@ -62,132 +63,132 @@ namespace quadmat {
              * @param iter column that is being shadowed
              * @param advance_ok If true and `iter` points at a column with no tuples in the window then will
              *                   auto-advance until a non-empty column (or the end) is found.
-             *                   If false then the user is responsible to call are_rows_in_window() before dereferencing
+             *                   If false then the user is responsible to call AreRowsInWindow() before dereferencing
              */
-            explicit column_iterator(const window_shadow_block<IT, BASE_LEAF>* shadow_block, const typename BASE_LEAF::column_iterator& iter, bool advance_ok = true) : shadow_block(shadow_block), iter(iter) {
+            explicit ColumnIterator(const WindowShadowBlock<IT, ShadowedLeaf>* shadow_block, const typename ShadowedLeaf::ColumnIterator& iter, bool advance_ok = true) : shadow_block_(shadow_block), iter_(iter) {
                 if (advance_ok) {
                     // It's possible that the given iter points at a column that doesn't have any rows that fit the window.
                     advance_to_next_nonempty_col();
-                } // else it's a column point lookup and are_rows_in_window() is called by the caller
+                } // else it's a column point lookup and AreRowsInWindow() is called by the caller
             }
-            column_iterator(const column_iterator& rhs) : shadow_block(rhs.shadow_block), iter(rhs.iter), cached_rows_begin(rhs.cached_rows_begin), cached_rows_end(rhs.cached_rows_end) {}
+            ColumnIterator(const ColumnIterator& rhs) : shadow_block_(rhs.shadow_block_), iter_(rhs.iter_), cached_rows_begin_(rhs.cached_rows_begin_), cached_rows_end_(rhs.cached_rows_end_) {}
 
             value_type operator*() const {
-                auto base_ref = *iter;
+                auto base_ref = *iter_;
                 return {
-                        .col = static_cast<IT>(base_ref.col - shadow_block->offsets.col_offset),
-                        .rows_begin = offset_iterator<typename BASE_LEAF::row_iter_type>(cached_rows_begin, -shadow_block->offsets.row_offset),
-                        .rows_end = offset_iterator<typename BASE_LEAF::row_iter_type>(cached_rows_end, -shadow_block->offsets.row_offset),
-                        .values_begin = base_ref.values_begin + (cached_rows_begin - base_ref.rows_begin),
+                        .col = static_cast<IT>(base_ref.col - shadow_block_->offsets_.col_offset),
+                        .rows_begin = OffsetIterator<typename ShadowedLeaf::RowIterator>(cached_rows_begin_, -shadow_block_->offsets_.row_offset),
+                        .rows_end = OffsetIterator<typename ShadowedLeaf::RowIterator>(cached_rows_end_, -shadow_block_->offsets_.row_offset),
+                        .values_begin = base_ref.values_begin + (cached_rows_begin_ - base_ref.rows_begin),
                 };
             }
 
-            column_iterator& operator++() {
+            ColumnIterator& operator++() {
                 do {
-                    ++iter;
-                } while (iter != shadow_block->end_column && !are_rows_in_window());
+                    ++iter_;
+                } while (iter_ != shadow_block_->end_column_ && !AreRowsInWindow());
                 return *this;
             }
 
-            bool operator==(const column_iterator& rhs) const {
-                return iter == rhs.iter;
+            bool operator==(const ColumnIterator& rhs) const {
+                return iter_ == rhs.iter_;
             }
 
             /**
              * @return iterator to the base column
              */
-            const typename BASE_LEAF::column_iterator& get_base_iter() const {
-                return iter;
+            const typename ShadowedLeaf::ColumnIterator& GetBaseIter() const {
+                return iter_;
             }
 
             /**
              * @return true if there are any rows inside the window in the column pointed to by this
              */
-            [[nodiscard]] bool are_rows_in_window() {
-                auto ref = *iter;
+            [[nodiscard]] bool AreRowsInWindow() {
+                auto ref = *iter_;
 
                 // a fast check to see if the row range falls outside the window
                 if (ref.rows_begin == ref.rows_end ||
-                       *ref.rows_begin > shadow_block->row_inclusive_end ||
-                       *(ref.rows_end - 1) < shadow_block->row_begin) {
+                       *ref.rows_begin > shadow_block_->row_inclusive_end_ ||
+                       *(ref.rows_end - 1) < shadow_block_->row_begin_) {
                     return false;
                 }
 
                 // there might still not be any values in the window if the window is in an empty part of the column
                 // however the column does now have valid iterators, so we can dereference and do a search
-                cached_rows_begin = std::lower_bound(ref.rows_begin, ref.rows_end, shadow_block->row_begin);
-                cached_rows_end = std::upper_bound(cached_rows_begin, ref.rows_end, shadow_block->row_inclusive_end);
+                cached_rows_begin_ = std::lower_bound(ref.rows_begin, ref.rows_end, shadow_block_->row_begin_);
+              cached_rows_end_ = std::upper_bound(cached_rows_begin_, ref.rows_end, shadow_block_->row_inclusive_end_);
 
-                return cached_rows_begin != cached_rows_end;
+                return cached_rows_begin_ != cached_rows_end_;
             }
 
         private:
             void advance_to_next_nonempty_col() {
-                while (iter != shadow_block->end_column && !are_rows_in_window()) {
-                    ++iter;
+                while (iter_ != shadow_block_->end_column_ && !AreRowsInWindow()) {
+                    ++iter_;
                 }
             }
-            const window_shadow_block<IT, BASE_LEAF>* shadow_block;
-            typename BASE_LEAF::column_iterator iter;
+            const WindowShadowBlock<IT, ShadowedLeaf>* shadow_block_;
+            typename ShadowedLeaf::ColumnIterator iter_;
 
-            typename BASE_LEAF::row_iter_type cached_rows_begin, cached_rows_end;
+            typename ShadowedLeaf::RowIterator cached_rows_begin_, cached_rows_end_;
         };
 
         /**
          * @return a column_iterator pointing at the first column
          */
-        column_iterator columns_begin() const {
-            return column_iterator(this, begin_column);
+        ColumnIterator ColumnsBegin() const {
+            return ColumnIterator(this, begin_column_);
         }
 
         /**
          * @return a column_iterator pointing one past the last column
          */
-        column_iterator columns_end() const {
-            return end_iter;
+        ColumnIterator ColumnsEnd() const {
+            return end_iter_;
         }
 
         /**
          * @return a {begin, end} pair of iterators to iterate over all the columns of this block.
          */
-        range_t<column_iterator> columns() const {
-            return range_t<column_iterator>{columns_begin(), columns_end()};
+        Range<ColumnIterator> GetColumns() const {
+            return Range<ColumnIterator>{ColumnsBegin(), ColumnsEnd()};
         }
 
         /**
          * Get an iterator to a particular column.
          *
          * @param col column to look up
-         * @return column iterator pointing at col, or columns_end()
+         * @return column iterator pointing at col, or ColumnsEnd()
          */
-        column_iterator column(IT col) const {
-            const typename BASE_LEAF::column_iterator base_iter = base->column(col + offsets.col_offset);
+        ColumnIterator GetColumn(IT col) const {
+            const typename ShadowedLeaf::ColumnIterator base_iter = shadowed_block_->GetColumn(col + offsets_.col_offset);
 
-            if (base_iter == base->columns_end()) {
+            if (base_iter == shadowed_block_->ColumnsEnd()) {
                 // column not in base block
-                return end_iter;
+                return end_iter_;
             } else {
-                auto ret = column_iterator(this, base_iter, false);
-                if (ret.are_rows_in_window()) {
+                auto ret = ColumnIterator(this, base_iter, false);
+                if (ret.AreRowsInWindow()) {
                     return ret;
                 } else {
                     // column is in base block, but has no tuples in the window
-                    return end_iter;
+                    return end_iter_;
                 }
             }
         }
 
         /**
          * @param col column to look up
-         * @return column iterator point at col, or if there is no such column, the next larger column (or columns_end())
+         * @return column iterator point at col, or if there is no such column, the next larger column (or ColumnsEnd())
          */
-        column_iterator column_lower_bound(IT col) const {
-            const typename BASE_LEAF::column_iterator base_iter = base->column_lower_bound(col + offsets.col_offset);
+        ColumnIterator GetColumnLowerBound(IT col) const {
+            const typename ShadowedLeaf::ColumnIterator base_iter = shadowed_block_->GetColumnLowerBound(col + offsets_.col_offset);
 
-            if (base_iter == base->columns_end()) {
-                return end_iter;
+            if (base_iter == shadowed_block_->ColumnsEnd()) {
+                return end_iter_;
             } else {
-                return column_iterator(this, base_iter);
+                return ColumnIterator(this, base_iter);
             }
         }
 
@@ -196,17 +197,17 @@ namespace quadmat {
          *
          * @return number of tuples in this block.
          */
-        [[nodiscard]] blocknnn_t nnn() const {
-            blocknnn_t ret = 0;
-            for (auto col : columns()) {
+        [[nodiscard]] BlockNnn GetNnn() const {
+            BlockNnn ret = 0;
+            for (auto col : GetColumns()) {
                 ret += col.rows_end - col.rows_begin;
             }
             return ret;
         }
 
-        [[nodiscard]] block_size_info size() const {
-            return block_size_info{
-                    .overhead_bytes = sizeof(window_shadow_block<IT, BASE_LEAF>),
+        [[nodiscard]] BlockSizeInfo GetSize() const {
+            return BlockSizeInfo{
+                    .overhead_bytes = sizeof(WindowShadowBlock<IT, ShadowedLeaf>),
             };
         }
 
@@ -220,17 +221,17 @@ namespace quadmat {
          * @param shadow_shape shape of the shadow block
          * @return a leaf tree node
          */
-        tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> get_shadow_block(
-                const std::shared_ptr<window_shadow_block<IT, BASE_LEAF>>& ignored,
-                const column_iterator& shadow_begin_column, const column_iterator& shadow_end_column,
-                const offset_t& shadow_offsets, const shape_t& shadow_shape) {
+        TreeNode<typename ShadowedLeaf::ValueType, typename ShadowedLeaf::ConfigType> GetShadowBlock(
+            const std::shared_ptr<WindowShadowBlock<IT, ShadowedLeaf>>& ignored,
+            const ColumnIterator& shadow_begin_column, const ColumnIterator& shadow_end_column,
+            const Offset& shadow_offsets, const Shape& shadow_shape) {
 
-            leaf_index_type shadow_type = get_leaf_index_type(shadow_shape);
+            LeafIndex shadow_type = GetLeafIndexType(shadow_shape);
 
             return std::visit(overloaded{
-                    [&](int64_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int64_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int64_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), offsets + shadow_offsets, shadow_shape)); },
-                    [&](int32_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int32_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int32_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), offsets + shadow_offsets, shadow_shape)); },
-                    [&](int16_t dim) -> tree_node_t<typename BASE_LEAF::value_type, typename BASE_LEAF::config_type> { return leaf_category_t<typename BASE_LEAF::value_type, int16_t, typename BASE_LEAF::config_type>(std::make_shared<window_shadow_block<int16_t, BASE_LEAF>>(base, shadow_begin_column.get_base_iter(), shadow_end_column.get_base_iter(), offsets + shadow_offsets, shadow_shape)); },
+                    [&](int64_t dim) -> TreeNode<typename ShadowedLeaf::ValueType, typename ShadowedLeaf::ConfigType> { return LeafCategory<typename ShadowedLeaf::ValueType, int64_t, typename ShadowedLeaf::ConfigType>(std::make_shared<WindowShadowBlock<int64_t, ShadowedLeaf>>(shadowed_block_, shadow_begin_column.GetBaseIter(), shadow_end_column.GetBaseIter(), offsets_ + shadow_offsets, shadow_shape)); },
+                    [&](int32_t dim) -> TreeNode<typename ShadowedLeaf::ValueType, typename ShadowedLeaf::ConfigType> { return LeafCategory<typename ShadowedLeaf::ValueType, int32_t, typename ShadowedLeaf::ConfigType>(std::make_shared<WindowShadowBlock<int32_t, ShadowedLeaf>>(shadowed_block_, shadow_begin_column.GetBaseIter(), shadow_end_column.GetBaseIter(), offsets_ + shadow_offsets, shadow_shape)); },
+                    [&](int16_t dim) -> TreeNode<typename ShadowedLeaf::ValueType, typename ShadowedLeaf::ConfigType> { return LeafCategory<typename ShadowedLeaf::ValueType, int16_t, typename ShadowedLeaf::ConfigType>(std::make_shared<WindowShadowBlock<int16_t, ShadowedLeaf>>(shadowed_block_, shadow_begin_column.GetBaseIter(), shadow_end_column.GetBaseIter(), offsets_ + shadow_offsets, shadow_shape)); },
             }, shadow_type);
         }
 
@@ -240,59 +241,59 @@ namespace quadmat {
          * Tuples are computed by iterating rows within each column, then advancing the column iterator when one column
          * is exhausted.
          */
-        class tuple_iterator: public base_input_iterator<tuple_iterator> {
+        class TupleIterator: public BaseInputIterator<TupleIterator> {
         public:
             using iterator_category = std::input_iterator_tag;
-            using value_type = std::tuple<IT, IT, typename window_shadow_block<IT, BASE_LEAF>::value_type>;
+            using value_type = std::tuple<IT, IT, typename WindowShadowBlock<IT, ShadowedLeaf>::ValueType>;
             using pointer = value_type*;
             using reference = value_type&;
             using difference_type = std::ptrdiff_t;
 
-            explicit tuple_iterator(const column_iterator &iter, const column_iterator &end) : iter(iter), end(end) {
+            explicit TupleIterator(const ColumnIterator &iter, const ColumnIterator &end) : iter_(iter), end_(end) {
                 if (iter != end) {
-                    col_ref = *iter;
+                  col_ref_ = *iter;
                 }
             }
 
-            tuple_iterator(const tuple_iterator& rhs) : iter(rhs.iter), end(rhs.end), col_ref(rhs.col_ref) {}
+            TupleIterator(const TupleIterator& rhs) : iter_(rhs.iter_), end_(rhs.end_), col_ref_(rhs.col_ref_) {}
 
             value_type operator*() {
-                return value_type(*col_ref.rows_begin, col_ref.col, *col_ref.values_begin);
+                return value_type(*col_ref_.rows_begin, col_ref_.col, *col_ref_.values_begin);
             }
 
-            tuple_iterator& operator++() {
+            TupleIterator& operator++() {
                 // advance row within the column
-                ++col_ref.rows_begin;
-                ++col_ref.values_begin;
+                ++col_ref_.rows_begin;
+                ++col_ref_.values_begin;
 
-                if (col_ref.rows_begin == col_ref.rows_end) {
+                if (col_ref_.rows_begin == col_ref_.rows_end) {
                     // this column exhausted, advance columns
-                    ++iter;
-                    if (iter != end) {
-                        col_ref = *iter;
+                    ++iter_;
+                    if (iter_ != end_) {
+                      col_ref_ = *iter_;
                     }
                 }
                 return *this;
             }
 
-            bool operator==(const tuple_iterator& rhs) const {
+            bool operator==(const TupleIterator& rhs) const {
                 // same column and same row in the column
-                return iter == rhs.iter && (iter == end || col_ref.rows_begin == col_ref.rows_begin);
+                return iter_ == rhs.iter_ && (iter_ == end_ || col_ref_.rows_begin == col_ref_.rows_begin);
             }
 
         private:
-            column_iterator iter;
-            const column_iterator end;
-            typename column_iterator::value_type col_ref;
+            ColumnIterator iter_;
+            const ColumnIterator end_;
+            typename ColumnIterator::value_type col_ref_;
         };
 
         /**
          * @return a (begin, end) tuple of iterators that iterate over values in this block and return tuples.
          */
-        range_t<tuple_iterator> tuples() const {
-            return range_t<tuple_iterator>{
-                    tuple_iterator(columns_begin(), columns_end()),
-                    tuple_iterator(columns_end(), columns_end())
+        Range<TupleIterator> Tuples() const {
+            return Range<TupleIterator>{
+                TupleIterator(ColumnsBegin(), ColumnsEnd()),
+                TupleIterator(ColumnsEnd(), ColumnsEnd())
             };
         }
 
@@ -301,15 +302,15 @@ namespace quadmat {
         /**
          * The block this is a window on
          */
-        const std::shared_ptr<BASE_LEAF> base;
+        const std::shared_ptr<ShadowedLeaf> shadowed_block_;
 
-        const typename BASE_LEAF::column_iterator begin_column;
-        const typename BASE_LEAF::column_iterator end_column;
-        const column_iterator end_iter;
+        const typename ShadowedLeaf::ColumnIterator begin_column_;
+        const typename ShadowedLeaf::ColumnIterator end_column_;
+        const ColumnIterator end_iter_;
 
-        const offset_t offsets;
-        const typename BASE_LEAF::index_type row_begin;
-        const typename BASE_LEAF::index_type row_inclusive_end;
+        const Offset offsets_;
+        const typename ShadowedLeaf::IndexType row_begin_;
+        const typename ShadowedLeaf::IndexType row_inclusive_end_;
     };
 }
 

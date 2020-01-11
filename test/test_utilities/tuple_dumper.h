@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_TUPLE_DUMPER_H
@@ -6,13 +6,7 @@
 
 #include "quadmat/quadmat.h"
 
-using quadmat::index_t;
-using quadmat::offset_t;
-using quadmat::shape_t;
-using quadmat::default_config;
-using quadmat::matrix;
-using quadmat::tree_node_t;
-using quadmat::leaf_visitor;
+using namespace quadmat;
 
 /**
  * A node visitor that dumps tuples from nodes
@@ -20,16 +14,16 @@ using quadmat::leaf_visitor;
  * @tparam T
  */
 template <typename T>
-class tuple_dumper {
+class TupleDumper {
 public:
-    explicit tuple_dumper(vector<std::tuple<index_t, index_t, T>> &tuples, std::mutex& m) : tuples(tuples), m(m) {}
+    explicit TupleDumper(std::vector<std::tuple<Index, Index, T>> &tuples, std::mutex& m) : tuples_(tuples), mutex_(m) {}
 
-    template <typename LEAF>
-    void operator()(const std::shared_ptr<LEAF>& leaf, const offset_t& offsets, const shape_t& shape) const {
-        std::lock_guard lock{m};
+    template <typename LeafType>
+    void operator()(const std::shared_ptr<LeafType>& leaf, const Offset& offsets, const Shape& shape) const {
+        std::lock_guard lock{mutex_};
 
-        for (auto tup : leaf->tuples()) {
-            tuples.emplace_back(
+        for (auto tup : leaf->Tuples()) {
+            tuples_.emplace_back(
                     std::get<0>(tup) + offsets.row_offset,
                     std::get<1>(tup) + offsets.col_offset,
                     std::get<2>(tup)
@@ -37,8 +31,8 @@ public:
         }
     }
 protected:
-    vector<std::tuple<index_t, index_t, T>>& tuples;
-    std::mutex& m;
+    std::vector<std::tuple<Index, Index, T>>& tuples_;
+    std::mutex& mutex_;
 };
 
 /**
@@ -46,11 +40,11 @@ protected:
  * @param node
  * @return a vector of tuples. Tuples are not sorted.
  */
-template <typename T, typename CONFIG = default_config>
-vector<std::tuple<index_t, index_t, T>> dump_tuples(tree_node_t<T, CONFIG> node) {
-    vector<std::tuple<index_t, index_t, T>> v;
+template <typename T, typename Config = DefaultConfig>
+std::vector<std::tuple<Index, Index, T>> DumpTuples(TreeNode<T, Config> node) {
+    std::vector<std::tuple<Index, Index, T>> v;
     std::mutex m;
-    std::visit(leaf_visitor<double, CONFIG>(tuple_dumper<T>(v, m)), node);
+    std::visit(GetLeafVisitor<double, Config>(TupleDumper<T>(v, m)), node);
     return v;
 }
 
@@ -59,9 +53,9 @@ vector<std::tuple<index_t, index_t, T>> dump_tuples(tree_node_t<T, CONFIG> node)
  * @param mat
  * @return a vector of tuples. Tuples are not sorted.
  */
-template <typename T, typename CONFIG = default_config>
-vector<std::tuple<index_t, index_t, T>> dump_tuples(matrix<T, CONFIG> mat) {
-    return dump_tuples<T, CONFIG>(mat.get_root_bc()->get_child(0));
+template <typename T, typename Config = DefaultConfig>
+std::vector<std::tuple<Index, Index, T>> DumpTuples(Matrix<T, Config> mat) {
+    return DumpTuples<T, Config>(mat.GetRootBC()->GetChild(0));
 }
 
 #endif //QUADMAT_TUPLE_DUMPER_H

@@ -5,70 +5,72 @@
 
 #include "quadmat/quadmat.h"
 
+using namespace quadmat;
+
 using Catch::Matchers::Equals;
 
 TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
-        (quadmat::dense_spa<int, quadmat::plus_times_semiring<double>>),
-        (quadmat::sparse_spa<int, quadmat::plus_times_semiring<double>>)) {
+        (DenseSpa<Index, PlusTimesSemiring<double>>),
+        (SparseSpa<Index, PlusTimesSemiring<double>>)) {
 
-    SECTION("basic") {
+    SECTION("Basic") {
         int size = 10;
 
-        vector<int> original_rows(size);
+        std::vector<Index> original_rows(size);
         std::iota(original_rows.begin(), original_rows.end(), 0);
 
-        vector<double> original_values(size, 1.0);
-        vector<double> doubled_values(size, 2.0);
+        std::vector<double> original_values(size, 1.0);
+        std::vector<double> doubled_values(size, 2.0);
 
         TestType spa(size);
 
         // fill spa
-        spa.scatter(begin(original_rows), end(original_rows), begin(original_values));
+        spa.Scatter(begin(original_rows), end(original_rows), begin(original_values));
 
         // test contents
         {
-            vector<int> test_rows;
-            vector<double> test_values;
-            spa.emplace_back_result(test_rows, test_values);
+            std::vector<Index> test_rows;
+            std::vector<double> test_values;
+            spa.EmplaceBackResult(test_rows, test_values);
 
             REQUIRE_THAT(test_rows, Equals(original_rows));
             REQUIRE_THAT(test_values, Equals(original_values));
         }
 
         // add again
-        spa.scatter(begin(original_rows), end(original_rows), begin(original_values));
+        spa.Scatter(begin(original_rows), end(original_rows), begin(original_values));
 
         // test contents, values should be doubled
         {
-            vector<int> test_rows;
-            vector<double> test_values;
-            spa.emplace_back_result(test_rows, test_values);
+            std::vector<Index> test_rows;
+            std::vector<double> test_values;
+            spa.EmplaceBackResult(test_rows, test_values);
 
             REQUIRE_THAT(test_rows, Equals(original_rows));
             REQUIRE_THAT(test_values, Equals(doubled_values));
         }
 
         // clear
-        spa.clear();
+        spa.Clear();
 
         // test contents, should be empty
         {
-            vector<int> test_rows;
-            vector<double> test_values;
-            spa.emplace_back_result(test_rows, test_values);
+            std::vector<Index> test_rows;
+            std::vector<double> test_values;
+            spa.EmplaceBackResult(test_rows, test_values);
 
             REQUIRE(test_rows.empty());
             REQUIRE(test_values.empty());
         }
 
         // fill spa while doubling
-        spa.scatter(begin(original_rows), end(original_rows), begin(original_values), 2);
+        spa.Scatter(begin(original_rows), end(original_rows), begin(original_values), 2);
 
         // test contents, values should be doubled
         {
-            vector<int> test_rows;
-            vector<double> test_values;
-            spa.emplace_back_result(test_rows, test_values);
+            std::vector<Index> test_rows;
+            std::vector<double> test_values;
+            spa.EmplaceBackResult(test_rows, test_values);
 
             REQUIRE_THAT(test_rows, Equals(original_rows));
             REQUIRE_THAT(test_values, Equals(doubled_values));

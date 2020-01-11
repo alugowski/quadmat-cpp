@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include <functional>
@@ -7,50 +7,52 @@
 
 #include "quadmat/quadmat.h"
 
+using namespace quadmat;
+
 using Catch::Matchers::Equals;
 
 TEST_CASE("Dense String Matrix") {
     SECTION("empty matrix") {
         int size = 4;
 
-        quadmat::dense_string_matrix smat({size, size});
+        DenseStringMatrix smat({size, size});
 
-        smat.fill_tuples(quadmat::simple_tuples_generator<double, int>::EmptyMatrix());
+        smat.FillTuples(SimpleTuplesGenerator<double, int>::GetEmptyTuples());
 
-        string str = smat.to_string();
+        std::string str = smat.ToString();
 
-        string expected = "   \n"
-                          "   \n"
-                          "   \n"
-                          "   ";
+        std::string expected = "   \n"
+                               "   \n"
+                               "   \n"
+                               "   ";
 
         REQUIRE(str == expected);
     }
     SECTION("small identity matrix") {
         int size = 4;
-        quadmat::dense_string_matrix smat({size, size});
-        quadmat::identity_tuples_generator<double, int> gen(size);
+        DenseStringMatrix smat({size, size});
+        IdentityTuplesGenerator<double, int> gen(size);
 
-        smat.fill_tuples(gen);
+        smat.FillTuples(gen);
 
-        string str = smat.to_string();
+        std::string str = smat.ToString();
 
-        string expected = "1      \n"
-                          "  1    \n"
-                          "    1  \n"
-                          "      1";
+        std::string expected = "1      \n"
+                               "  1    \n"
+                               "    1  \n"
+                               "      1";
 
         REQUIRE(str == expected);
     }
     SECTION("Kepner-Gilbert graph") {
-        quadmat::shape_t shape = quadmat::simple_tuples_generator<double, int>::KepnerGilbertGraph_shape();
-        quadmat::dense_string_matrix smat(shape);
+        Shape shape = SimpleTuplesGenerator<double, int>::GetKepnerGilbertGraphShape();
+        DenseStringMatrix smat(shape);
 
-        smat.fill_tuples(quadmat::simple_tuples_generator<double, int>::KepnerGilbertGraph());
+        smat.FillTuples(SimpleTuplesGenerator<double, int>::GetKepnerGilbertGraphTuples());
 
-        string str = smat.to_string();
+        std::string str = smat.ToString();
 
-        string expected =
+        std::string expected =
                 "      1      \n"
                 "1            \n"
                 "      1   1 1\n"
@@ -64,52 +66,52 @@ TEST_CASE("Dense String Matrix") {
 }
 
 TEST_CASE("Vector Sorting and Permutation") {
-    vector<int> unsorted = {8, 2, 5, 3, 5, 6, 1};
-    vector<int> sorted(unsorted);
+    std::vector<int> unsorted = {8, 2, 5, 3, 5, 6, 1};
+    std::vector<int> sorted(unsorted);
     std::sort(sorted.begin(), sorted.end(), std::less<>());
 
     // permute
-    vector<size_t> permutation = quadmat::get_sort_permutation(unsorted.begin(), unsorted.end(), std::less<>());
+    std::vector<size_t> permutation = GetSortPermutation(unsorted.begin(), unsorted.end(), std::less<>());
 
     SECTION("out of place permutation") {
-        vector<int> permute_sorted = quadmat::apply_permutation(unsorted, permutation);
+        std::vector<int> permute_sorted = ApplyPermutation(unsorted, permutation);
         REQUIRE_THAT(permute_sorted, Equals(sorted));
     }
 
     SECTION("in-place permutation") {
         SECTION("vector") {
-            vector<int> vec(unsorted);
-            quadmat::apply_permutation_inplace(vec, permutation);
+            std::vector<int> vec(unsorted);
+            ApplyPermutationInplace(vec, permutation);
             REQUIRE_THAT(vec, Equals(sorted));
         }
         SECTION("range single") {
-            vector<int> vec(unsorted);
-            quadmat::apply_permutation_inplace(permutation, vec.begin());
+            std::vector<int> vec(unsorted);
+            ApplyPermutationInplace(permutation, vec.begin());
             REQUIRE_THAT(vec, Equals(sorted));
         }
         SECTION("range multi") {
-            vector<int> vec(unsorted);
-            vector<int> vec2(unsorted);
-            quadmat::apply_permutation_inplace(permutation, vec.begin(), vec2.begin());
+            std::vector<int> vec(unsorted);
+            std::vector<int> vec2(unsorted);
+            ApplyPermutationInplace(permutation, vec.begin(), vec2.begin());
             REQUIRE_THAT(vec, Equals(sorted));
             REQUIRE_THAT(vec2, Equals(sorted));
         }
     }
 
     SECTION("shuffle") {
-        vector<int> vec(sorted);
+        std::vector<int> vec(sorted);
         REQUIRE_THAT(vec, Equals(sorted));
 
-        quadmat::stable_shuffle(std::begin(vec), std::end(vec));
+        StableShuffle(std::begin(vec), std::end(vec));
         REQUIRE_THAT(vec, !Equals(sorted));
-        vector<int> vec_shuffled(vec);
+        std::vector<int> vec_shuffled(vec);
 
         // re-sort to make sure nothing went missing
         std::sort(std::begin(vec), std::end(vec), std::less<>());
         REQUIRE_THAT(vec, Equals(sorted));
 
         // re-shuffle to test stability
-        quadmat::stable_shuffle(std::begin(vec), std::end(vec));
+        StableShuffle(std::begin(vec), std::end(vec));
         REQUIRE_THAT(vec, Equals(vec_shuffled));
     }
 }
@@ -118,12 +120,12 @@ TEST_CASE("Slicing") {
     int size = GENERATE(0, 7, 10);
     SECTION(std::string("vector size ") + std::to_string(size)) {
 
-        vector<int> original(size);
+        std::vector<int> original(size);
         std::iota(original.begin(), original.end(), 0);
 
         int num_parts = GENERATE(1, 2, 3, 20);
         SECTION(std::to_string(num_parts) + " splits") {
-            auto ranges = quadmat::slice_ranges(num_parts, begin(original), end(original));
+            auto ranges = SliceRanges(num_parts, begin(original), end(original));
 
             // make sure we have the right number of ranges
             int expected_num_parts = (size == 0 ? 1 : std::min(size, num_parts));
@@ -135,7 +137,7 @@ TEST_CASE("Slicing") {
             REQUIRE(total_range_size == size);
 
             // make sure the ranges cover the right elements
-            vector<int> copy;
+            std::vector<int> copy;
             for (auto range : ranges) {
                 REQUIRE(range.size() >= size / (expected_num_parts + 1));
                 REQUIRE(range.size() * (expected_num_parts - 1) <= size);
@@ -149,28 +151,28 @@ TEST_CASE("Slicing") {
 }
 
 TEST_CASE("Numeric Utilities") {
-    SECTION("clear_all_except_msb") {
-        REQUIRE(quadmat::clear_all_except_msb(0) == 0);
-        REQUIRE(quadmat::clear_all_except_msb(1) == 1);
-        REQUIRE(quadmat::clear_all_except_msb(2) == 2);
-        REQUIRE(quadmat::clear_all_except_msb(3) == 2);
-        REQUIRE(quadmat::clear_all_except_msb(0b100111000) == 0b100000000);
-        REQUIRE(quadmat::clear_all_except_msb(0b111111000) == 0b100000000);
-        REQUIRE(quadmat::clear_all_except_msb(0b111111111) == 0b100000000);
-        REQUIRE(quadmat::clear_all_except_msb((1ul << 63ul) - 1ul) == (1ul << 62ul));
-        REQUIRE(quadmat::clear_all_except_msb(std::numeric_limits<quadmat::index_t>::max()) == (1ul << 62ul));
+    SECTION("ClearAllExceptMsb") {
+        REQUIRE(ClearAllExceptMsb(0) == 0);
+        REQUIRE(ClearAllExceptMsb(1) == 1);
+        REQUIRE(ClearAllExceptMsb(2) == 2);
+        REQUIRE(ClearAllExceptMsb(3) == 2);
+        REQUIRE(ClearAllExceptMsb(0b100111000) == 0b100000000);
+        REQUIRE(ClearAllExceptMsb(0b111111000) == 0b100000000);
+        REQUIRE(ClearAllExceptMsb(0b111111111) == 0b100000000);
+        REQUIRE(ClearAllExceptMsb((1ul << 63ul) - 1ul) == (1ul << 62ul));
+        REQUIRE(ClearAllExceptMsb(std::numeric_limits<Index>::max()) == (1ul << 62ul));
     }
     SECTION("discriminating bit") {
-        REQUIRE(quadmat::get_discriminating_bit({0, 0}) == 1);
-        REQUIRE(quadmat::get_discriminating_bit({1, 1}) == 1);
-        REQUIRE(quadmat::get_discriminating_bit({7, 7}) == 4);
-        REQUIRE(quadmat::get_discriminating_bit({8, 8}) == 4);
-        REQUIRE(quadmat::get_discriminating_bit({9, 9}) == 8);
+        REQUIRE(GetDiscriminatingBit({0, 0}) == 1);
+        REQUIRE(GetDiscriminatingBit({1, 1}) == 1);
+        REQUIRE(GetDiscriminatingBit({7, 7}) == 4);
+        REQUIRE(GetDiscriminatingBit({8, 8}) == 4);
+        REQUIRE(GetDiscriminatingBit({9, 9}) == 8);
 
-        REQUIRE(quadmat::get_child_discriminating_bit(0) == 1);
-        REQUIRE(quadmat::get_child_discriminating_bit(1) == 1);
-        REQUIRE(quadmat::get_child_discriminating_bit(2) == 1);
-        REQUIRE(quadmat::get_child_discriminating_bit(4) == 2);
-        REQUIRE(quadmat::get_child_discriminating_bit(1ul << 62ul) == 1ul << 61ul);
+        REQUIRE(GetChildDiscriminatingBit(0) == 1);
+        REQUIRE(GetChildDiscriminatingBit(1) == 1);
+        REQUIRE(GetChildDiscriminatingBit(2) == 1);
+        REQUIRE(GetChildDiscriminatingBit(4) == 2);
+        REQUIRE(GetChildDiscriminatingBit(1ul << 62ul) == 1ul << 61ul);
     }
 }

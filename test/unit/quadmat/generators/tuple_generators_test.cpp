@@ -1,17 +1,20 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
 
-#include "quadmat/quadmat.h"
-
 #include <cstdint>
 
+#include "quadmat/quadmat.h"
+
+using namespace quadmat;
+
+
 TEST_CASE("Tuples Generator") {
-    SECTION("identity") {
+    SECTION("Identity Matrix") {
         SECTION("basic") {
             int size = 10;
-            quadmat::identity_tuples_generator<double, int> gen(size);
+            IdentityTuplesGenerator<double, int> gen(size);
 
             int count = 0;
             for (auto tup : gen) {
@@ -22,8 +25,8 @@ TEST_CASE("Tuples Generator") {
             }
 
             REQUIRE(count == size);
-        }SECTION("overflow safety") {
-            quadmat::identity_tuples_generator<double, int8_t> gen(0, INT8_MAX);
+        } SECTION("overflow safety") {
+            IdentityTuplesGenerator<double, int8_t> gen(0, INT8_MAX);
 
             int count = 0;
             for (auto tup : gen) {
@@ -36,9 +39,9 @@ TEST_CASE("Tuples Generator") {
             REQUIRE(count == INT8_MAX + 1);
         }
     }
-    SECTION("full") {
+    SECTION("Full Matrix") {
         int size = 5;
-        quadmat::full_tuples_generator<double, int> gen({size, size}, 1);
+        FullTuplesGenerator<double, int> gen({size, size}, 1);
 
         int count = 0;
         int expected_row = 0;

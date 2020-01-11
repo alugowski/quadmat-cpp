@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_ALGORITHMS_H
@@ -12,38 +12,38 @@ namespace quadmat {
     /**
      * Multiply two matrices.
      *
-     * @tparam SR semiring type
-     * @tparam CONFIG configuration to use
+     * @tparam Semiring semiring type
+     * @tparam Config configuration to use
      * @param a left-hand side matrix
      * @param b right-hand side matrix
      * @param semiring semiring object ot use
      * @return a new matrix populated with the result of the multiplication
      */
-    template <typename SR, typename CONFIG>
-    matrix<typename SR::reduce_type, CONFIG> multiply(
-            const matrix<typename SR::map_type_l, CONFIG>& a,
-            const matrix<typename SR::map_type_r, CONFIG>& b,
-            const SR& semiring = SR()) {
+    template <typename Semiring, typename Config>
+    Matrix<typename Semiring::ReduceType, Config> Multiply(
+            const Matrix<typename Semiring::MapTypeA, Config>& a,
+            const Matrix<typename Semiring::MapTypeB, Config>& b,
+            const Semiring& semiring = Semiring()) {
 
         // create the result matrix
-        matrix<typename SR::reduce_type, CONFIG> ret = matrix<typename SR::reduce_type, CONFIG>{
-            get_multiply_result_shape(a.get_shape(), b.get_shape())
+        Matrix<typename Semiring::ReduceType, Config> ret = Matrix<typename Semiring::ReduceType, Config>{
+            GetMultiplyResultShape(a.GetShape(), b.GetShape())
         };
 
         // setup multiply job
-        spawn_multiply_job<SR, CONFIG> job(
-                quadmat::pair_set_t<typename SR::map_type_l, typename SR::map_type_r, CONFIG>{
-                    a.get_root_bc()->get_child(0),
-                    b.get_root_bc()->get_child(0),
-                    a.get_shape(),
-                    b.get_shape(),
-                    a.get_root_bc()->get_discriminating_bit(),
-                    b.get_root_bc()->get_discriminating_bit()
+        SpawnMultiplyJob<Semiring, Config> job(
+                PairSet<typename Semiring::MapTypeA, typename Semiring::MapTypeB, Config>{
+                        a.GetRootBC()->GetChild(0),
+                    b.GetRootBC()->GetChild(0),
+                        a.GetShape(),
+                        b.GetShape(),
+                    a.GetRootBC()->GetDiscriminatingBit(),
+                    b.GetRootBC()->GetDiscriminatingBit()
                     },
-                ret.get_root_bc(), 0, {0, 0}, ret.get_shape(), semiring);
+                ret.GetRootBC(), 0, {0, 0}, ret.GetShape(), semiring);
 
         // run multiply
-        job.run();
+        job.Run();
 
         return ret;
     }

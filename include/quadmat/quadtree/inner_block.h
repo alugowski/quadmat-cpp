@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_INNER_BLOCK_H
@@ -7,87 +7,85 @@
 #include <algorithm>
 #include <array>
 
-using std::array;
-using std::shared_ptr;
-
 #include "quadmat/quadtree/block_container.h"
 #include "quadmat/quadtree/tree_nodes.h"
+#include "quadmat/util/util.h"
 
 namespace quadmat {
 
     /**
      * Inner block child positions
      */
-    enum inner_position {
+    enum InnerPosition {
         NW=0,
         NE=1,
         SW=2,
         SE=3
     };
 
-    static constexpr std::initializer_list<inner_position> all_inner_positions = {NW, NE, SW, SE};
+    static constexpr std::initializer_list<InnerPosition> kAllInnerPositions = {NW, NE, SW, SE};
 
     /**
      * Block for inner nodes of the quad tree.
      *
      * @tparam T value type of leaf nodes
      */
-    template<typename T, typename CONFIG>
-    class inner_block : public block<T>, public block_container<T, CONFIG> {
+    template<typename T, typename Config>
+    class InnerBlock : public Block<T>, public BlockContainer<T, Config> {
     public:
-        explicit inner_block(const index_t discriminating_bit) : discriminating_bit(discriminating_bit) {
-            if (discriminating_bit == 0 || clear_all_except_msb(discriminating_bit) != discriminating_bit) {
+        explicit InnerBlock(const Index discriminating_bit) : discriminating_bit_(discriminating_bit) {
+            if (discriminating_bit == 0 || ClearAllExceptMsb(discriminating_bit) != discriminating_bit) {
                 throw std::invalid_argument("invalid discriminating bit");
             }
         }
 
-        [[nodiscard]] size_t num_children() const override {
-            return all_inner_positions.size();
+        [[nodiscard]] size_t GetNumChildren() const override {
+            return kAllInnerPositions.size();
         }
 
-        tree_node_t<T, CONFIG> get_child(int pos) const override {
-            return children[pos];
+        TreeNode<T, Config> GetChild(int pos) const override {
+            return children_[pos];
         }
 
-        void set_child(int pos, tree_node_t<T, CONFIG> child) override {
-            children[pos] = child;
+        void SetChild(int pos, TreeNode<T, Config> child) override {
+            children_[pos] = child;
         }
 
-        std::shared_ptr<inner_block<T, CONFIG>> create_inner(int pos) override {
-            std::shared_ptr<inner_block<T, CONFIG>> ret =
-                    std::make_shared<inner_block<T, CONFIG>>(this->discriminating_bit >> 1);
-            children[pos] = ret;
+        std::shared_ptr<InnerBlock<T, Config>> CreateInner(int pos) override {
+            std::shared_ptr<InnerBlock<T, Config>> ret =
+                    std::make_shared<InnerBlock<T, Config>>(this->discriminating_bit_ >> 1);
+            children_[pos] = ret;
             return ret;
         }
 
-        [[nodiscard]] offset_t get_offsets(int child_pos, const offset_t& my_offset) const override {
+        [[nodiscard]] Offset GetChildOffsets(int child_pos, const Offset& my_offset) const override {
             switch (child_pos) {
                 case NW:
                     return my_offset;
                 case NE:
                     return {
                             .row_offset = my_offset.row_offset,
-                            .col_offset = my_offset.col_offset | discriminating_bit // NOLINT(hicpp-signed-bitwise)
+                            .col_offset = my_offset.col_offset | discriminating_bit_ // NOLINT(hicpp-signed-bitwise)
                     };
                 case SW:
                     return {
-                            .row_offset = my_offset.row_offset | discriminating_bit, // NOLINT(hicpp-signed-bitwise),
+                            .row_offset = my_offset.row_offset | discriminating_bit_, // NOLINT(hicpp-signed-bitwise),
                             .col_offset = my_offset.col_offset
                     };
                 case SE:
                     return {
-                            .row_offset = my_offset.row_offset | discriminating_bit, // NOLINT(hicpp-signed-bitwise),
-                            .col_offset = my_offset.col_offset | discriminating_bit // NOLINT(hicpp-signed-bitwise)
+                            .row_offset = my_offset.row_offset | discriminating_bit_, // NOLINT(hicpp-signed-bitwise),
+                            .col_offset = my_offset.col_offset | discriminating_bit_ // NOLINT(hicpp-signed-bitwise)
                     };
                 default:
                     throw std::invalid_argument("invalid child position");
             }
         }
 
-        [[nodiscard]] shape_t get_child_shape(int child_pos, const shape_t& my_shape) const override {
-            shape_t nw_shape = {
-                    .nrows = std::min(discriminating_bit, my_shape.nrows),
-                    .ncols = std::min(discriminating_bit, my_shape.ncols)
+        [[nodiscard]] Shape GetChildShape(int child_pos, const Shape& my_shape) const override {
+            Shape nw_shape = {
+                    .nrows = std::min(discriminating_bit_, my_shape.nrows),
+                    .ncols = std::min(discriminating_bit_, my_shape.ncols)
             };
 
             switch (child_pos) {
@@ -113,19 +111,19 @@ namespace quadmat {
             }
         }
 
-        [[nodiscard]] index_t get_discriminating_bit() const override {
-            return discriminating_bit;
+        [[nodiscard]] Index GetDiscriminatingBit() const override {
+            return discriminating_bit_;
         }
 
-        [[nodiscard]] block_size_info size() const {
-            return block_size_info{
-                    .overhead_bytes = sizeof(inner_block<T, CONFIG>),
+        [[nodiscard]] BlockSizeInfo GetSize() const {
+            return BlockSizeInfo{
+                    .overhead_bytes = sizeof(InnerBlock<T, Config>),
             };
         }
 
     protected:
-        index_t discriminating_bit;
-        array<tree_node_t<T, CONFIG>, 4> children{};
+        Index discriminating_bit_;
+        std::array<TreeNode<T, Config>, 4> children_{};
     };
 }
 

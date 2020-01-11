@@ -13,22 +13,31 @@
 
 namespace quadmat {
 
-    class basic_config {
+    /**
+     * Basic safe configuration.
+     */
+    class BasicConfig {
     public:
         /**
-         * leaf blocks larger than this should be split
+         * Leaf blocks larger than this should be split.
+         *
+         * This is a constant here, but may not be const in other Configs.
          */
-        static const blocknnn_t leaf_split_threshold = 10 * 1024;
+        static const BlockNnn LeafSplitThreshold = 10 * 1024;
 
         /**
          * Maximum number of entries in a dense SpA. Larger problems use a sparse SpA.
+         *
+         * This is a constant here, but may not be const in other Configs.
          */
-        static const size_t dense_spa_max_count = 100 * 1024 * 1024;
+        static const size_t DenseSpaMaxCount = 100 * 1024 * 1024;
 
         /**
          * Largest size of a dense SpA's array. Larger problems use a sparse SpA.
+         *
+         * This is a constant here, but may not be const in other Configs.
          */
-        static const size_t dense_spa_max_bytes = 10  * 1024 * 1024;
+        static const size_t DenseSpaMaxBytes = 10  * 1024 * 1024;
 
         /**
          * Decide whether to use a dense or sparse SpA.
@@ -43,42 +52,46 @@ namespace quadmat {
          * @return true if a dense SpA should be used, false if a sparse SpA should be used.
          */
         template <typename T>
-        static bool use_dense_spa(size_t nrows) {
+        static bool ShouldUseDenseSpa(size_t nrows) {
             // choose based on count or size in bytes
-            return nrows <= dense_spa_max_count && nrows * sizeof(T) <= dense_spa_max_bytes;
+            return nrows <= DenseSpaMaxCount && nrows * sizeof(T) <= DenseSpaMaxBytes;
         }
 
         /**
-         * default allocator, and for long-lived objects
+         * Default allocator, and for long-lived objects
          */
         template <typename T>
-        using ALLOC = std::allocator<T>;
+        using Allocator = std::allocator<T>;
 
         /**
-         * allocator to use for short-lived temporary objects
+         * Allocator to use for short-lived temporary objects
          */
         template <typename T>
-        using TEMP_ALLOC = std::allocator<T>;
-    };
-
-    class tbb_config : public basic_config {
-        /**
-         * default allocator, and for long-lived objects
-         */
-        template <typename T>
-        using ALLOC = tbb::tbb_allocator<T>;
-
-        /**
-         * allocator to use for short-lived temporary objects
-         */
-        template <typename T>
-        using TEMP_ALLOC = tbb::tbb_allocator<T>;
+        using TempAllocator = std::allocator<T>;
     };
 
     /**
-     * This is the config that will be used by default unless another is explicitly specified as a template parameter.
+     * Configuration for use with ThreadingBuildingBlocks.
      */
-    using default_config = basic_config;
+    class TbbConfig : public BasicConfig {
+        /**
+         * Default allocator, and for long-lived objects
+         */
+        template <typename T>
+        using Allocator = tbb::tbb_allocator<T>;
+
+        /**
+         * Allocator to use for short-lived temporary objects
+         */
+        template <typename T>
+        using TempAllocator = tbb::tbb_allocator<T>;
+    };
+
+    /**
+     * This is the config that will be used by QuadMat operations. If another config is desired then it should be
+     * explicitly specified as a template parameter to those operations.
+     */
+    using DefaultConfig = BasicConfig;
 }
 
 #endif //QUADMAT_CONFIG_H

@@ -11,14 +11,14 @@ namespace quadmat {
     /**
      * A dense SpA is an array.
      */
-    template <typename IT, typename SR, typename CONFIG=default_config>
-    class dense_spa {
+    template <typename IT, typename Semiring, typename Config=DefaultConfig>
+    class DenseSpa {
     public:
         /**
          * @param size ignored here. Used in dense SpA.
          */
-        explicit dense_spa(size_t size, const SR& semiring = SR()) : semiring(semiring), x(size), mark(size) {
-            w.reserve(1024);
+        explicit DenseSpa(size_t size, const Semiring& semiring = Semiring()) : semiring_(semiring), x_(size), mark_(size) {
+            w_.reserve(1024);
         }
 
         /**
@@ -26,22 +26,22 @@ namespace quadmat {
          *
          * Useful for addition.
          *
-         * @tparam ROW_ITER
-         * @tparam VAL_ITER
+         * @tparam RowIterator
+         * @tparam ValueIterator
          * @param rows_iter input iterator. start of the rows range
          * @param rows_end input iterator. end of the rows range
          * @param values_iter input iterator. Start of the values range. End assumed to be values_iter + (rows_end - rows_iter)
          */
-        template <typename ROW_ITER, typename VAL_ITER>
-        void scatter(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter) {
+        template <typename RowIterator, typename ValueIterator>
+        void Scatter(RowIterator rows_iter, const RowIterator& rows_end, ValueIterator values_iter) {
             while (rows_iter != rows_end) {
                 const IT row = *rows_iter;
 
-                x[row] = semiring.add(x[row], *values_iter);
+                x_[row] = semiring_.Add(x_[row], *values_iter);
 
-                if (!mark[row]) {
-                    mark[row] = true;
-                    w.emplace_back(row);
+                if (!mark_[row]) {
+                    mark_[row] = true;
+                    w_.emplace_back(row);
                 }
 
                 ++rows_iter;
@@ -55,22 +55,22 @@ namespace quadmat {
          *
          * Useful for multiplication.
          *
-         * @tparam ROW_ITER
-         * @tparam VAL_ITER
+         * @tparam RowIterator
+         * @tparam ValueIterator
          * @param rows_iter input iterator. start of the rows range
          * @param rows_end input iterator. end of the rows range
-         * @param values_iter input iterator over SR::map_type_l. Start of the values range, with end assumed to be values_iter + (rows_end - rows_iter)
+         * @param values_iter input iterator over SR::MapTypeA. Start of the values range, with end assumed to be values_iter + (rows_end - rows_iter)
          */
-        template <typename ROW_ITER, typename VAL_ITER>
-        void scatter(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter, const typename SR::map_type_r& b_val) {
+        template <typename RowIterator, typename ValueIterator>
+        void Scatter(RowIterator rows_iter, const RowIterator& rows_end, ValueIterator values_iter, const typename Semiring::MapTypeB& b_val) {
             while (rows_iter != rows_end) {
                 const IT row = *rows_iter;
 
-                x[row] = semiring.add(x[row], semiring.multiply(*values_iter, b_val));
+                x_[row] = semiring_.Add(x_[row], semiring_.Multiply(*values_iter, b_val));
 
-                if (!mark[row]) {
-                    mark[row] = true;
-                    w.emplace_back(row);
+                if (!mark_[row]) {
+                    mark_[row] = true;
+                    w_.emplace_back(row);
                 }
 
                 ++rows_iter;
@@ -82,49 +82,49 @@ namespace quadmat {
          * Copy the contents of the SpA to a row index vector and a values vector. Contents are copied using emplace_back().
          * Copy is ordered by row.
          *
-         * @tparam ROW_VEC
-         * @tparam VAL_VEC
+         * @tparam RowVector
+         * @tparam ValueVector
          * @param row_ind vector to write row indices
          * @param values vector to write values
          */
-        template <typename ROW_VEC, typename VAL_VEC>
-        void emplace_back_result(ROW_VEC& row_ind, VAL_VEC& values) {
-            std::sort(w.begin(), w.end());
+        template <typename RowVector, typename ValueVector>
+        void EmplaceBackResult(RowVector& row_ind, ValueVector& values) {
+            std::sort(w_.begin(), w_.end());
 
-            for (auto i : w) {
+            for (auto i : w_) {
                 row_ind.emplace_back(i);
-                values.emplace_back(x[i]);
+                values.emplace_back(x_[i]);
             }
         }
 
         /**
          * @return true if the SpA has no elements set.
          */
-        [[nodiscard]] bool empty() const {
-            return w.empty();
+        [[nodiscard]] bool IsEmpty() const {
+            return w_.empty();
         }
 
         /**
          * Clear the SpA for reuse.
          */
-        void clear() {
-            for (auto i : w) {
-                x[i] = typename SR::reduce_type();
-                mark[i] = false;
+        void Clear() {
+            for (auto i : w_) {
+                x_[i] = typename Semiring::ReduceType();
+                mark_[i] = false;
             }
-            w.clear();
+            w_.clear();
         }
 
     protected:
 
-        const SR& semiring;
+        const Semiring& semiring_;
 
         /**
          * Dense array that holds the accumulated values.
          *
          * Size is spa size, i.e. number of rows in output matrix.
          */
-        std::vector<typename SR::reduce_type, typename CONFIG::template TEMP_ALLOC<typename SR::reduce_type>> x;
+        std::vector<typename Semiring::ReduceType, typename Config::template TempAllocator<typename Semiring::ReduceType>> x_;
 
 
         /**
@@ -132,12 +132,12 @@ namespace quadmat {
          *
          * Size is spa size, i.e. number of rows in output matrix.
          */
-        std::vector<bool, typename CONFIG::template TEMP_ALLOC<bool>> mark;
+        std::vector<bool, typename Config::template TempAllocator<bool>> mark_;
 
         /**
          * List of i where mark[i] is true.
          */
-        std::vector<IT, typename CONFIG::template TEMP_ALLOC<IT>> w;
+        std::vector<IT, typename Config::template TempAllocator<IT>> w_;
     };
 }
 

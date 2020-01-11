@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
@@ -11,40 +11,40 @@
 TEST_CASE("Tree Nodes") {
     SECTION("index size determination") {
         SECTION("16-bit") {
-            index_t size = GENERATE(1, (1u << 15u) - 1u);
+            Index size = GENERATE(1, (1u << 15u) - 1u);
 
-            quadmat::leaf_index_type lit = quadmat::get_leaf_index_type({size, 1});
+            LeafIndex lit = GetLeafIndexType({size, 1});
             REQUIRE(std::holds_alternative<int16_t>(lit));
         }
         SECTION("32-bit") {
-            index_t size = GENERATE((1u << 15u), (1u << 31u) - 1u);
+            Index size = GENERATE((1u << 15u), (1u << 31u) - 1u);
 
-            quadmat::leaf_index_type lit = quadmat::get_leaf_index_type({1, size});
+            LeafIndex lit = GetLeafIndexType({1, size});
             REQUIRE(std::holds_alternative<int32_t>(lit));
         }
         SECTION("64-bit") {
-            index_t size = GENERATE((1ul << 31u), (1ul << 63u) - 1u);
+            Index size = GENERATE((1ul << 31u), (1ul << 63u) - 1u);
 
-            quadmat::leaf_index_type lit = quadmat::get_leaf_index_type({size, 1});
+            LeafIndex lit = GetLeafIndexType({size, 1});
             REQUIRE(std::holds_alternative<int64_t>(lit));
         }
     }
     SECTION("create leaf") {
         int size = 10;
-        quadmat::identity_tuples_generator<double, int> gen(size);
+        IdentityTuplesGenerator<double, int> gen(size);
 
-        quadmat::tree_node_t<double> node = quadmat::create_leaf<double>({size, size}, size, gen);
+        TreeNode<double> node = CreateLeaf<double>({size, size}, size, gen);
 
         // make sure the indices have the expected size
-        std::visit(quadmat::leaf_visitor<double>([](auto leaf, offset_t offsets, shape_t shape) {
-            for (auto tup : leaf->tuples()) {
-                REQUIRE(sizeof(std::get<0>(tup)) == sizeof(int16_t));
-                REQUIRE(sizeof(std::get<1>(tup)) == sizeof(int16_t));
-            }
+        std::visit(GetLeafVisitor<double>([](auto leaf, Offset offsets, Shape shape) {
+          for (auto tup : leaf->Tuples()) {
+            REQUIRE(sizeof(std::get<0>(tup)) == sizeof(int16_t));
+            REQUIRE(sizeof(std::get<1>(tup)) == sizeof(int16_t));
+          }
         }), node);
 
         // dump the tuples
-        vector<std::tuple<index_t, index_t, double>> tuples = dump_tuples(node);
+        std::vector<std::tuple<Index, Index, double>> tuples = DumpTuples(node);
 
         int count = 0;
         for (auto tup : tuples) {
@@ -58,18 +58,18 @@ TEST_CASE("Tree Nodes") {
     }
     SECTION("single-inner identity") {
         int size = 8;
-        quadmat::identity_tuples_generator<double, int> gen(size);
+        IdentityTuplesGenerator<double, int> gen(size);
 
-        auto inner = std::make_shared<quadmat::inner_block<double>>(8);
-        auto inner_node = quadmat::tree_node_t<double>(inner);
+        auto inner = std::make_shared<InnerBlock<double>>(8);
+        auto inner_node = TreeNode<double>(inner);
 
         // use the same block in both NW and SE positions because they are identical in an identity matrix
-        quadmat::tree_node_t<double> node = quadmat::create_leaf<double>({size, size}, size, gen);
-        inner->set_child(quadmat::NW, node);
-        inner->set_child(quadmat::SE, node);
+        TreeNode<double> node = CreateLeaf<double>({size, size}, size, gen);
+        inner->SetChild(NW, node);
+        inner->SetChild(SE, node);
 
         // dump the tuples
-        vector<std::tuple<index_t, index_t, double>> tuples = dump_tuples(inner_node);
+        std::vector<std::tuple<Index, Index, double>> tuples = DumpTuples(inner_node);
 
         int count = 0;
         for (auto tup : tuples) {

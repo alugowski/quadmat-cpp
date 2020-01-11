@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_TREE_CONSTRUCTION_H
@@ -16,66 +16,72 @@ namespace quadmat {
      * The leaf type, including index size, is determined here.
      *
      * @tparam T data type
-     * @tparam CONFIG settings
-     * @tparam GEN tuple generator. Must have a begin() and end() that return tuple<IT, IT, T> for some integer type IT
+     * @tparam Config settings
+     * @tparam Gen tuple generator. Must have a begin() and end() that return tuple<IT, IT, T> for some integer type IT
      * @param shape shape of leaf
      * @param nnn estimated number of non-nulls, i.e. col_ordered_gen.size().
      * @param col_ordered_gen tuple generator
      * @return
      */
-    template <typename T, typename CONFIG = default_config, typename GEN>
-    leaf_node_t<T, CONFIG> create_leaf(const shape_t& shape, const blocknnn_t nnn, const GEN col_ordered_gen) {
-        leaf_index_type desired_index_type = get_leaf_index_type(shape);
+    template <typename T, typename Config = DefaultConfig, typename Gen>
+    LeafNode<T, Config> CreateLeaf(const Shape& shape, const BlockNnn nnn, const Gen col_ordered_gen) {
+        LeafIndex desired_index_type = GetLeafIndexType(shape);
 
         return std::visit(overloaded{
-                [&](int64_t dim) -> leaf_node_t<T, CONFIG> { return leaf_category_t<T, int64_t, CONFIG>(dcsc_block_factory<T, int64_t, CONFIG>(nnn, col_ordered_gen).finish()); },
-                [&](int32_t dim) -> leaf_node_t<T, CONFIG> { return leaf_category_t<T, int32_t, CONFIG>(dcsc_block_factory<T, int32_t, CONFIG>(nnn, col_ordered_gen).finish()); },
-                [&](int16_t dim) -> leaf_node_t<T, CONFIG> { return leaf_category_t<T, int16_t, CONFIG>(dcsc_block_factory<T, int16_t, CONFIG>(nnn, col_ordered_gen).finish()); },
+                [&](int64_t dim) -> LeafNode<T, Config> {
+                  return LeafCategory<T, int64_t, Config>(DcscBlockFactory<T, int64_t, Config>(nnn, col_ordered_gen).Finish());
+                },
+                [&](int32_t dim) -> LeafNode<T, Config> {
+                  return LeafCategory<T, int32_t, Config>(DcscBlockFactory<T, int32_t, Config>(nnn, col_ordered_gen).Finish());
+                },
+                [&](int16_t dim) -> LeafNode<T, Config> {
+                  return LeafCategory<T, int16_t, Config>(DcscBlockFactory<T, int16_t, Config>(nnn, col_ordered_gen).Finish());
+                },
         }, desired_index_type);
     }
 
     /**
      * Implementation of triples block subdivision.
      */
-    template <typename T, typename IT, typename CONFIG>
-    tree_node_t<T, CONFIG> subdivide_impl(const shared_ptr<triples_block<T, IT, CONFIG>>& block,
-                                          const offset_t offsets, const shape_t& shape, index_t parent_discriminating_bit,
-                                          shared_ptr<typename triples_block<T, IT, CONFIG>::permutation_vector_type> permutation,
-                                          typename triples_block<T, IT, CONFIG>::permutation_vector_type::iterator perm_begin,
-                                          typename triples_block<T, IT, CONFIG>::permutation_vector_type::iterator perm_end) {
+    template <typename T, typename IT, typename Config>
+    TreeNode<T, Config> SubdivideImpl(const std::shared_ptr<TriplesBlock<T, IT, Config>>& block,
+                                      const Offset offsets, const Shape& shape, Index parent_discriminating_bit,
+                                      std::shared_ptr<typename TriplesBlock<T, IT, Config>::PermutationVectorType> permutation,
+                                      typename TriplesBlock<T, IT, Config>::PermutationVectorType::iterator perm_begin,
+                                      typename TriplesBlock<T, IT, Config>::PermutationVectorType::iterator perm_end) {
         // if there are no triples then return an empty node
         if ((perm_end - perm_begin) == 0) {
-            return tree_node_t<T, CONFIG>();
+            return TreeNode<T, Config>();
         }
 
         // if there are only one leaf's worth of triples then construct a single leaf
-        if ((perm_end - perm_begin) < CONFIG::leaf_split_threshold) {
+        if ((perm_end - perm_begin) < Config::LeafSplitThreshold) {
             // sort
             std::sort(perm_begin, perm_end,
                       [&](size_t i, size_t j) {
-                          if (block->get_col(i) != block->get_col(j)) {
-                              return block->get_col(i) < block->get_col(j);
-                          } else if (block->get_row(i) != block->get_row(j)) {
-                              return block->get_row(i) < block->get_row(j);
+                          if (block->GetCol(i) != block->GetCol(j)) {
+                              return block->GetCol(i) < block->GetCol(j);
+                          } else if (block->GetRow(i) != block->GetRow(j)) {
+                              return block->GetRow(i) < block->GetRow(j);
                           } else {
                               return i < j;
                           }
                       });
 
-            return create_leaf<T, CONFIG>(
+            return CreateLeaf<T, Config>(
                     shape,
                     (perm_end - perm_begin),
-                    offset_tuples_neg(block->permuted_tuples(permutation, perm_begin, perm_end), offsets));
+                    OffsetTuplesNeg(block->PermutedTuples(permutation, perm_begin, perm_end), offsets));
         }
 
         // subdivision is required
-        const index_t discriminating_bit = get_child_discriminating_bit(parent_discriminating_bit);
-        auto ret = std::make_shared<inner_block<T, CONFIG>>(discriminating_bit);
+        const Index discriminating_bit = GetChildDiscriminatingBit(parent_discriminating_bit);
+        auto ret = std::make_shared<InnerBlock<T, Config>>(discriminating_bit);
 
         // partition east and west children by column
         std::partition(perm_begin, perm_end,
                        [&](size_t i) -> bool {
-                           return (block->get_col(i) - offsets.col_offset < discriminating_bit);
+                           return (block->GetCol(i) - offsets.col_offset < discriminating_bit);
                        });
 
         // find the east-west divide
@@ -83,8 +89,8 @@ namespace quadmat {
                 perm_begin,
                 perm_end,
                 discriminating_bit,
-                [&](size_t i, index_t value) -> bool {
-                    return block->get_col(i) - offsets.col_offset < value;
+                [&](size_t i, Index value) -> bool {
+                    return block->GetCol(i) - offsets.col_offset < value;
                 });
 
         // partition the north-south children.
@@ -98,7 +104,7 @@ namespace quadmat {
             // partition the north and south children by row
             std::partition(chunk_begin, chunk_end,
                            [&](size_t i) -> bool {
-                               return (block->get_row(i) - offsets.row_offset < discriminating_bit);
+                               return (block->GetRow(i) - offsets.row_offset < discriminating_bit);
                            });
 
             // find the north-south divide
@@ -106,12 +112,26 @@ namespace quadmat {
                     chunk_begin,
                     chunk_end,
                     discriminating_bit,
-                    [&](size_t i, index_t value) -> bool {
-                        return block->get_row(i) - offsets.row_offset < value;
+                    [&](size_t i, Index value) -> bool {
+                        return block->GetRow(i) - offsets.row_offset < value;
                     });
 
-            ret->set_child(north_child, subdivide_impl(block, ret->get_offsets(north_child, offsets), ret->get_child_shape(north_child, shape), discriminating_bit, permutation, chunk_begin, ns_i));
-            ret->set_child(south_child, subdivide_impl(block, ret->get_offsets(south_child, offsets), ret->get_child_shape(south_child, shape), discriminating_bit, permutation, ns_i, chunk_end));
+            ret->SetChild(north_child,
+                          SubdivideImpl(block,
+                                        ret->GetChildOffsets(north_child, offsets),
+                                        ret->GetChildShape(north_child, shape),
+                                        discriminating_bit,
+                                        permutation,
+                                        chunk_begin,
+                                        ns_i));
+            ret->SetChild(south_child,
+                          SubdivideImpl(block,
+                                        ret->GetChildOffsets(south_child, offsets),
+                                        ret->GetChildShape(south_child, shape),
+                                        discriminating_bit,
+                                        permutation,
+                                        ns_i,
+                                        chunk_end));
         }
         return ret;
     }
@@ -121,16 +141,22 @@ namespace quadmat {
      *
      * @tparam T
      * @tparam IT
-     * @tparam CONFIG configuration to use. The subdivision threshold is CONFIG::leaf_split_threshold.
+     * @tparam Config configuration to use. The subdivision threshold is Config::LeafSplitThreshold.
      * @param block triples block
      * @param shape shape of block
-     * @return a quadmat quadtree where no leaf is larger than CONFIG::leaf_split_threshold
+     * @return a quadmat quadtree where no leaf is larger than Config::LeafSplitThreshold
      */
-    template <typename T, typename IT, typename CONFIG = default_config>
-    tree_node_t<T, CONFIG> subdivide(const shared_ptr<triples_block<T, IT, CONFIG>> block, const shape_t& shape) {
-        auto permutation = std::make_shared<typename triples_block<T, IT, CONFIG>::permutation_vector_type>(block->nnn());
+    template <typename T, typename IT, typename Config = DefaultConfig>
+    TreeNode<T, Config> Subdivide(const std::shared_ptr<TriplesBlock<T, IT, Config>> block, const Shape& shape) {
+        auto permutation = std::make_shared<typename TriplesBlock<T, IT, Config>::PermutationVectorType>(block->GetNnn());
         std::iota(permutation->begin(), permutation->end(), 0);
-        return subdivide_impl(block, offset_t{0, 0}, shape, get_discriminating_bit(shape) << 1, permutation, permutation->begin(), permutation->end()); // NOLINT(hicpp-signed-bitwise)
+        return SubdivideImpl(block,
+                             Offset{0, 0},
+                             shape,
+                             GetDiscriminatingBit(shape) << 1, // NOLINT(hicpp-signed-bitwise)
+                             permutation,
+                             permutation->begin(),
+                             permutation->end());
     }
 }
 

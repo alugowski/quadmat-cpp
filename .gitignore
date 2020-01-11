@@ -1,6 +1,6 @@
 # Medium tests too large to include in Git
 # Use the scripts in gen/ to generate these
-test/matrices/medium/multiply/gitignored*
+test/matrices/medium/Multiply/gitignored*
 
 # CLion
 .idea/

@@ -17,52 +17,52 @@ namespace quadmat {
      *
      * @tparam T
      * @tparam IT
-     * @tparam CONFIG
+     * @tparam Config
      */
-    template <typename T, typename IT, typename CONFIG = default_config>
-    class dcsc_accumulator : public block<T> {
+    template <typename T, typename IT, typename Config = DefaultConfig>
+    class DcscAccumulator : public Block<T> {
     public:
-        explicit dcsc_accumulator(const shape_t &shape) : shape(shape) {}
+        explicit DcscAccumulator(const Shape &shape) : shape_(shape) {}
 
         /**
          * Add a new block to this accumulator
          * @param new_block
          */
-        void add(std::shared_ptr<dcsc_block<T, IT, CONFIG>> new_block) {
-            children.push_back(new_block);
+        void Add(std::shared_ptr<DcscBlock<T, IT, Config>> new_block) {
+            children_.push_back(new_block);
 
 #if QUADMAT_DEBUG_INLINE_SANITY_TESTING
-            for (auto tup : new_block->tuples()) {
+            for (auto tup : new_block->Tuples()) {
                 auto [row, col, value] = tup;
 
                 // make sure tuple is within shape
-                if (row >= shape.nrows || col >= shape.ncols) {
-                    throw std::invalid_argument(std::string("tuple <") + std::to_string(row) + ", " + std::to_string(col) + ", " + std::to_string(value) + "> outside of leaf shape " + shape.to_string());
+                if (row >= shape_.nrows || col >= shape_.ncols) {
+                    throw std::invalid_argument(Join::ToString("tuple <", row, ", ", col, ", ", value, "> outside of leaf shape ", shape.ToString()));
                 }
             }
 #endif
         }
 
         auto begin() const {
-            return children.begin();
+            return children_.begin();
         }
 
         auto end() const {
-            return children.end();
+            return children_.end();
         }
 
         /**
          * Add up all the blocks in this accumulator.
          *
-         * @tparam SR semiring, though only the add() is used to sum duplicate elements
+         * @tparam Semiring semiring, though only the Add() is used to sum duplicate elements
          * @return a new DCSC Block that is the sum of all the blocks in this accumulator.
          */
-        template <class SR = plus_times_semiring<T>>
-        std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse(const SR& semiring = SR()) {
-            if (CONFIG::template use_dense_spa<T>(shape.nrows)) {
-                return collapse_SpA<dense_spa<IT, SR, CONFIG>, SR>(semiring);
+        template <class Semiring = PlusTimesSemiring<T>>
+        std::shared_ptr<DcscBlock<T, IT, Config>> Collapse(const Semiring& semiring = Semiring()) {
+            if (Config::template ShouldUseDenseSpa<T>(shape_.nrows)) {
+                return CollapseUsingSpA<DenseSpa<IT, Semiring, Config>, Semiring>(semiring);
             } else {
-                return collapse_SpA<sparse_spa<IT, SR, CONFIG>, SR>(semiring);
+                return CollapseUsingSpA<SparseSpa<IT, Semiring, Config>, Semiring>(semiring);
             }
         }
 
@@ -70,21 +70,21 @@ namespace quadmat {
         /**
          * Add up all the blocks in this accumulator using a sparse accumulator (SpA).
          *
-         * @tparam SPA type of sparse accumulator to use
-         * @tparam SR semiring, though only the add() is used to sum duplicate elements
+         * @tparam Spa type of sparse accumulator to use
+         * @tparam Semiring semiring, though only the Add() is used to sum duplicate elements
          * @return a new DCSC Block that is the sum of all the blocks in this accumulator.
          */
-        template <class SPA, class SR>
-        std::shared_ptr<dcsc_block<T, IT, CONFIG>> collapse_SpA(const SR& semiring) {
-            auto factory = dcsc_block_factory<T, IT, CONFIG>();
+        template <class Spa, class Semiring>
+        std::shared_ptr<DcscBlock<T, IT, Config>> CollapseUsingSpA(const Semiring& semiring) {
+            auto factory = DcscBlockFactory<T, IT, Config>();
 
-            std::priority_queue<column_ref, std::vector<column_ref, typename CONFIG::template TEMP_ALLOC<column_ref>>, std::greater<column_ref>> column_queue;
+            std::priority_queue<ColumnRef, std::vector<ColumnRef, typename Config::template TempAllocator<ColumnRef>>, std::greater<ColumnRef>> column_queue;
 
             // add the first columns of each child to the queue
-            for (auto child : children) {
-                column_ref cr{
-                    .current = child->columns_begin(),
-                    .end = child->columns_end()
+            for (auto child : children_) {
+                ColumnRef cr{
+                    .current = child->ColumnsBegin(),
+                    .end = child->ColumnsEnd()
                 };
 
                 if (cr.current != cr.end) {
@@ -93,19 +93,19 @@ namespace quadmat {
             }
 
             // For each column i sum every column i from all children
-            SPA spa(this->shape.nrows, semiring);
+            Spa spa(this->shape_.nrows, semiring);
             while (!column_queue.empty()) {
-                column_ref cr = column_queue.top();
+                ColumnRef cr = column_queue.top();
                 column_queue.pop();
 
                 // fill the SpA with this column
                 auto current_col = *cr.current;
-                spa.scatter(current_col.rows_begin, current_col.rows_end, current_col.values_begin);
+                spa.Scatter(current_col.rows_begin, current_col.rows_end, current_col.values_begin);
 
                 // if this is the last block with this column then dump the spa into the result
                 if (column_queue.empty() || column_queue.top().col() != current_col.col) {
-                    factory.add_spa(cr.col(), spa);
-                    spa.clear();
+                    factory.AddColumnFromSpa(cr.col(), spa);
+                    spa.Clear();
                 }
 
                 ++cr.current;
@@ -115,14 +115,14 @@ namespace quadmat {
                 }
             }
 
-            return factory.finish();
+            return factory.Finish();
         }
 
         /**
          * Member of priority queue used to iterate over children's columns.
          */
-        struct column_ref {
-            using iter_type = typename dcsc_block<T, IT, CONFIG>::column_iterator;
+        struct ColumnRef {
+            using iter_type = typename DcscBlock<T, IT, Config>::ColumnIterator;
 
             iter_type current;
             iter_type end;
@@ -131,13 +131,13 @@ namespace quadmat {
                 return (*current).col;
             }
 
-            bool operator>(const column_ref& rhs) const {
+            bool operator>(const ColumnRef& rhs) const {
                 return col() > rhs.col();
             }
         };
     protected:
-        vector<std::shared_ptr<dcsc_block<T, IT, CONFIG>>> children;
-        const shape_t &shape;
+        std::vector<std::shared_ptr<DcscBlock<T, IT, Config>>> children_;
+        const Shape &shape_;
     };
 }
 

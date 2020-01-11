@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
@@ -14,37 +14,37 @@ using Catch::Matchers::UnorderedEquals;
 /**
  * Canned matrices
  */
-static const auto canned_matrices_with_files = get_canned_matrices<double, index_t>(true); // NOLINT(cert-err58-cpp)
-static const int num_canned_matrices_with_files = canned_matrices_with_files.size();
+static const auto kCannedMatricesWithFiles = GetCannedMatrices<double, Index>(true); // NOLINT(cert-err58-cpp)
+static const int kNumCannedMatricesWithFiles = kCannedMatricesWithFiles.size();
 
-static const auto canned_matrices = get_canned_matrices<double, index_t>(); // NOLINT(cert-err58-cpp)
-static const int num_canned_matrices = canned_matrices.size();
+static const auto kCannedMatrices = GetCannedMatrices<double, Index>(); // NOLINT(cert-err58-cpp)
+static const int kNumCannedMatrices = kCannedMatrices.size();
 
 TEST_CASE("I/O - Matrix Market") {
-    SECTION("load") {
+    SECTION("Load") {
         // get the problem
-        int problem_num = GENERATE(range(0, num_canned_matrices_with_files));
-        const canned_matrix<double, index_t>& problem = canned_matrices_with_files[problem_num];
+        int problem_num = GENERATE(range(0, kNumCannedMatricesWithFiles));
+        const CannedMatrix<double, Index>& problem = kCannedMatricesWithFiles[problem_num];
 
         SECTION(problem.description) {
-            std::ifstream infile{unittest_matrix_dir + problem.filename};
-            auto mat = matrix_market::load(infile);
+            std::ifstream infile{kUnitTestMatrixDir + problem.filename};
+            auto mat = MatrixMarket::Load(infile);
 
-            REQUIRE(mat.get_shape() == problem.shape);
+            REQUIRE(mat.GetShape() == problem.shape);
 
             REQUIRE_THAT(mat, MatrixEquals(problem));
         }
     }
-    SECTION("load - invalid inputs") {
+    SECTION("Load - invalid inputs") {
         {
-            simple_matrix_market_loader loader{ignoring_error_consumer()};
-            loader.load(unittest_matrix_dir + "invalid_bad_banner.mtx");
-            REQUIRE(!loader.is_load_successful());
+            SimpleMatrixMarketLoader loader{IgnoringErrorConsumer()};
+            loader.Load(kUnitTestMatrixDir + "invalid_bad_banner.mtx");
+            REQUIRE(!loader.IsLoadSuccessful());
         }
         {
-            simple_matrix_market_loader loader{ignoring_error_consumer()};
-            loader.load(unittest_matrix_dir + "invalid_indices_out_of_range_1.mtx");
-            REQUIRE(!loader.is_load_successful());
+            SimpleMatrixMarketLoader loader{IgnoringErrorConsumer()};
+            loader.Load(kUnitTestMatrixDir + "invalid_indices_out_of_range_1.mtx");
+            REQUIRE(!loader.IsLoadSuccessful());
         }
 
         std::string filename = GENERATE(as<std::string>{},
@@ -67,28 +67,28 @@ TEST_CASE("I/O - Matrix Market") {
         );
 
         SECTION(filename) {
-            REQUIRE_THROWS(simple_matrix_market_loader().load(unittest_matrix_dir + filename));
+            REQUIRE_THROWS(SimpleMatrixMarketLoader().Load(kUnitTestMatrixDir + filename));
         }
     }
 
-    SECTION("save") {
+    SECTION("Save") {
         // get the problem
-        int problem_num = GENERATE(range(0, num_canned_matrices));
-        const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
+        int problem_num = GENERATE(range(0, kNumCannedMatrices));
+        const CannedMatrix<double, Index>& problem = kCannedMatrices[problem_num];
 
         SECTION(problem.description) {
             // construct a tight matrix
-            auto mat = matrix_from_tuples<double, config_split_4>(problem.shape,
-                                                                  problem.sorted_tuples.size(),
-                                                                  problem.sorted_tuples);
+            auto mat = MatrixFromTuples<double, ConfigSplit4>(problem.shape,
+                                                              problem.sorted_tuples.size(),
+                                                              problem.sorted_tuples);
 
             // save
             std::ostringstream oss;
-            REQUIRE(matrix_market::save(mat, oss));
+            REQUIRE(MatrixMarket::Save(mat, oss));
 
             // load
             std::istringstream iss{oss.str()};
-            auto loaded_mat = matrix_market::load<double, config_split_4>(iss);
+            auto loaded_mat = MatrixMarket::Load<double, ConfigSplit4>(iss);
 
             REQUIRE_THAT(mat, MatrixEquals(loaded_mat));
         }

@@ -14,55 +14,55 @@ using namespace quadmat;
  * Blow up matrix dimensions.
  */
 template <typename T, typename IT>
-canned_matrix<T, IT> expand_matrix(const canned_matrix<T, IT>& orig, int factor) {
-    shape_t new_shape = {
+CannedMatrix<T, IT> ExpandMatrix(const CannedMatrix<T, IT>& orig, int64_t factor) {
+    Shape new_shape = {
             .nrows = orig.shape.nrows * factor,
             .ncols = orig.shape.ncols * factor
     };
 
-    vector<std::tuple<IT, IT, T>> new_tuples;
+    std::vector<std::tuple<IT, IT, T>> new_tuples;
     std::transform(begin(orig.sorted_tuples), end(orig.sorted_tuples), std::back_inserter(new_tuples),
-                   [&](tuple<IT, IT, T> tup) -> tuple<IT, IT, T> {
-                       return tuple<IT, IT, T>(factor * std::get<0>(tup), factor * std::get<1>(tup), std::get<2>(tup));
+                   [&](std::tuple<IT, IT, T> tup) -> std::tuple<IT, IT, T> {
+                       return std::tuple<IT, IT, T>(factor * std::get<0>(tup), factor * std::get<1>(tup), std::get<2>(tup));
                    });
 
-    return canned_matrix<T, IT>{
-        .description = orig.description + " expanded by " + std::to_string(factor) + "x to " + new_shape.to_string(),
+    return CannedMatrix<T, IT>{
+        .description = Join::ToString(orig.description, " expanded by ", factor, "x to ", new_shape.ToString()),
         .shape = new_shape,
         .sorted_tuples = new_tuples
     };
 }
 
 template <typename T, typename IT>
-vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
-    vector<canned_matrix<T, IT>> ret;
+std::vector<CannedMatrix<T, IT>> GetCannedMatrices(bool only_with_files = false) {
+    std::vector<CannedMatrix<T, IT>> ret;
 
     if (!only_with_files) {
-        ret.emplace_back(canned_matrix<T, IT>{
+        ret.emplace_back(CannedMatrix<T, IT>{
                 .description = "10x10 empty matrix",
                 .shape = {10, 10},
-                .sorted_tuples = simple_tuples_generator<T, IT>::EmptyMatrix()
+                .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetEmptyTuples()
         });
     }
 
     if (!only_with_files) {
-        identity_tuples_generator<T, IT> gen(10);
-        ret.emplace_back(canned_matrix<T, IT>{
+        IdentityTuplesGenerator<T, IT> gen(10);
+        ret.emplace_back(CannedMatrix<T, IT>{
                 .description = "10x10 identity matrix",
                 .shape = {10, 10},
-                .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end())
+                .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end())
         });
     }
 
     if (!only_with_files) {
-        identity_tuples_generator<T, IT> gen(10);
-        vector<std::tuple<IT, IT, T>> tuples;
+        IdentityTuplesGenerator<T, IT> gen(10);
+        std::vector<std::tuple<IT, IT, T>> tuples;
         for (auto tup : gen) {
             tuples.push_back(tup);
             tuples.push_back(tup);
         }
 
-        ret.emplace_back(canned_matrix<T, IT>{
+        ret.emplace_back(CannedMatrix<T, IT>{
                 .description = "10x10 identity matrix with every entry duplicated",
                 .shape = {10, 10},
                 .sorted_tuples = tuples
@@ -70,17 +70,17 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
     }
 
     {
-        full_tuples_generator<T, IT> gen({4, 4}, 1);
-        ret.emplace_back(canned_matrix<T, IT>{
+        FullTuplesGenerator<T, IT> gen({4, 4}, 1);
+        ret.emplace_back(CannedMatrix<T, IT>{
                 .description = "4x4 full matrix",
                 .shape = {4, 4},
-                .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
+                .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
                 .filename = "small_full_symmetric_pattern.mtx"
         });
     }
 
     {
-        vector<tuple<IT, IT, T>> skew_symmetric_tuples{
+        std::vector<std::tuple<IT, IT, T>> skew_symmetric_tuples{
                 {1, 0, -2},
                 {2, 0, 45},
                 {0, 1, 2},
@@ -89,7 +89,7 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
                 {1, 2, -4},
         };
 
-        ret.emplace_back(canned_matrix<T, IT>{
+        ret.emplace_back(CannedMatrix<T, IT>{
                 .description = "3x3 skew-symmetric matrix",
                 .shape = {3, 3},
                 .sorted_tuples = skew_symmetric_tuples,
@@ -98,10 +98,10 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
     }
 
     {
-        ret.emplace_back(canned_matrix<T, IT>{
+        ret.emplace_back(CannedMatrix<T, IT>{
                 .description = "Kepner-Gilbert graph",
-                .shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
-                .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                .shape = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphShape(),
+                .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphTuples(),
                 .filename = "kepner_gilbert_graph.mtx"
         });
     }
@@ -110,25 +110,25 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
         const auto& orig = ret.back();
 
         // expand into 32-bit indices
-        ret.push_back(expand_matrix(orig, 10000));
+        ret.push_back(ExpandMatrix(orig, 10000));
 
-        // expand into sparse SpA
-        ret.push_back(expand_matrix(orig, 5000000));
+        // expand into 64-bit indices and sparse SpA
+        ret.push_back(ExpandMatrix(orig, 5000000000));
     }
 
     if (!only_with_files) {
         // same as above but with extra sparsity
-        shape_t orig_shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape();
+        Shape orig_shape = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphShape();
 
-        auto orig_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph();
+        auto orig_tuples = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphTuples();
 
-        vector<std::tuple<IT, IT, T>> tuples;
+        std::vector<std::tuple<IT, IT, T>> tuples;
         std::transform(begin(orig_tuples), end(orig_tuples), std::back_inserter(tuples),
-                       [](tuple<IT, IT, T> tup) -> tuple<IT, IT, T> {
-                           return tuple<IT, IT, T>(2 * std::get<0>(tup), 2 * std::get<1>(tup), std::get<2>(tup));
+                       [](std::tuple<IT, IT, T> tup) -> std::tuple<IT, IT, T> {
+                           return std::tuple<IT, IT, T>(2 * std::get<0>(tup), 2 * std::get<1>(tup), std::get<2>(tup));
                        });
 
-        ret.emplace_back(canned_matrix<T, IT>{
+        ret.emplace_back(CannedMatrix<T, IT>{
                 .description = "Double Sparsity Kepner-Gilbert graph",
                 .shape = {orig_shape.nrows*2 + 1, orig_shape.ncols*2 + 1},
                 .sorted_tuples = tuples
@@ -142,66 +142,66 @@ vector<canned_matrix<T, IT>> get_canned_matrices(bool only_with_files = false) {
  * Blow up dimensions of a multiplication problem
  */
 template <typename T, typename IT>
-multiply_problem<T, IT> expand_multiply_problem(const multiply_problem<T, IT>& orig, int factor) {
-    return multiply_problem<T, IT>{
-            .description = orig.description + " expanded by " + std::to_string(factor) + "x",
-            .a = expand_matrix(orig.a, factor),
-            .b = expand_matrix(orig.b, factor),
-            .result = expand_matrix(orig.result, factor),
+MultiplyProblem<T, IT> ExpandMultiplyProblem(const MultiplyProblem<T, IT>& orig, int factor) {
+    return MultiplyProblem<T, IT>{
+            .description = Join::ToString(orig.description, " expanded by ", factor, "x"),
+            .a = ExpandMatrix(orig.a, factor),
+            .b = ExpandMatrix(orig.b, factor),
+            .result = ExpandMatrix(orig.result, factor),
     };
 }
 
 template <typename T, typename IT>
-vector<multiply_problem<T, IT>> get_canned_multiply_problems() {
-    vector<multiply_problem<T, IT>> ret;
+std::vector<MultiplyProblem<T, IT>> GetCannedMultiplyProblems() {
+    std::vector<MultiplyProblem<T, IT>> ret;
 
     {
-        ret.emplace_back(multiply_problem<T, IT>{
+        ret.emplace_back(MultiplyProblem<T, IT>{
                 .description = "empty square matrix squared",
                 .a = {
                         .shape = {10, 10},
-                        .sorted_tuples = simple_tuples_generator<T, IT>::EmptyMatrix()
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetEmptyTuples()
                 },
                 .b = {
                         .shape = {10, 10},
-                        .sorted_tuples = simple_tuples_generator<T, IT>::EmptyMatrix()
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetEmptyTuples()
                 },
                 .result = {
                         .shape = {10, 10},
-                        .sorted_tuples = simple_tuples_generator<T, IT>::EmptyMatrix()
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetEmptyTuples()
                 },
         });
     }
 
     {
-        identity_tuples_generator<T, IT> gen(10);
-        ret.emplace_back(multiply_problem<T, IT>{
+        IdentityTuplesGenerator<T, IT> gen(10);
+        ret.emplace_back(MultiplyProblem<T, IT>{
                 .description = "10x10 identity matrix squared",
                 .a = {
                         .shape = {10, 10},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
                 },
                 .b = {
                         .shape = {10, 10},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
                 },
                 .result = {
                         .shape = {10, 10},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(gen.begin(), gen.end()),
                 },
         });
     }
 
     {
-        identity_tuples_generator<T, IT> identity(4);
-        vector<tuple<IT, IT, T>> quadrant_tuples{
+        IdentityTuplesGenerator<T, IT> identity(4);
+        std::vector<std::tuple<IT, IT, T>> quadrant_tuples{
                 {1, 0, 1.0},
                 {3, 0, 1.0},
                 {0, 3, 1.0},
                 {2, 3, 1.0}
         };
 
-        ret.emplace_back(multiply_problem<T, IT>{
+        ret.emplace_back(MultiplyProblem<T, IT>{
                 .description = "4x4 top with empty columns * identity",
                 .a = {
                         .shape = {4, 4},
@@ -209,7 +209,7 @@ vector<multiply_problem<T, IT>> get_canned_multiply_problems() {
                 },
                 .b = {
                         .shape = {4, 4},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
                 },
                 .result = {
                         .shape = {4, 4},
@@ -219,89 +219,89 @@ vector<multiply_problem<T, IT>> get_canned_multiply_problems() {
     }
 
     {
-        full_tuples_generator<T, IT> gen_factor({4, 4}, 1);
-        full_tuples_generator<T, IT> gen_result({4, 4}, 4);
+        FullTuplesGenerator<T, IT> gen_factor({4, 4}, 1);
+        FullTuplesGenerator<T, IT> gen_result({4, 4}, 4);
 
-        ret.emplace_back(multiply_problem<T, IT>{
+        ret.emplace_back(MultiplyProblem<T, IT>{
                 .description = "4x4 full matrix squared",
                 .a = {
                         .shape = {4, 4},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen_factor.begin(), gen_factor.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(gen_factor.begin(), gen_factor.end()),
                 },
                 .b = {
                         .shape = {4, 4},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen_factor.begin(), gen_factor.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(gen_factor.begin(), gen_factor.end()),
                 },
                 .result = {
                         .shape = {4, 4},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(gen_result.begin(), gen_result.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(gen_result.begin(), gen_result.end()),
                 },
         });
     }
 
     {
-        identity_tuples_generator<T, IT> identity(7);
+        IdentityTuplesGenerator<T, IT> identity(7);
 
-        ret.emplace_back(multiply_problem<T, IT>{
+        ret.emplace_back(MultiplyProblem<T, IT>{
                 .description = "identity * Kepner-Gilbert graph",
                 .a = {
                         .shape = {7, 7},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
                 },
                 .b = {
-                        .shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
-                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                        .shape = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphShape(),
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphTuples(),
                 },
                 .result = {
-                        .shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
-                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                        .shape = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphShape(),
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphTuples(),
                 },
         });
     }
 
     {
-        identity_tuples_generator<T, IT> identity(7);
+        IdentityTuplesGenerator<T, IT> identity(7);
 
-        ret.emplace_back(multiply_problem<T, IT>{
+        ret.emplace_back(MultiplyProblem<T, IT>{
                 .description = "Kepner-Gilbert graph * identity",
                 .a = {
-                        .shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
-                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                        .shape = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphShape(),
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphTuples(),
                 },
                 .b = {
                         .shape = {7, 7},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
                 },
                 .result = {
-                        .shape = simple_tuples_generator<T, IT>::KepnerGilbertGraph_shape(),
-                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                        .shape = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphShape(),
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphTuples(),
                 },
         });
     }
 
     {
-        identity_tuples_generator<T, IT> identity(10);
+        IdentityTuplesGenerator<T, IT> identity(10);
 
-        ret.emplace_back(multiply_problem<T, IT>{
+        ret.emplace_back(MultiplyProblem<T, IT>{
                 .description = "10x10 Kepner-Gilbert graph * identity",
                 .a = {
                         .shape = {10, 10},
-                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphTuples(),
                 },
                 .b = {
                         .shape = {10, 10},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(identity.begin(), identity.end()),
                 },
                 .result = {
                         .shape = {10, 10},
-                        .sorted_tuples = simple_tuples_generator<T, IT>::KepnerGilbertGraph(),
+                        .sorted_tuples = SimpleTuplesGenerator<T, IT>::GetKepnerGilbertGraphTuples(),
                 },
         });
     }
 
     {
-        vector<std::tuple<IT, IT, T>> row_vector;
-        vector<std::tuple<IT, IT, T>> col_vector;
+        std::vector<std::tuple<IT, IT, T>> row_vector;
+        std::vector<std::tuple<IT, IT, T>> col_vector;
         const size_t length = 16;
 
         for (IT i = 0; i < length; i++) {
@@ -309,15 +309,15 @@ vector<multiply_problem<T, IT>> get_canned_multiply_problems() {
             col_vector.emplace_back(i, 0, 1);
         }
 
-        vector<std::tuple<IT, IT, T>> dot_product{
+        std::vector<std::tuple<IT, IT, T>> dot_product{
                 {0, 0, length}
         };
 
-        full_tuples_generator<T, IT> cross_product({length, length}, 1);
+        FullTuplesGenerator<T, IT> cross_product({length, length}, 1);
 
         // dot product: row vector * col vector
-        ret.emplace_back(multiply_problem<T, IT>{
-                .description = join::to_string("vector dot product length ", length),
+        ret.emplace_back(MultiplyProblem<T, IT>{
+                .description = Join::ToString("vector dot product length ", length),
                 .a = {
                         .shape = {1, length},
                         .sorted_tuples = row_vector,
@@ -333,8 +333,8 @@ vector<multiply_problem<T, IT>> get_canned_multiply_problems() {
         });
 
         // cross product: col vector * row vector
-        ret.emplace_back(multiply_problem<T, IT>{
-                .description = join::to_string("vector cross product length ", length),
+        ret.emplace_back(MultiplyProblem<T, IT>{
+                .description = Join::ToString("vector cross product length ", length),
                 .a = {
                         .shape = {length, 1},
                         .sorted_tuples = col_vector,
@@ -345,7 +345,7 @@ vector<multiply_problem<T, IT>> get_canned_multiply_problems() {
                 },
                 .result = {
                         .shape = {length, length},
-                        .sorted_tuples = vector<std::tuple<IT, IT, T>>(cross_product.begin(), cross_product.end()),
+                        .sorted_tuples = std::vector<std::tuple<IT, IT, T>>(cross_product.begin(), cross_product.end()),
                 },
         });
     }

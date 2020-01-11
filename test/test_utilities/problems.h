@@ -9,11 +9,11 @@
 #include "problem_loader.h"
 
 template <typename T, typename IT>
-vector<multiply_problem<T, IT>> get_multiply_problems() {
-    auto ret = get_canned_multiply_problems<T, IT>();
+std::vector<MultiplyProblem<T, IT>> GetMultiplyProblems() {
+    auto ret = GetCannedMultiplyProblems<T, IT>();
 
     // add fs problems
-    auto fs_problems = load_fs_multiply_problems<T, IT>("unit");
+    auto fs_problems = LoadFsMultiplyProblems<T, IT>("unit");
     for (auto problem : fs_problems) {
         // add the problem
         ret.push_back(std::move(problem));
@@ -21,10 +21,10 @@ vector<multiply_problem<T, IT>> get_multiply_problems() {
         const auto& orig = ret.back();
 
         // add a version blown-up to 32-bits
-        ret.push_back(expand_multiply_problem(orig, 10000));
+        ret.push_back(ExpandMultiplyProblem(orig, 10000));
 
         // add a version blown-up to require sparse SpA
-        ret.push_back(expand_multiply_problem(orig, 5000000));
+        ret.push_back(ExpandMultiplyProblem(orig, 5000000));
     }
 
     return ret;

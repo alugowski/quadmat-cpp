@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
@@ -10,16 +10,16 @@ using namespace quadmat;
 TEST_CASE("Block Container"){
     SECTION("single_block_container") {
         SECTION("discriminating bit") {
-            REQUIRE(single_block_container<double>({0, 0}).get_discriminating_bit() == 1);
-            REQUIRE(single_block_container<double>({1, 1}).get_discriminating_bit() == 1);
-            REQUIRE(single_block_container<double>({7, 7}).get_discriminating_bit() == 8);
-            REQUIRE(single_block_container<double>({8, 8}).get_discriminating_bit() == 8);
-            REQUIRE(single_block_container<double>({9, 9}).get_discriminating_bit() == 16);
+            REQUIRE(single_block_container<double>({0, 0}).GetDiscriminatingBit() == 1);
+            REQUIRE(single_block_container<double>({1, 1}).GetDiscriminatingBit() == 1);
+            REQUIRE(single_block_container<double>({7, 7}).GetDiscriminatingBit() == 8);
+            REQUIRE(single_block_container<double>({8, 8}).GetDiscriminatingBit() == 8);
+            REQUIRE(single_block_container<double>({9, 9}).GetDiscriminatingBit() == 16);
         }
         SECTION("children") {
-            REQUIRE(single_block_container<double>({1, 1}).num_children() == 1);
-            REQUIRE(single_block_container<double>({1, 1}).get_offsets(5, {}) == offset_t{});
-            REQUIRE(single_block_container<double>({1, 1}).get_child_shape(5, {}) == shape_t{});
+            REQUIRE(single_block_container<double>({1, 1}).GetNumChildren() == 1);
+            REQUIRE(single_block_container<double>({1, 1}).GetChildOffsets(5, {}) == Offset{});
+            REQUIRE(single_block_container<double>({1, 1}).GetChildShape(5, {}) == Shape{});
         }
     }
 }

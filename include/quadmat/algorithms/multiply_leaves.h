@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_MULTIPLY_LEAVES_H
@@ -11,19 +11,19 @@ namespace quadmat {
     /**
      * Multiply two leaf blocks
      */
-    template <typename A_LEAF_TYPE, typename B_LEAF_TYPE, typename RET_IT, class SR, class SPA, typename CONFIG>
-    std::shared_ptr<dcsc_block<typename SR::reduce_type, RET_IT, CONFIG>> multiply_pair(
-            std::shared_ptr<A_LEAF_TYPE> a,
-            std::shared_ptr<B_LEAF_TYPE> b,
-            const shape_t& result_shape,
-            const SR& semiring = SR()) {
+    template <typename LeafTypeA, typename LeafTypeB, typename RetIT, class Semiring, class Spa, typename Config>
+    std::shared_ptr<DcscBlock<typename Semiring::ReduceType, RetIT, Config>> MultiplyPair(
+            std::shared_ptr<LeafTypeA> a,
+            std::shared_ptr<LeafTypeB> b,
+            const Shape& result_shape,
+            const Semiring& semiring = Semiring()) {
 
-        auto factory = dcsc_block_factory<typename SR::reduce_type, RET_IT, CONFIG>();
+        auto factory = DcscBlockFactory<typename Semiring::ReduceType, RetIT, Config>();
 
         // For each column j in block b
-        SPA spa(result_shape.nrows, semiring);
+        Spa spa(result_shape.nrows, semiring);
 
-        auto b_columns = b->columns();
+        auto b_columns = b->GetColumns();
 
         for (auto b_j = b_columns.begin(); b_j != b_columns.end(); ++b_j) {
             auto b_j_column = *b_j;
@@ -35,12 +35,12 @@ namespace quadmat {
             // For each element i in j
             while (b_j_row != b_j_row_end) {
                 // look up column j in block a
-                auto a_i = a->column(*b_j_row);
+                auto a_i = a->GetColumn(*b_j_row);
 
-                if (a_i != a->columns_end()) {
+                if (a_i != a->ColumnsEnd()) {
                     // perform the multiply and add in the SpA
                     auto a_i_column = *a_i;
-                    spa.scatter(a_i_column.rows_begin, a_i_column.rows_end, a_i_column.values_begin, *b_j_value);
+                    spa.Scatter(a_i_column.rows_begin, a_i_column.rows_end, a_i_column.values_begin, *b_j_value);
                 }
 
                 ++b_j_row;
@@ -48,11 +48,11 @@ namespace quadmat {
             }
 
             // dump the spa into the result
-            factory.add_spa(b_j_column.col, spa);
-            spa.clear();
+            factory.AddColumnFromSpa(b_j_column.col, spa);
+            spa.Clear();
         }
 
-        return factory.finish();
+        return factory.Finish();
     }
 }
 

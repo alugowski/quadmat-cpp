@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_SIMPLE_TUPLES_GENERATOR_H
@@ -8,9 +8,6 @@
 #include <vector>
 
 #include "quadmat/util/types.h"
-
-using std::tuple;
-using std::vector;
 
 namespace quadmat {
 
@@ -23,18 +20,18 @@ namespace quadmat {
      * @tparam IT type of the indices
      */
     template<typename T, typename IT>
-    class simple_tuples_generator {
+    class SimpleTuplesGenerator {
     public:
 
-        static vector<tuple<IT, IT, T>> EmptyMatrix() {
-            return vector<tuple<IT, IT, T>>{};
+        static std::vector<std::tuple<IT, IT, T>> GetEmptyTuples() {
+            return std::vector<std::tuple<IT, IT, T>>{};
         }
 
         /**
          * Dimensions of the matrix for the Keptner-Gilbert Graph
          * @return
          */
-        static shape_t KepnerGilbertGraph_shape() {
+        static Shape GetKepnerGilbertGraphShape() {
             return {7, 7};
         }
 
@@ -42,8 +39,8 @@ namespace quadmat {
          * Small 7-node, 12-edge directed graph used on the cover of
          * "Graph Algorithms in the Language of Linear Algebra" edited by Jeremy Kepner and John Gilbert
          */
-        static vector<tuple<IT, IT, T>> KepnerGilbertGraph() {
-            return vector<tuple<IT, IT, T>>{
+        static std::vector<std::tuple<IT, IT, T>> GetKepnerGilbertGraphTuples() {
+            return std::vector<std::tuple<IT, IT, T>>{
                     {1, 0, 1.0},
                     {3, 0, 1.0},
                     {4, 1, 1.0},

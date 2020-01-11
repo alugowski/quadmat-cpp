@@ -1,12 +1,14 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_MULTIPLY_TREES_H
 #define QUADMAT_MULTIPLY_TREES_H
 
 #include <type_traits>
+
 #include "quadmat/quadtree/tree_visitors.h"
 #include "quadmat/quadtree/shadow_subdivision.h"
+#include "quadmat/algorithms/dcsc_accumulator.h"
 #include "quadmat/algorithms/multiply_leaves.h"
 
 namespace quadmat {
@@ -18,14 +20,14 @@ namespace quadmat {
      * @param b_shape shape of matrix b
      * @return shape of matrix a*b
      */
-    inline shape_t get_multiply_result_shape(const shape_t& a_shape, const shape_t& b_shape) {
-        return shape_t{
+    inline Shape GetMultiplyResultShape(const Shape& a_shape, const Shape& b_shape) {
+        return Shape{
                 .nrows = a_shape.nrows,
                 .ncols = b_shape.ncols
         };
     }
 
-    enum pair_status_t {
+    enum PairStatus {
         EMPTY_PAIR = 0,
 
         /**
@@ -57,44 +59,44 @@ namespace quadmat {
     /**
      * A binding of two blocks that will be multiplied together.
      *
-     * @tparam LT block A's type
-     * @tparam RT block B's type
-     * @tparam CONFIG configuration shared by both blocks
+     * @tparam TypeA block A's type
+     * @tparam TypeB block B's type
+     * @tparam Config configuration shared by both blocks
      */
-    template <typename LT, typename RT, typename CONFIG>
-    struct tree_node_pair_t {
-        tree_node_t<LT, CONFIG> a;
-        tree_node_t<RT, CONFIG> b;
-        shape_t a_shape;
-        shape_t b_shape;
-        index_t a_parent_disc_bit;
-        index_t b_parent_disc_bit;
+    template <typename TypeA, typename TypeB, typename Config>
+    struct TreeNodePair {
+        TreeNode<TypeA, Config> a;
+        TreeNode<TypeB, Config> b;
+        Shape a_shape;
+        Shape b_shape;
+        Index a_parent_disc_bit;
+        Index b_parent_disc_bit;
 
-        tree_node_pair_t(
-                const tree_node_t<LT, CONFIG> &a, const tree_node_t<RT, CONFIG> &b,
-                const shape_t& a_shape, const shape_t& b_shape,
-                const index_t a_parent_disc_bit, const index_t b_parent_disc_bit
+        TreeNodePair(
+                const TreeNode<TypeA, Config> &a, const TreeNode<TypeB, Config> &b,
+                const Shape& a_shape, const Shape& b_shape,
+                const Index a_parent_disc_bit, const Index b_parent_disc_bit
                 ) : a(a), b(b), a_shape(a_shape), b_shape(b_shape),
                 a_parent_disc_bit(a_parent_disc_bit), b_parent_disc_bit(b_parent_disc_bit) {}
 
         /**
-         * Visitor that describes the contents of this tree_node_pair.
+         * Visitor that describes the contents of this TreeNodePair.
          */
         template <typename T>
-        struct status_visitor_t {
+        struct StatusVisitor {
             unsigned operator()(const std::monostate& ignored) {
                 return HAS_EMPTY;
             }
 
-            unsigned operator()(const std::shared_ptr<future_block<T, CONFIG>>& fb) {
+            unsigned operator()(const std::shared_ptr<FutureBlock<T, Config>>& fb) {
                 return HAS_FUTURE;
             }
 
-            unsigned operator()(const std::shared_ptr<inner_block<T, CONFIG>>& inner) {
+            unsigned operator()(const std::shared_ptr<InnerBlock<T, Config>>& inner) {
                 return HAS_INNER;
             }
 
-            unsigned operator()(const leaf_node_t<T, CONFIG> &leaf) {
+            unsigned operator()(const LeafNode<T, Config> &leaf) {
                 return HAS_LEAF;
             }
         };
@@ -104,9 +106,9 @@ namespace quadmat {
          *
          * @return a bitwise OR of status_t enum states
          */
-        [[nodiscard]] unsigned get_status() const {
-            unsigned a_status = std::visit(status_visitor_t<LT>{}, a);
-            unsigned b_status = std::visit(status_visitor_t<RT>{}, b);
+        [[nodiscard]] unsigned GetStatus() const {
+            unsigned a_status = std::visit(StatusVisitor<TypeA>{}, a);
+            unsigned b_status = std::visit(StatusVisitor<TypeB>{}, b);
 
             if (a_shape.ncols != b_shape.nrows) {
                 return HAS_MISMATCHED_DIMS;
@@ -115,41 +117,41 @@ namespace quadmat {
             return a_status | b_status;
         }
 
-        leaf_node_t<LT, CONFIG> get_leaf_a() const {
-            return std::get<leaf_node_t<LT, CONFIG>>(a);
+        LeafNode<TypeA, Config> GetLeafA() const {
+            return std::get<LeafNode<TypeA, Config>>(a);
         }
 
-        leaf_node_t<LT, CONFIG> get_leaf_b() const {
-            return std::get<leaf_node_t<LT, CONFIG>>(b);
+        LeafNode<TypeA, Config> GetLeafB() const {
+            return std::get<LeafNode<TypeA, Config>>(b);
         }
     };
 
     /**
      * A set of block pairs that when multiplied then summed will result in the output block.
      *
-     * @tparam LT side a's type
-     * @tparam RT side b's type
-     * @tparam CONFIG configuration shared by both sides
+     * @tparam AT side a's type
+     * @tparam BT side b's type
+     * @tparam Config configuration shared by both sides
      */
-    template <typename LT, typename RT, typename CONFIG>
-    struct pair_set_t {
-        vector<tree_node_pair_t<LT, RT, CONFIG>, typename CONFIG::template TEMP_ALLOC<tree_node_pair_t<LT, RT, CONFIG>>> pairs;
+    template <typename AT, typename BT, typename Config>
+    struct PairSet {
+        std::vector<TreeNodePair<AT, BT, Config>, typename Config::template TempAllocator<TreeNodePair<AT, BT, Config>>> pairs;
 
-        pair_set_t() = default;
-        explicit pair_set_t(
-                const tree_node_t<LT, CONFIG>& a, const tree_node_t<LT, CONFIG>& b,
-                const shape_t& a_shape, const shape_t& b_shape,
-                const index_t a_parent_disc_bit, const index_t b_parent_disc_bit) : pairs{{a, b, a_shape, b_shape, a_parent_disc_bit, b_parent_disc_bit}} {}
+        PairSet() = default;
+        explicit PairSet(
+                const TreeNode<AT, Config>& a, const TreeNode<AT, Config>& b,
+                const Shape& a_shape, const Shape& b_shape,
+                const Index a_parent_disc_bit, const Index b_parent_disc_bit) : pairs{{a, b, a_shape, b_shape, a_parent_disc_bit, b_parent_disc_bit}} {}
 
         /**
          * Prune any pair in the pair set that has an empty block. The result of that multiplication is also an empty block.
          *
          * @return the bitwise OR of all statuses of remaining pairs, or 0 if empty.
          */
-        unsigned prune_empty(bool prune_ok = true) {
+        unsigned PruneEmpty(bool prune_ok = true) {
             unsigned ret = 0;
             for (auto cur = pairs.begin(); cur != pairs.end();) {
-                unsigned pair_status = cur->get_status();
+                unsigned pair_status = cur->GetStatus();
                 if ((pair_status & HAS_EMPTY) == HAS_EMPTY && prune_ok) {
                     pairs.erase(cur);
                 } else {
@@ -164,45 +166,45 @@ namespace quadmat {
         /**
          * @return a pair of discriminating bits, one for a and one for b sides
          */
-        [[nodiscard]] std::pair<index_t, index_t> get_parent_discriminating_bits() const {
-            index_t a = 0, b = 0;
+        [[nodiscard]] std::pair<Index, Index> GetParentDiscriminatingBits() const {
+            Index a = 0, b = 0;
             for (auto pair : pairs) {
                 a |= pair.a_parent_disc_bit;
                 b |= pair.b_parent_disc_bit;
             }
-            return std::pair<index_t, index_t>{a, b};
+            return std::pair<Index, Index>{a, b};
         }
     };
 
     /**
      * Constructs and organizes the tasks necessary to multiply two quadmat trees.
      *
-     * @tparam SR semiring to use
-     * @tparam CONFIG configuration
+     * @tparam Semiring semiring to use
+     * @tparam Config configuration
      */
-    template <class SR, typename CONFIG = default_config>
-    class spawn_multiply_job {
+    template <class Semiring, typename Config = DefaultConfig>
+    class SpawnMultiplyJob {
     public:
-        using LT = typename SR::map_type_l;
-        using RT = typename SR::map_type_r;
-        using RETT = typename SR::reduce_type;
+        using AT = typename Semiring::MapTypeA;
+        using BT = typename Semiring::MapTypeB;
+        using RetT = typename Semiring::ReduceType;
 
-        spawn_multiply_job(
-                const pair_set_t<LT, RT, CONFIG> &pair_set,
-                std::shared_ptr<block_container<RETT, CONFIG>> dest_bc,
+        SpawnMultiplyJob(
+                const PairSet<AT, BT, Config> &pair_set,
+                std::shared_ptr<BlockContainer<RetT, Config>> dest_bc,
                 int dest_position,
-                const offset_t &dest_offsets,
-                const shape_t& dest_shape,
-                const SR& semiring = SR())
+                const Offset &dest_offsets,
+                const Shape& dest_shape,
+                const Semiring& semiring = Semiring())
                 : pair_set(pair_set), dest_bc(dest_bc), dest_position(dest_position), dest_offsets(dest_offsets), dest_shape(dest_shape), semiring(semiring) {
         }
 
         /**
          * Run multiply job.
          */
-        bool run(bool prune = true) {
+        bool Run(bool prune = true) {
             // see what needs to be done
-            unsigned status = pair_set.prune_empty(prune);
+            unsigned status = pair_set.PruneEmpty(prune);
 
             // see if pair set has anything to do
             if (status == EMPTY_PAIR) {
@@ -212,79 +214,79 @@ namespace quadmat {
 
             // sanity check
             if ((status & HAS_MISMATCHED_DIMS) == HAS_MISMATCHED_DIMS) {
-                throw node_type_mismatch();
+                throw NodeTypeMismatch();
             }
 
             // check if there are any future blocks then we must wait for them
             if ((status & HAS_FUTURE) == HAS_FUTURE) {
-                throw not_implemented("waiting on future blocks");
+                throw NotImplemented("waiting on future blocks");
             }
 
             // check if there are inner blocks
             if ((status & HAS_INNER) == HAS_INNER) {
-                return recurse();
+                return Recurse();
             }
 
             // only leaves remaining, do multiplication
-            return multiply_leaves(status);
+            return MultiplyLeaves(status);
         }
 
     protected:
 
         /**
-         * pair_set contains an inner block. Put an inner_block at the destination, build pair sets for each one,
+         * pair_set contains an inner block. Put an InnerBlock at the destination, build pair sets for each one,
          * and recurse.
          */
-        bool recurse() {
+        bool Recurse() {
             // build recursive pair sets
-            array<pair_set_t<LT, RT, CONFIG>, 4> recursive_pair_sets{};
+            std::array<PairSet<AT, BT, Config>, 4> recursive_pair_sets{};
 
             for (auto pair : pair_set.pairs) {
-                std::visit(recursive_visitor_t(recursive_pair_sets, pair), pair.a, pair.b);
+                std::visit(RecursiveVisitor(recursive_pair_sets, pair), pair.a, pair.b);
             }
 
-            auto [a_parent_disc_bit, b_parent_disc_bit] = pair_set.get_parent_discriminating_bits();
-            index_t a_disc_bit = a_parent_disc_bit >> 1;
-            index_t b_disc_bit = b_parent_disc_bit >> 1;
+            auto [a_parent_disc_bit, b_parent_disc_bit] = pair_set.GetParentDiscriminatingBits();
+            Index a_disc_bit = a_parent_disc_bit >> 1;
+            Index b_disc_bit = b_parent_disc_bit >> 1;
 
-            if (a_disc_bit >= dest_bc->get_discriminating_bit()) {
+            if (a_disc_bit >= dest_bc->GetDiscriminatingBit()) {
                 // the inputs are subdivided, but the result shouldn't be
                 // For example, inputs might be a short-fat matrix * tall-skinny. Result has small dimensions and
                 // does not require subdivision even though inputs do.
 
                 // all 4 recursive pair sets should be merged into one
-                pair_set_t<LT, RT, CONFIG> recursive_pair_set;
+                PairSet<AT, BT, Config> recursive_pair_set;
                 for (auto rec_pair_set_chunk : recursive_pair_sets) {
                     std::copy(rec_pair_set_chunk.pairs.begin(), rec_pair_set_chunk.pairs.end(), back_inserter(recursive_pair_set.pairs));
                 }
 
                 // spawn single recursive job
-                spawn_multiply_job job(
+                SpawnMultiplyJob job(
                         recursive_pair_set,
                         dest_bc,
                         dest_position,
                         dest_offsets,
                         dest_shape);
 
-                job.run();
+                job.Run();
             } else {
                 // construct result
-                std::shared_ptr<inner_block<RETT, CONFIG>> recursive_dest_block = dest_bc->create_inner(dest_position);
+                std::shared_ptr<InnerBlock<RetT, Config>> recursive_dest_block = dest_bc->CreateInner(dest_position);
 
                 // recurse
-                for (auto recursive_child_pos : all_inner_positions) {
-                    spawn_multiply_job job(
+                for (auto recursive_child_pos : kAllInnerPositions) {
+                    SpawnMultiplyJob job(
                             recursive_pair_sets[recursive_child_pos],
                             recursive_dest_block,
                             recursive_child_pos,
-                            recursive_dest_block->get_offsets(recursive_child_pos, dest_offsets),
-                            recursive_dest_block->get_child_shape(recursive_child_pos, dest_shape));
+                            recursive_dest_block->GetChildOffsets(recursive_child_pos, dest_offsets),
+                            recursive_dest_block->GetChildShape(recursive_child_pos, dest_shape));
 
-                    job.run();
+                    job.Run();
                 }
 
                 // clean up result
-                clean_recurse_result(recursive_dest_block);
+                CleanRecurseResult(recursive_dest_block);
             }
 
             return true;
@@ -297,12 +299,12 @@ namespace quadmat {
          * Cleanup tasks include
          * - If all children of `recursive_dest_block` are empty then make the result empty too
          *
-         * @param recursive_dest_block inner_block that was produced.
+         * @param recursive_dest_block InnerBlock that was produced.
          */
-        void clean_recurse_result(std::shared_ptr<inner_block<RETT, CONFIG>>& recursive_dest_block) {
+        void CleanRecurseResult(std::shared_ptr<InnerBlock<RetT, Config>>& recursive_dest_block) {
             bool empty = true;
-            for (auto recursive_child_pos : all_inner_positions) {
-                tree_node_t<RETT, CONFIG> child = recursive_dest_block->get_child(recursive_child_pos);
+            for (auto recursive_child_pos : kAllInnerPositions) {
+                TreeNode<RetT, Config> child = recursive_dest_block->GetChild(recursive_child_pos);
                 if (!std::holds_alternative<std::monostate>(child)) {
                     empty = false;
                     break;
@@ -310,18 +312,18 @@ namespace quadmat {
             }
             if (empty) {
                 // all children are empty so remove the empty inner block
-                dest_bc->set_child(dest_position, std::monostate());
+                dest_bc->SetChild(dest_position, std::monostate());
             }
         }
 
         /**
          * Visitor to handle case where result will be an inner block.
          */
-        class recursive_visitor_t {
+        class RecursiveVisitor {
         public:
-            explicit recursive_visitor_t(
-                    array<pair_set_t<LT, RT, CONFIG>, 4>& ret_sets,
-                    const tree_node_pair_t<LT, RT, CONFIG>& node_pair) : ret_sets(ret_sets), node_pair(node_pair) {}
+            explicit RecursiveVisitor(
+                    std::array<PairSet<AT, BT, Config>, 4>& ret_sets,
+                    const TreeNodePair<AT, BT, Config>& node_pair) : ret_sets_(ret_sets), node_pair_(node_pair) {}
 
             /**
              * Reached two inner blocks.
@@ -335,46 +337,78 @@ namespace quadmat {
              *   |----|----|   |----|----|   |-------------------------------|-------------------------------|
              *
              */
-            void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& a, const std::shared_ptr<inner_block<RT, CONFIG>>& b) {
+            void operator()(const std::shared_ptr<InnerBlock<AT, Config>>& a, const std::shared_ptr<InnerBlock<BT, Config>>& b) {
                 // NW
-                ret_sets[NW].pairs.emplace_back(a->get_child(NW), b->get_child(NW), a->get_child_shape(NW, node_pair.a_shape), b->get_child_shape(NW, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
-                ret_sets[NW].pairs.emplace_back(a->get_child(NE), b->get_child(SW), a->get_child_shape(NE, node_pair.a_shape), b->get_child_shape(SW, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
+                ret_sets_[NW].pairs.emplace_back(a->GetChild(NW),
+                                                 b->GetChild(NW),
+                                                 a->GetChildShape(NW, node_pair_.a_shape),
+                                                 b->GetChildShape(NW, node_pair_.b_shape), a->GetDiscriminatingBit(),
+                                                 b->GetDiscriminatingBit());
+                ret_sets_[NW].pairs.emplace_back(a->GetChild(NE),
+                                                 b->GetChild(SW),
+                                                 a->GetChildShape(NE, node_pair_.a_shape),
+                                                 b->GetChildShape(SW, node_pair_.b_shape), a->GetDiscriminatingBit(),
+                                                 b->GetDiscriminatingBit());
 
                 // NE
-                ret_sets[NE].pairs.emplace_back(a->get_child(NW), b->get_child(NE), a->get_child_shape(NW, node_pair.a_shape), b->get_child_shape(NE, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
-                ret_sets[NE].pairs.emplace_back(a->get_child(NE), b->get_child(SE), a->get_child_shape(NE, node_pair.a_shape), b->get_child_shape(SE, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
+                ret_sets_[NE].pairs.emplace_back(a->GetChild(NW),
+                                                 b->GetChild(NE),
+                                                 a->GetChildShape(NW, node_pair_.a_shape),
+                                                 b->GetChildShape(NE, node_pair_.b_shape), a->GetDiscriminatingBit(),
+                                                 b->GetDiscriminatingBit());
+                ret_sets_[NE].pairs.emplace_back(a->GetChild(NE),
+                                                 b->GetChild(SE),
+                                                 a->GetChildShape(NE, node_pair_.a_shape),
+                                                 b->GetChildShape(SE, node_pair_.b_shape), a->GetDiscriminatingBit(),
+                                                 b->GetDiscriminatingBit());
 
                 // SW
-                ret_sets[SW].pairs.emplace_back(a->get_child(SW), b->get_child(NW), a->get_child_shape(SW, node_pair.a_shape), b->get_child_shape(NW, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
-                ret_sets[SW].pairs.emplace_back(a->get_child(SE), b->get_child(SW), a->get_child_shape(SE, node_pair.a_shape), b->get_child_shape(SW, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
+                ret_sets_[SW].pairs.emplace_back(a->GetChild(SW),
+                                                 b->GetChild(NW),
+                                                 a->GetChildShape(SW, node_pair_.a_shape),
+                                                 b->GetChildShape(NW, node_pair_.b_shape), a->GetDiscriminatingBit(),
+                                                 b->GetDiscriminatingBit());
+                ret_sets_[SW].pairs.emplace_back(a->GetChild(SE),
+                                                 b->GetChild(SW),
+                                                 a->GetChildShape(SE, node_pair_.a_shape),
+                                                 b->GetChildShape(SW, node_pair_.b_shape), a->GetDiscriminatingBit(),
+                                                 b->GetDiscriminatingBit());
 
                 // SE
-                ret_sets[SE].pairs.emplace_back(a->get_child(SW), b->get_child(NE), a->get_child_shape(SW, node_pair.a_shape), b->get_child_shape(NE, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
-                ret_sets[SE].pairs.emplace_back(a->get_child(SE), b->get_child(SE), a->get_child_shape(SE, node_pair.a_shape), b->get_child_shape(SE, node_pair.b_shape), a->get_discriminating_bit(), b->get_discriminating_bit());
+                ret_sets_[SE].pairs.emplace_back(a->GetChild(SW),
+                                                 b->GetChild(NE),
+                                                 a->GetChildShape(SW, node_pair_.a_shape),
+                                                 b->GetChildShape(NE, node_pair_.b_shape), a->GetDiscriminatingBit(),
+                                                 b->GetDiscriminatingBit());
+                ret_sets_[SE].pairs.emplace_back(a->GetChild(SE),
+                                                 b->GetChild(SE),
+                                                 a->GetChildShape(SE, node_pair_.a_shape),
+                                                 b->GetChildShape(SE, node_pair_.b_shape), a->GetDiscriminatingBit(),
+                                                 b->GetDiscriminatingBit());
             }
 
             /**
              * Reached an inner block and a leaf block.
              */
-            void operator()(const std::shared_ptr<inner_block<LT, CONFIG>>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
-                auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape, node_pair.b_parent_disc_bit);
+            void operator()(const std::shared_ptr<InnerBlock<AT, Config>>& lhs, const LeafNode<BT, Config>& rhs) {
+                auto rhs_inner = shadow_subdivide<BT, Config>(rhs, node_pair_.b_shape, node_pair_.b_parent_disc_bit);
                 operator()(lhs, rhs_inner);
             }
 
             /**
              * Reached a leaf block and an inner block.
              */
-            void operator()(const leaf_node_t<LT, CONFIG>& lhs, const std::shared_ptr<inner_block<RT, CONFIG>>& rhs) {
-                auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape, node_pair.a_parent_disc_bit);
+            void operator()(const LeafNode<AT, Config>& lhs, const std::shared_ptr<InnerBlock<BT, Config>>& rhs) {
+                auto lhs_inner = shadow_subdivide<AT, Config>(lhs, node_pair_.a_shape, node_pair_.a_parent_disc_bit);
                 operator()(lhs_inner, rhs);
             }
 
             /**
              * Reached two leaf blocks. This happens when two leaves are in a pair set where another pair has an inner block.
              */
-            void operator()(const leaf_node_t<LT, CONFIG>& lhs, const leaf_node_t<RT, CONFIG>& rhs) {
-                auto lhs_inner = shadow_subdivide<LT, CONFIG>(lhs, node_pair.a_shape, node_pair.a_parent_disc_bit);
-                auto rhs_inner = shadow_subdivide<RT, CONFIG>(rhs, node_pair.b_shape, node_pair.b_parent_disc_bit);
+            void operator()(const LeafNode<AT, Config>& lhs, const LeafNode<BT, Config>& rhs) {
+                auto lhs_inner = shadow_subdivide<AT, Config>(lhs, node_pair_.a_shape, node_pair_.a_parent_disc_bit);
+                auto rhs_inner = shadow_subdivide<BT, Config>(rhs, node_pair_.b_shape, node_pair_.b_parent_disc_bit);
                 operator()(lhs_inner, rhs_inner);
             }
 
@@ -384,108 +418,108 @@ namespace quadmat {
             template <typename LHS, typename RHS>
             void operator()(const LHS& lhs, const RHS& rhs) {
                 // should not happen
-                throw node_type_mismatch(std::string("catchall handler called with ( ") + typeid(lhs).name() + " , " + typeid(rhs).name() + " )");
+                throw NodeTypeMismatch(std::string("catchall handler called with ( ") + typeid(lhs).name() + " , " + typeid(rhs).name() + " )");
             }
 
         protected:
-            array<pair_set_t<LT, RT, CONFIG>, 4>& ret_sets;
+            std::array<PairSet<AT, BT, Config>, 4>& ret_sets_;
 
             /**
              * The node pair that is being visited. Used for metadata such as shape.
              */
-            const tree_node_pair_t<LT, RT, CONFIG>& node_pair;
+            const TreeNodePair<AT, BT, Config>& node_pair_;
         };
 
 
         /**
          * pair_set contains only leaves. Multiply them.
          */
-        bool multiply_leaves(unsigned pair_status) {
-            leaf_index_type ret_type = get_leaf_index_type(dest_shape);
-            return std::visit(result_leaf_visitor(*this), ret_type);
+        bool MultiplyLeaves(unsigned pair_status) {
+            LeafIndex ret_type = GetLeafIndexType(dest_shape);
+            return std::visit(ResultLeafVisitor(*this), ret_type);
         }
 
         /**
          * Visitor for the result block's index size. This index size is determined by the dimensions of the result, and
          * can potentially be different than the index size of the inputs.
          */
-        class result_leaf_visitor {
+        class ResultLeafVisitor {
         public:
-            explicit result_leaf_visitor(const spawn_multiply_job<SR, CONFIG>& job): job(job) {}
+            explicit ResultLeafVisitor(const SpawnMultiplyJob<Semiring, Config>& job): job(job) {}
 
-            template <typename RETIT>
-            bool operator()(RETIT retit) {
-                dcsc_accumulator<RETT, RETIT, CONFIG> accumulator(job.dest_shape);
-                leaf_category_pair_multiply_visitor_t<RETIT> visitor(job, accumulator);
+            template <typename RetIT>
+            bool operator()(RetIT retit) {
+                DcscAccumulator<RetT, RetIT, Config> accumulator(job.dest_shape);
+                LeafCategoryPairMultiplyVisitor<RetIT> visitor(job, accumulator);
 
                 // multiply each pair in the pair list
                 for (auto pair : job.pair_set.pairs) {
-                    std::visit(visitor, pair.get_leaf_a(), pair.get_leaf_b());
+                    std::visit(visitor, pair.GetLeafA(), pair.GetLeafB());
                 }
 
                 // collapse all the blocks
-                auto result = accumulator.collapse(job.semiring);
+                auto result = accumulator.Collapse(job.semiring);
 
                 // write the new block to the result tree
-                if (result->nnn() > 0) {
-                    job.dest_bc->set_child(job.dest_position, leaf_category_t<RETT, RETIT, CONFIG>(result));
+                if (result->GetNnn() > 0) {
+                    job.dest_bc->SetChild(job.dest_position, LeafCategory<RetT, RetIT, Config>(result));
                 } else {
-                    job.dest_bc->set_child(job.dest_position, std::monostate());
+                    job.dest_bc->SetChild(job.dest_position, std::monostate());
                 }
 
                 return true;
             }
 
         protected:
-            const spawn_multiply_job<SR, CONFIG>& job;
+            const SpawnMultiplyJob<Semiring, Config>& job;
         };
 
         /**
          * Visitor for leaf categories. This simply unpacks the types and calls the concrete leaf visitor.
          */
-        template <typename RETIT>
-        class leaf_category_pair_multiply_visitor_t {
+        template <typename RetIT>
+        class LeafCategoryPairMultiplyVisitor {
         public:
-            explicit leaf_category_pair_multiply_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}
+            explicit LeafCategoryPairMultiplyVisitor(const SpawnMultiplyJob<Semiring, Config>& job, DcscAccumulator<RetT, RetIT, Config> &accumulator) : job(job), accumulator(accumulator) {}
 
             /**
              * Unpack categories.
              */
             template <typename LHS, typename RHS>
             void operator()(const LHS& lhs, const RHS& rhs) {
-                std::visit(leaf_pair_multiply_visitor_t<RETIT>(job, accumulator), lhs, rhs);
+                std::visit(LeafPairMultiplyVisitor<RetIT>(job, accumulator), lhs, rhs);
             }
 
         protected:
-            dcsc_accumulator<RETT, RETIT, CONFIG>& accumulator;
-            const spawn_multiply_job<SR, CONFIG>& job;
+            DcscAccumulator<RetT, RetIT, Config>& accumulator;
+            const SpawnMultiplyJob<Semiring, Config>& job;
         };
 
         /**
          * Concrete leaf block visitor. The leaf block types are known here, so perform the multiplication.
          */
-        template <typename RETIT>
-        class leaf_pair_multiply_visitor_t {
+        template <typename RetIT>
+        class LeafPairMultiplyVisitor {
         public:
-            explicit leaf_pair_multiply_visitor_t(const spawn_multiply_job<SR, CONFIG>& job, dcsc_accumulator<RETT, RETIT, CONFIG> &accumulator) : job(job), accumulator(accumulator) {}
+            explicit LeafPairMultiplyVisitor(const SpawnMultiplyJob<Semiring, Config>& job, DcscAccumulator<RetT, RetIT, Config> &accumulator) : job(job), accumulator(accumulator) {}
 
             /**
              * Visit concrete leaf types and perform multiplication.
              */
             template <typename LHS, typename RHS>
             void operator()(const std::shared_ptr<LHS>& lhs, const std::shared_ptr<RHS>& rhs) {
-                if (CONFIG::template use_dense_spa<RETT>(job.dest_shape.nrows)) {
-                    auto result = multiply_pair<LHS, RHS, RETIT, SR, dense_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs, job.dest_shape, job.semiring);
-                    accumulator.add(result);
+                if (Config::template ShouldUseDenseSpa<RetT>(job.dest_shape.nrows)) {
+                    auto result = MultiplyPair<LHS, RHS, RetIT, Semiring, DenseSpa<RetIT, Semiring, Config>, Config>(lhs, rhs, job.dest_shape, job.semiring);
+                    accumulator.Add(result);
                 } else {
-                    auto result = multiply_pair<LHS, RHS, RETIT, SR, sparse_spa<RETIT, SR, CONFIG>, CONFIG>(lhs, rhs, job.dest_shape, job.semiring);
-                    accumulator.add(result);
+                    auto result = MultiplyPair<LHS, RHS, RetIT, Semiring, SparseSpa<RetIT, Semiring, Config>, Config>(lhs, rhs, job.dest_shape, job.semiring);
+                    accumulator.Add(result);
                 }
             }
 
         protected:
-            dcsc_accumulator<RETT, RETIT, CONFIG>& accumulator;
-            const spawn_multiply_job<SR, CONFIG>& job;
+            DcscAccumulator<RetT, RetIT, Config>& accumulator;
+            const SpawnMultiplyJob<Semiring, Config>& job;
         };
 
     protected:
@@ -493,12 +527,12 @@ namespace quadmat {
         /**
          * Inputs
          */
-        pair_set_t<LT, RT, CONFIG> pair_set;
+        PairSet<AT, BT, Config> pair_set;
 
         /**
          * Where to write result.
          */
-        std::shared_ptr<block_container<RETT, CONFIG>> dest_bc;
+        std::shared_ptr<BlockContainer<RetT, Config>> dest_bc;
 
         /**
          * position in dest_bc to write result to
@@ -508,17 +542,17 @@ namespace quadmat {
         /**
          * Offset within the destination matrix where the result will be. Used for task prioritization only.
          */
-        offset_t dest_offsets;
+        Offset dest_offsets;
 
         /**
          * Shape of the destination block. Needed to know the index size of the result block. Also used for SpA sizing.
          */
-        shape_t dest_shape;
+        Shape dest_shape;
 
         /**
          * Semiring to use.
          */
-        const SR& semiring;
+        const Semiring& semiring;
     };
 }
 

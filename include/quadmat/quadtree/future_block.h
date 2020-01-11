@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_FUTURE_BLOCK_H
@@ -13,10 +13,10 @@ namespace quadmat {
      *
      * @tparam T value type, eg. double
      */
-    template<typename T, typename CONFIG = default_config>
-    class future_block : public block<T> {
+    template<typename T, typename Config = DefaultConfig>
+    class FutureBlock : public Block<T> {
     public:
-        future_block() = default;
+        FutureBlock() = default;
     };
 }
 

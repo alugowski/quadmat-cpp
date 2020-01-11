@@ -1,10 +1,11 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_SINGLE_BLOCK_CONTAINER_H
 #define QUADMAT_SINGLE_BLOCK_CONTAINER_H
 
 #include "quadmat/quadtree/block_container.h"
+#include "quadmat/util/util.h"
 
 namespace quadmat {
 
@@ -12,38 +13,38 @@ namespace quadmat {
      * A simple block container that only contains a single child.
      *
      * @tparam T
-     * @tparam CONFIG
+     * @tparam Config
      */
-    template<typename T, typename CONFIG = default_config>
-    class single_block_container : public block_container<T, CONFIG> {
+    template<typename T, typename Config = DefaultConfig>
+    class single_block_container : public BlockContainer<T, Config> {
     public:
-        explicit single_block_container(const shape_t& shape) : shape(shape) {}
-        single_block_container(const shape_t& shape, const tree_node_t<T, CONFIG> &child) : shape(shape), child(child) {}
+        explicit single_block_container(const Shape& shape) : shape(shape) {}
+        single_block_container(const Shape& shape, const TreeNode<T, Config> &child) : shape(shape), child(child) {}
 
-        [[nodiscard]] size_t num_children() const override {
+        [[nodiscard]] size_t GetNumChildren() const override {
             return 1;
         }
 
-        tree_node_t<T, CONFIG> get_child(int pos) const override {
+        TreeNode<T, Config> GetChild(int pos) const override {
             return child;
         }
 
-        void set_child(int pos, tree_node_t<T, CONFIG> new_child) override {
+        void SetChild(int pos, TreeNode<T, Config> new_child) override {
             child = new_child;
         }
 
-        std::shared_ptr<inner_block<T, CONFIG>> create_inner(int pos) override {
-            std::shared_ptr<inner_block<T, CONFIG>> ret =
-                    std::make_shared<inner_block<T, CONFIG>>(get_discriminating_bit() >> 1);
+        std::shared_ptr<InnerBlock<T, Config>> CreateInner(int pos) override {
+            std::shared_ptr<InnerBlock<T, Config>> ret =
+                    std::make_shared<InnerBlock<T, Config>>(GetDiscriminatingBit() >> 1);
             child = ret;
             return ret;
         }
 
-        [[nodiscard]] offset_t get_offsets(int child_pos, const offset_t &my_offset) const override {
+        [[nodiscard]] Offset GetChildOffsets(int child_pos, const Offset &my_offset) const override {
             return my_offset;
         }
 
-        [[nodiscard]] shape_t get_child_shape(int child_pos, const shape_t &my_shape) const override {
+        [[nodiscard]] Shape GetChildShape(int child_pos, const Shape &my_shape) const override {
             return my_shape;
         }
 
@@ -51,16 +52,16 @@ namespace quadmat {
          * Pretend the child is in the NW position of an inner block. Discriminating bit should lie at the border or
          * beyond.
          */
-        [[nodiscard]] index_t get_discriminating_bit() const override {
-            index_t dim_max = std::max(shape.ncols, shape.nrows);
+        [[nodiscard]] Index GetDiscriminatingBit() const override {
+            Index dim_max = std::max(shape.ncols, shape.nrows);
             if (dim_max < 2) {
                 return 1;
             }
-            return quadmat::get_discriminating_bit(shape) << 1;
+            return quadmat::GetDiscriminatingBit(shape) << 1;
         }
     protected:
-        shape_t shape;
-        tree_node_t<T, CONFIG> child;
+        Shape shape;
+        TreeNode<T, Config> child;
     };
 }
 

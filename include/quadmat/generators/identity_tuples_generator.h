@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_IDENTITY_TUPLES_GENERATOR_H
@@ -9,8 +9,6 @@
 
 #include "quadmat/util/base_iterators.h"
 
-using std::tuple;
-
 namespace quadmat {
 
     /**
@@ -20,36 +18,36 @@ namespace quadmat {
      * @tparam IT type of the indices
      */
     template<typename T, typename IT>
-    class identity_tuples_generator {
+    class IdentityTuplesGenerator {
     public:
 
         /**
          * Input Iterator type that this generator emits
          */
-        class iterator: public base_indexed_random_access_iterator<IT, iterator> {
+        class Iterator: public BaseIndexedRandomAccessIterator<IT, Iterator> {
         public:
             using iterator_category = std::input_iterator_tag;
-            using value_type = tuple<IT, IT, T>;
+            using value_type = std::tuple<IT, IT, T>;
             using pointer = value_type*;
             using reference = value_type&;
             using difference_type = std::ptrdiff_t;
 
-            iterator(IT row, IT col_offset) : base_indexed_random_access_iterator<IT, iterator>(row), col_offset(col_offset) {}
-            iterator(const iterator& rhs) : base_indexed_random_access_iterator<IT, iterator>(rhs.i), col_offset(rhs.col_offset) {}
+            Iterator(IT row, IT col_offset) : BaseIndexedRandomAccessIterator<IT, Iterator>(row), col_offset_(col_offset) {}
+            Iterator(const Iterator& rhs) : BaseIndexedRandomAccessIterator<IT, Iterator>(rhs.i_), col_offset_(rhs.col_offset_) {}
 
             value_type operator*() {
-                return tuple<IT, IT, T>(this->i, this->i + col_offset, 1);
+                return std::tuple<IT, IT, T>(this->i_, this->i_ + col_offset_, 1);
             }
 
         private:
-            const IT col_offset;
+            const IT col_offset_;
         };
 
         /**
          * Create a generator that will generate tuples (i, i, 1) in the range [0, n)
          * @param n
          */
-        explicit identity_tuples_generator(IT n) : begin_iter(0, 0), end_iter(n, 0) {}
+        explicit IdentityTuplesGenerator(IT n) : begin_iter_(0, 0), end_iter_(n, 0) {}
 
         /**
          * Create a generator that will generate tuples (i, i, 1) in the closed range [start, end].
@@ -57,21 +55,21 @@ namespace quadmat {
          * @param start
          * @param end
          */
-        explicit identity_tuples_generator(IT start, IT end) : begin_iter(start, 0), end_iter(end+1, 0) {
+        explicit IdentityTuplesGenerator(IT start, IT end) : begin_iter_(start, 0), end_iter_(end+1, 0) {
             // note that this constructor depends on the stability of overflow.
         }
 
-        iterator begin() const {
-            return iterator(begin_iter);
+        Iterator begin() const {
+            return Iterator(begin_iter_);
         }
 
-        iterator end() const {
-            return iterator(end_iter);
+        Iterator end() const {
+            return Iterator(end_iter_);
         }
 
     private:
-        const iterator begin_iter;
-        const iterator end_iter;
+        const Iterator begin_iter_;
+        const Iterator end_iter_;
     };
 
 }

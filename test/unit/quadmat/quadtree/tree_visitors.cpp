@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
@@ -10,40 +10,39 @@
 /**
  * Canned matrices
  */
-static const auto canned_matrices =  get_canned_matrices<double, index_t>(); // NOLINT(cert-err58-cpp)
-static const int num_canned_matrices = canned_matrices.size();
-
+static const auto kCannedMatrices = GetCannedMatrices<double, Index>(); // NOLINT(cert-err58-cpp)
+static const int kNumCannedMatrices = kCannedMatrices.size();
 
 TEST_CASE("Tree Visitors") {
 
     SECTION("leaf size") {
         // get the problem
-        int problem_num = GENERATE(range(0, num_canned_matrices));
-        const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
+        int problem_num = GENERATE(range(0, kNumCannedMatrices));
+        const CannedMatrix<double, Index>& problem = kCannedMatrices[problem_num];
 
         SECTION(problem.description) {
-            auto mat = matrix_from_tuples<double, config_split_4>(problem.shape,
-                                                                  problem.sorted_tuples.size(),
-                                                                  problem.sorted_tuples);
+            auto mat = MatrixFromTuples<double, ConfigSplit4>(problem.shape,
+                                                              problem.sorted_tuples.size(),
+                                                              problem.sorted_tuples);
 
-            auto node = mat.get_root_bc()->get_child(0);
+            auto node = mat.GetRootBC()->GetChild(0);
 
-            block_size_info sizes;
-            std::visit(leaf_visitor<double, config_split_4>([&](auto leaf, offset_t offsets, shape_t shape) {
-                sizes = leaf->size() + sizes;
+            BlockSizeInfo sizes;
+            std::visit(GetLeafVisitor<double, ConfigSplit4>([&](auto leaf, Offset offsets, Shape shape) {
+                sizes = leaf->GetSize() + sizes;
             }), node);
 
             REQUIRE(sizes.nnn == problem.sorted_tuples.size());
             REQUIRE(sizes.value_bytes == sizes.nnn * sizeof(double));
-            REQUIRE(sizes.total_bytes() >= sizes.nnn * sizeof(double));
+            REQUIRE(sizes.GetTotalBytes() >= sizes.nnn * sizeof(double));
         }
     }
 
     SECTION("future blocks") {
-        auto future_node = tree_node_t<double>(std::make_shared<future_block<double>>());
+        auto future_node = TreeNode<double>(std::make_shared<FutureBlock<double>>());
 
         bool visited = false;
-        std::visit(leaf_visitor<double>([&](auto leaf, offset_t offsets, shape_t shape) {
+        std::visit(GetLeafVisitor<double>([&](auto leaf, Offset offsets, Shape shape) {
             visited = true;
         }), future_node);
 

@@ -13,29 +13,29 @@ namespace quadmat {
     /**
      * A sparse SpA is essentially a map.
      */
-    template <typename IT, typename SR, typename CONFIG=default_config>
-    class sparse_spa {
+    template <typename IT, typename Semiring, typename Config=DefaultConfig>
+    class SparseSpa {
     public:
         /**
          * @param size ignored here. Used in dense SpA.
          */
-        explicit sparse_spa(size_t size, const SR& semiring = SR()) : semiring(semiring) {}
+        explicit SparseSpa(size_t size, const Semiring& semiring = Semiring()) : semiring_(semiring) {}
 
         /**
          * Update the SpA with (row, value) pairs, i.e. an entire column.
          *
          * Useful for addition.
          *
-         * @tparam ROW_ITER
-         * @tparam VAL_ITER
+         * @tparam RowIterator
+         * @tparam ValueIterator
          * @param rows_iter input iterator. start of the rows range
          * @param rows_end input iterator. end of the rows range
          * @param values_iter input iterator. Start of the values range. End assumed to be values_iter + (rows_end - rows_iter)
          */
-        template <typename ROW_ITER, typename VAL_ITER>
-        void scatter(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter) {
+        template <typename RowIterator, typename ValueIterator>
+        void Scatter(RowIterator rows_iter, const RowIterator& rows_end, ValueIterator values_iter) {
             while (rows_iter != rows_end) {
-                update(*rows_iter, *values_iter);
+                Update(*rows_iter, *values_iter);
 
                 ++rows_iter;
                 ++values_iter;
@@ -48,16 +48,16 @@ namespace quadmat {
          *
          * Useful for multiplication.
          *
-         * @tparam ROW_ITER
-         * @tparam VAL_ITER
+         * @tparam RowIterator
+         * @tparam ValueIterator
          * @param rows_iter input iterator. start of the rows range
          * @param rows_end input iterator. end of the rows range
-         * @param values_iter input iterator over SR::map_type_l. Start of the values range, with end assumed to be values_iter + (rows_end - rows_iter)
+         * @param values_iter input iterator over SR::MapTypeA. Start of the values range, with end assumed to be values_iter + (rows_end - rows_iter)
          */
-        template <typename ROW_ITER, typename VAL_ITER>
-        void scatter(ROW_ITER rows_iter, const ROW_ITER& rows_end, VAL_ITER values_iter, const typename SR::map_type_r& b_val) {
+        template <typename RowIterator, typename ValueIterator>
+        void Scatter(RowIterator rows_iter, const RowIterator& rows_end, ValueIterator values_iter, const typename Semiring::MapTypeB& beta) {
             while (rows_iter != rows_end) {
-                update(*rows_iter, semiring.multiply(*values_iter, b_val));
+                Update(*rows_iter, semiring_.Multiply(*values_iter, beta));
 
                 ++rows_iter;
                 ++values_iter;
@@ -68,14 +68,14 @@ namespace quadmat {
          * Copy the contents of the SpA to a row index vector and a values vector. Contents are copied using emplace_back().
          * Copy is ordered by row.
          *
-         * @tparam ROW_VEC
-         * @tparam VAL_VEC
+         * @tparam RowVector
+         * @tparam ValueVector
          * @param row_ind vector to write row indices
          * @param values vector to write values
          */
-        template <typename ROW_VEC, typename VAL_VEC>
-        void emplace_back_result(ROW_VEC& row_ind, VAL_VEC& values) {
-            for (auto it : m) {
+        template <typename RowVector, typename ValueVector>
+        void EmplaceBackResult(RowVector& row_ind, ValueVector& values) {
+            for (auto it : m_) {
                 row_ind.emplace_back(it.first);
                 values.emplace_back(it.second);
             }
@@ -84,15 +84,15 @@ namespace quadmat {
         /**
          * @return true if the SpA has no elements set.
          */
-        [[nodiscard]] bool empty() const {
-            return m.empty();
+        [[nodiscard]] bool IsEmpty() const {
+            return m_.empty();
         }
 
         /**
          * Clear the SpA for reuse.
          */
-        void clear() {
-            m.clear();
+        void Clear() {
+            m_.clear();
         }
 
     protected:
@@ -105,19 +105,19 @@ namespace quadmat {
          * @param key
          * @param value
          */
-        void update(const IT key, const typename SR::reduce_type& value) {
-            auto it = m.find(key);
-            if (it == m.end()) {
+        void Update(const IT key, const typename Semiring::ReduceType& value) {
+            auto it = m_.find(key);
+            if (it == m_.end()) {
                 // insert
-                m.emplace_hint(it, key, value);
+                m_.emplace_hint(it, key, value);
             } else {
                 // replace
-                it->second = semiring.add(it->second, value);
+                it->second = semiring_.Add(it->second, value);
             }
         }
 
-        const SR& semiring;
-        std::map<IT, typename SR::reduce_type, std::less<IT>, typename CONFIG::template TEMP_ALLOC<std::pair<const IT, typename SR::reduce_type>>> m;
+        const Semiring& semiring_;
+        std::map<IT, typename Semiring::ReduceType, std::less<IT>, typename Config::template TempAllocator<std::pair<const IT, typename Semiring::ReduceType>>> m_;
     };
 }
 

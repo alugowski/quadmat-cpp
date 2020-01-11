@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #define CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
@@ -15,78 +15,84 @@ using Catch::Matchers::UnorderedEquals;
 /**
  * Canned matrices
  */
-static const auto multiply_problems =  get_multiply_problems<double, index_t>(); // NOLINT(cert-err58-cpp)
-static const int num_multiply_problems = multiply_problems.size();
+static const auto kMultiplyProblems = GetMultiplyProblems<double, Index>(); // NOLINT(cert-err58-cpp)
+static const int kNumMultiplyProblems = kMultiplyProblems.size();
 
-struct subdivision_t {
+struct Subdivision {
     bool subdivide_left;
     bool subdivide_right;
-    string description;
+    std::string description;
 };
 
 TEST_CASE("Multiply") {
     SECTION("DCSC Block Pair") {
         // get the problem
-        int problem_num = GENERATE(range(0, num_multiply_problems));
-        const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
+        int problem_num = GENERATE(range(0, kNumMultiplyProblems));
+        const MultiplyProblem<double, Index>& problem = kMultiplyProblems[problem_num];
 
         SECTION(problem.description) {
-            auto a = quadmat::dcsc_block_factory<double, index_t>(problem.a.sorted_tuples.size(), problem.a.sorted_tuples).finish();
-            auto b = quadmat::dcsc_block_factory<double, index_t>(problem.b.sorted_tuples.size(), problem.b.sorted_tuples).finish();
+            auto a = DcscBlockFactory<double, Index>(problem.a.sorted_tuples.size(),
+                                                     problem.a.sorted_tuples).Finish();
+            auto b = DcscBlockFactory<double, Index>(problem.b.sorted_tuples.size(),
+                                                     problem.b.sorted_tuples).Finish();
 
-            shape_t result_shape = {
+            Shape result_shape = {
                     .nrows = problem.a.shape.nrows,
                     .ncols = problem.b.shape.ncols
             };
 
-            auto result = quadmat::multiply_pair<
-                    quadmat::dcsc_block<double, index_t>,
-                    quadmat::dcsc_block<double, index_t>,
-                    index_t,
-                    quadmat::plus_times_semiring<double>,
-                    quadmat::sparse_spa<index_t, quadmat::plus_times_semiring<double>, quadmat::default_config>,
-                    quadmat::default_config>(a, b, result_shape);
+            auto result = MultiplyPair<
+                    DcscBlock<double, Index>,
+                    DcscBlock<double, Index>,
+                    Index,
+                    PlusTimesSemiring<double>,
+                    SparseSpa<Index, PlusTimesSemiring<double>, DefaultConfig>,
+                    DefaultConfig>(a, b, result_shape);
 
             // test the result tuples
             {
-                auto sorted_range = result->tuples();
-                vector <std::tuple<index_t, index_t, double>> v(sorted_range.begin(), sorted_range.end());
-                REQUIRE_THAT(matrix(problem.result.shape, tree_node_t<double>(result)), MatrixEquals(problem.result));
+                auto sorted_range = result->Tuples();
+                std::vector <std::tuple<Index, Index, double>> v(sorted_range.begin(), sorted_range.end());
+                REQUIRE_THAT(Matrix(problem.result.shape, TreeNode<double>(result)), MatrixEquals(problem.result));
             }
         }
     }
 
     SECTION("Simple Trees") {
         auto sub_type = GENERATE(
-                subdivision_t{false, false, "leaf * leaf"},
-                subdivision_t{true, false, "single inner * leaf"},
-                subdivision_t{false, true, "leaf * single inner"},
-                subdivision_t{true, true, "single inner * single inner"}
+            Subdivision{false, false, "leaf * leaf"},
+            Subdivision{true, false, "single inner * leaf"},
+            Subdivision{false, true, "leaf * single inner"},
+            Subdivision{true, true, "single inner * single inner"}
         );
 
         SECTION(sub_type.description) {
             // get the problem
-            int problem_num = GENERATE(range(0, num_multiply_problems));
-            const multiply_problem<double, index_t>& problem = multiply_problems[problem_num];
+            int problem_num = GENERATE(range(0, kNumMultiplyProblems));
+            const MultiplyProblem<double, Index>& problem = kMultiplyProblems[problem_num];
 
             SECTION(problem.description) {
-                auto a = single_leaf_matrix_from_tuples<double>(problem.a.shape, problem.a.sorted_tuples.size(), problem.a.sorted_tuples);
-                auto b = single_leaf_matrix_from_tuples<double>(problem.b.shape, problem.b.sorted_tuples.size(), problem.b.sorted_tuples);
+                auto a = SingleLeafMatrixFromTuples<double>(problem.a.shape,
+                                                            problem.a.sorted_tuples.size(),
+                                                            problem.a.sorted_tuples);
+                auto b = SingleLeafMatrixFromTuples<double>(problem.b.shape,
+                                                            problem.b.sorted_tuples.size(),
+                                                            problem.b.sorted_tuples);
 
                 // make sure the matrices look how this test assumes they do
-                REQUIRE(is_leaf(a.get_root_bc()->get_child(0)));
-                REQUIRE(is_leaf(b.get_root_bc()->get_child(0)));
+                REQUIRE(IsLeaf(a.GetRootBC()->GetChild(0)));
+                REQUIRE(IsLeaf(b.GetRootBC()->GetChild(0)));
 
                 // subdivide
                 if (sub_type.subdivide_left) {
-                    subdivide_leaf(a.get_root_bc(), 0, a.get_shape());
+                    SubdivideLeaf(a.GetRootBC(), 0, a.GetShape());
                 }
                 if (sub_type.subdivide_right) {
-                    subdivide_leaf(b.get_root_bc(), 0, b.get_shape());
+                    SubdivideLeaf(b.GetRootBC(), 0, b.GetShape());
                 }
 
                 // multiply
-                auto result = multiply<plus_times_semiring<double>>(a, b);
+                auto result = Multiply<PlusTimesSemiring<double>>(a, b);
 
                 // test the result
                 REQUIRE_THAT(result, MatrixEquals(problem.result));
@@ -94,105 +100,105 @@ TEST_CASE("Multiply") {
         }
     }
 
-    SECTION("leaf_split_threshold=4") {
+    SECTION("LeafSplitThreshold=4") {
         auto sub_type = GENERATE(
                 // leaf * leaf already handled in another test case
-                subdivision_t{true, false, "tree * leaf"},
-                subdivision_t{false, true, "leaf * tree"},
-                subdivision_t{true, true, "tree * tree"}
+                Subdivision{true, false, "tree * leaf"},
+                Subdivision{false, true, "leaf * tree"},
+                Subdivision{true, true, "tree * tree"}
         );
 
         SECTION(sub_type.description) {
             // get the problem
-            int problem_num = GENERATE(range(0, num_multiply_problems));
-            const multiply_problem<double, index_t> &problem = multiply_problems[problem_num];
+            int problem_num = GENERATE(range(0, kNumMultiplyProblems));
+            const MultiplyProblem<double, Index> &problem = kMultiplyProblems[problem_num];
 
             SECTION(problem.description) {
-                matrix<double, config_split_4> a{problem.a.shape}, b{problem.b.shape};
+                Matrix<double, ConfigSplit4> a{problem.a.shape}, b{problem.b.shape};
 
                 // construct matrix a as either a tree or a single leaf
                 if (sub_type.subdivide_left) {
-                    a = matrix_from_tuples<double, config_split_4>(problem.a.shape,
-                                                                   problem.a.sorted_tuples.size(),
-                                                                   problem.a.sorted_tuples);
+                    a = MatrixFromTuples<double, ConfigSplit4>(problem.a.shape,
+                                                               problem.a.sorted_tuples.size(),
+                                                               problem.a.sorted_tuples);
                 } else {
-                    a = single_leaf_matrix_from_tuples<double, config_split_4>(problem.a.shape,
-                                                                               problem.a.sorted_tuples.size(),
-                                                                               problem.a.sorted_tuples);
+                    a = SingleLeafMatrixFromTuples<double, ConfigSplit4>(problem.a.shape,
+                                                                         problem.a.sorted_tuples.size(),
+                                                                         problem.a.sorted_tuples);
                 }
 
                 // construct matrix b as either a tree or a single leaf
                 if (sub_type.subdivide_right) {
-                    b = matrix_from_tuples<double, config_split_4>(problem.b.shape,
-                                                                   problem.b.sorted_tuples.size(),
-                                                                   problem.b.sorted_tuples);
+                    b = MatrixFromTuples<double, ConfigSplit4>(problem.b.shape,
+                                                               problem.b.sorted_tuples.size(),
+                                                               problem.b.sorted_tuples);
                 } else {
-                    b = single_leaf_matrix_from_tuples<double, config_split_4>(problem.b.shape,
-                                                                               problem.b.sorted_tuples.size(),
-                                                                               problem.b.sorted_tuples);
+                    b = SingleLeafMatrixFromTuples<double, ConfigSplit4>(problem.b.shape,
+                                                                         problem.b.sorted_tuples.size(),
+                                                                         problem.b.sorted_tuples);
                 }
-                REQUIRE("" == sanity_check(a)); // NOLINT(readability-container-size-empty)
-                REQUIRE("" == sanity_check(b)); // NOLINT(readability-container-size-empty)
+                REQUIRE("" == SanityCheck(a)); // NOLINT(readability-container-size-empty)
+                REQUIRE("" == SanityCheck(b)); // NOLINT(readability-container-size-empty)
 
                 // multiply
-                auto result = multiply<plus_times_semiring<double>>(a, b);
+                auto result = Multiply<PlusTimesSemiring<double>>(a, b);
 
-                REQUIRE("" == sanity_check(result)); // NOLINT(readability-container-size-empty)
+                REQUIRE("" == SanityCheck(result)); // NOLINT(readability-container-size-empty)
 
                 // test the result
-                REQUIRE_THAT(result, MatrixEquals(problem.result, config_split_4()));
+                REQUIRE_THAT(result, MatrixEquals(problem.result, ConfigSplit4()));
             }
         }
     }
 
-    SECTION("errors") {
-        // hit some edge cases, as well as artificial constructions to get 100% line coverage
+    SECTION("Forced errors") {
+        // hit some edge cases and use artificial constructions to force errors to get 100% line coverage
 
-        auto future_node = tree_node_t<double>(std::make_shared<future_block<double>>());
-        matrix<double> future_matrix_10x10{{10, 10}, future_node};
-        auto problem_10x10 = multiply_problems[1];
-        auto problem_4x4 = multiply_problems[3];
+        auto future_node = TreeNode<double>(std::make_shared<FutureBlock<double>>());
+        Matrix<double> future_matrix_10x10{{10, 10}, future_node};
+        auto problem_10x10 = kMultiplyProblems[1];
+        auto problem_4x4 = kMultiplyProblems[3];
 
-        auto matrix_10x10 = single_leaf_matrix_from_tuples<double>(problem_10x10.a.shape,
-                                                                   problem_10x10.a.sorted_tuples.size(),
-                                                                   problem_10x10.a.sorted_tuples);
-        auto matrix_4x4 = single_leaf_matrix_from_tuples<double>(problem_4x4.a.shape,
-                                                                 problem_4x4.a.sorted_tuples.size(),
-                                                                 problem_4x4.a.sorted_tuples);
+        auto matrix_10x10 = SingleLeafMatrixFromTuples<double>(problem_10x10.a.shape,
+                                                               problem_10x10.a.sorted_tuples.size(),
+                                                               problem_10x10.a.sorted_tuples);
+        auto matrix_4x4 = SingleLeafMatrixFromTuples<double>(problem_4x4.a.shape,
+                                                             problem_4x4.a.sorted_tuples.size(),
+                                                             problem_4x4.a.sorted_tuples);
 
         // future blocks are not implemented
         SECTION("future blocks"){
-            REQUIRE_THROWS_AS(multiply<plus_times_semiring<double>>(future_matrix_10x10, matrix_10x10),
-                              not_implemented);
+            REQUIRE_THROWS_AS(Multiply<PlusTimesSemiring<double>>(future_matrix_10x10, matrix_10x10),
+                              NotImplemented);
         }
 
         // dimension mismatch
         SECTION("dimension mismatches"){
-            REQUIRE_THROWS_AS(multiply<plus_times_semiring<double>>(matrix_4x4, matrix_10x10), node_type_mismatch);
+            REQUIRE_THROWS_AS(Multiply<PlusTimesSemiring<double>>(matrix_4x4, matrix_10x10), NodeTypeMismatch);
         }
 
         SECTION("recurse corruption") {
-            matrix<double> empty_matrix_10x10{{10, 10}};
-            auto matrix_inner_10x10 = single_leaf_matrix_from_tuples<double>(problem_10x10.a.shape,
-                                                                             problem_10x10.a.sorted_tuples.size(),
-                                                                             problem_10x10.a.sorted_tuples);
-            subdivide_leaf(matrix_inner_10x10.get_root_bc(), 0, matrix_inner_10x10.get_shape());
+            Matrix<double> empty_matrix_10x10{{10, 10}};
+            auto matrix_inner_10x10 = SingleLeafMatrixFromTuples<double>(problem_10x10.a.shape,
+                                                                         problem_10x10.a.sorted_tuples.size(),
+                                                                         problem_10x10.a.sorted_tuples);
+            SubdivideLeaf(matrix_inner_10x10.GetRootBC(), 0, matrix_inner_10x10.GetShape());
 
-            matrix<double> ret{{10, 10}};
+            Matrix<double> ret{{10, 10}};
 
             // setup multiply job
-            spawn_multiply_job<plus_times_semiring<double>, default_config> job(
-                    quadmat::pair_set_t<double, double, default_config>{
-                            matrix_inner_10x10.get_root_bc()->get_child(0),
-                            empty_matrix_10x10.get_root_bc()->get_child(0),
-                            matrix_inner_10x10.get_shape(),
-                            empty_matrix_10x10.get_shape(),
-                            matrix_inner_10x10.get_root_bc()->get_discriminating_bit(),
-                            empty_matrix_10x10.get_root_bc()->get_discriminating_bit()
+            SpawnMultiplyJob<PlusTimesSemiring<double>, DefaultConfig> job(
+                    PairSet<double, double, DefaultConfig>{
+                        matrix_inner_10x10.GetRootBC()->GetChild(0),
+                            empty_matrix_10x10.GetRootBC()->GetChild(0),
+                            matrix_inner_10x10.GetShape(),
+                            empty_matrix_10x10.GetShape(),
+                        matrix_inner_10x10.GetRootBC()->GetDiscriminatingBit(),
+                        empty_matrix_10x10.GetRootBC()->GetDiscriminatingBit()
                     },
-                    ret.get_root_bc(), 0, {0, 0}, ret.get_shape());
+                    ret.GetRootBC(), 0, {0, 0}, ret.GetShape());
 
-            REQUIRE_THROWS_AS(job.run(false), node_type_mismatch);
+            REQUIRE_THROWS_AS(job.Run(false), NodeTypeMismatch);
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
@@ -9,17 +9,17 @@ using namespace quadmat;
 
 TEST_CASE("Inner Block"){
     SECTION("constructor") {
-        REQUIRE_THROWS(inner_block<double>(0));
-        REQUIRE_THROWS(inner_block<double>(3));
-        REQUIRE_NOTHROW(inner_block<double>(4));
+        REQUIRE_THROWS(InnerBlock<double>(0));
+        REQUIRE_THROWS(InnerBlock<double>(3));
+        REQUIRE_NOTHROW(InnerBlock<double>(4));
     }
     SECTION("children") {
-        REQUIRE(inner_block<double>(4).num_children() == 4);
-        REQUIRE_THROWS(inner_block<double>(4).get_offsets(5, {}));
-        REQUIRE_THROWS(inner_block<double>(4).get_child_shape(5, {}));
+        REQUIRE(InnerBlock<double>(4).GetNumChildren() == 4);
+        REQUIRE_THROWS(InnerBlock<double>(4).GetChildOffsets(5, {}));
+        REQUIRE_THROWS(InnerBlock<double>(4).GetChildShape(5, {}));
     }
     SECTION("size") {
-        auto size = inner_block<double>(4).size();
+        auto size = InnerBlock<double>(4).GetSize();
         REQUIRE(size.index_bytes == 0);
         REQUIRE(size.value_bytes == 0);
         REQUIRE(size.overhead_bytes > 0);

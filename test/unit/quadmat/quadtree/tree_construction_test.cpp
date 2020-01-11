@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #include "../../../test_dependencies/catch.hpp"
@@ -13,42 +13,43 @@ using Catch::Matchers::UnorderedEquals;
 /**
  * Canned matrices
  */
-static const auto canned_matrices =  get_canned_matrices<double, index_t>(); // NOLINT(cert-err58-cpp)
-static const int num_canned_matrices = canned_matrices.size();
+static const auto kCannedMatrices = GetCannedMatrices<double, Index>(); // NOLINT(cert-err58-cpp)
+static const int kNumCannedMatrices = kCannedMatrices.size();
 
 TEST_CASE("Tree Construction") {
-    SECTION("create_leaf") {
+    SECTION("CreateLeaf") {
         // get the problem
-        int problem_num = GENERATE(range(0, num_canned_matrices));
-        const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
+        int problem_num = GENERATE(range(0, kNumCannedMatrices));
+        const CannedMatrix<double, Index>& problem = kCannedMatrices[problem_num];
 
         SECTION(problem.description) {
-            auto leaf = create_leaf<double>(problem.shape, problem.sorted_tuples.size(), problem.sorted_tuples);
+            auto leaf = CreateLeaf<double>(problem.shape, problem.sorted_tuples.size(), problem.sorted_tuples);
 
-            vector<std::tuple<index_t, index_t, double>> v = dump_tuples(tree_node_t<double>(leaf));
+            std::vector<std::tuple<Index, Index, double>> v = DumpTuples(TreeNode<double>(leaf));
             REQUIRE_THAT(v, Equals(problem.sorted_tuples));
         }
     }
-    SECTION("subdivide") {
-        SECTION("leaf_split_threshold=4") {
+    SECTION("Subdivide") {
+        SECTION("LeafSplitThreshold=4") {
             // get the problem
-            int problem_num = GENERATE(range(0, num_canned_matrices));
-            const canned_matrix<double, index_t>& problem = canned_matrices[problem_num];
+            int problem_num = GENERATE(range(0, kNumCannedMatrices));
+            const CannedMatrix<double, Index>& problem = kCannedMatrices[problem_num];
 
             SECTION(problem.description) {
-                auto triples = std::make_shared<triples_block<double, index_t, config_split_4>>();
-                triples->add(problem.sorted_tuples);
+                auto triples = std::make_shared<TriplesBlock<double, Index, ConfigSplit4>>();
+                triples->Add(problem.sorted_tuples);
 
-                auto subdivided_node = subdivide(triples, problem.shape);
+                auto subdivided_node = Subdivide(triples, problem.shape);
 
                 // ensure the tuples that come back are correct
-                vector<std::tuple<index_t, index_t, double>> v = dump_tuples<double, config_split_4>(tree_node_t<double, config_split_4>(subdivided_node));
+                std::vector<std::tuple<Index, Index, double>> v =
+                    DumpTuples<double, ConfigSplit4>(TreeNode<double, ConfigSplit4>(subdivided_node));
                 REQUIRE_THAT(v, UnorderedEquals(problem.sorted_tuples));
 
                 // ensure that leaf sizes are as expected
-                std::visit(leaf_visitor<double, config_split_4>([&](auto leaf, offset_t offsets, shape_t shape) {
-                    REQUIRE(leaf->nnn() > 0); // empty blocks should be created as std::monospace
-                    REQUIRE(leaf->nnn() <= config_split_4::leaf_split_threshold);
+                std::visit(GetLeafVisitor<double, ConfigSplit4>([&](auto leaf, Offset offsets, Shape shape) {
+                    REQUIRE(leaf->GetNnn() > 0); // empty blocks should be created as std::monospace
+                    REQUIRE(leaf->GetNnn() <= ConfigSplit4::LeafSplitThreshold);
                 }), subdivided_node);
             }
         }

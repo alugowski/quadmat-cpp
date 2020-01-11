@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_TYPES_H
@@ -11,16 +11,16 @@
 
 namespace quadmat {
 
-    typedef int32_t blocknnn_t;
-    typedef int64_t index_t;
+    typedef int32_t BlockNnn;
+    typedef int64_t Index;
 
     /**
      * Utility type to be able to return iterator ranges usable in a foreach.
      * @tparam ITER
      */
     template <typename ITER>
-    struct range_t {
-        range_t(ITER begin, ITER end) : _begin(begin), _end(end) {}
+    struct Range {
+        Range(ITER begin, ITER end) : _begin(begin), _end(end) {}
 
         ITER _begin;
         ITER _end;
@@ -36,17 +36,17 @@ namespace quadmat {
     /**
      * Utility type that describes the shape of a block or matrix. I.e. number of rows and columns.
      */
-    struct shape_t {
-        index_t nrows = 0;
-        index_t ncols = 0;
+    struct Shape {
+        Index nrows = 0;
+        Index ncols = 0;
 
-        bool operator==(const shape_t& rhs) const {
+        bool operator==(const Shape& rhs) const {
             return nrows == rhs.nrows && ncols == rhs.ncols;
         }
 
-        shape_t& operator=(const shape_t& rhs) = default;
+        Shape& operator=(const Shape& rhs) = default;
 
-        [[nodiscard]] std::string to_string() const {
+        [[nodiscard]] std::string ToString() const {
             return std::string("{") + std::to_string(nrows) + ", " + std::to_string(ncols) + "}";
         }
     };
@@ -56,16 +56,16 @@ namespace quadmat {
      * to those blocks' position in the quad tree. To get the actual row, column index we must know what part
      * of the matrix each block represents.
      */
-    struct offset_t {
-        index_t row_offset = 0;
-        index_t col_offset = 0;
+    struct Offset {
+        Index row_offset = 0;
+        Index col_offset = 0;
 
-        bool operator==(const offset_t& rhs) const {
+        bool operator==(const Offset& rhs) const {
             return row_offset == rhs.row_offset && col_offset == rhs.col_offset;
         }
 
-        offset_t operator+(const offset_t& rhs) const {
-            return offset_t{
+        Offset operator+(const Offset& rhs) const {
+            return Offset{
                     .row_offset = row_offset + rhs.row_offset,
                     .col_offset = col_offset + rhs.col_offset,
             };
@@ -75,18 +75,18 @@ namespace quadmat {
     /**
      * Utility structure for getting block statistics
      */
-    struct block_size_info {
+    struct BlockSizeInfo {
         size_t index_bytes = 0;
         size_t value_bytes = 0;
         size_t overhead_bytes = 0;
         size_t nnn = 0;
 
-        [[nodiscard]] size_t total_bytes() const {
+        [[nodiscard]] size_t GetTotalBytes() const {
             return index_bytes + value_bytes + overhead_bytes;
         }
 
-        block_size_info operator+(const block_size_info& rhs) const {
-            return block_size_info {
+        BlockSizeInfo operator+(const BlockSizeInfo& rhs) const {
+            return BlockSizeInfo {
                     index_bytes + rhs.index_bytes,
                     value_bytes + rhs.value_bytes,
                     overhead_bytes + rhs.overhead_bytes,
@@ -100,16 +100,16 @@ namespace quadmat {
      * @tparam T numerical type, such as double
      */
     template <typename T>
-    struct plus_times_semiring {
-        typedef T map_type_l;
-        typedef T map_type_r;
-        typedef T reduce_type;
+    struct PlusTimesSemiring {
+        using MapTypeA = T;
+        using MapTypeB = T;
+        using ReduceType = T;
 
-        reduce_type multiply(const map_type_l& lhs, const map_type_r& rhs) const {
+        ReduceType Multiply(const MapTypeA& lhs, const MapTypeB& rhs) const {
             return lhs * rhs;
         }
 
-        reduce_type add(const reduce_type& lhs, const reduce_type& rhs) const {
+        ReduceType Add(const ReduceType& lhs, const ReduceType& rhs) const {
             return lhs + rhs;
         }
     };
@@ -117,34 +117,34 @@ namespace quadmat {
     /**
      * Utility to construct strings out of a list of arguments
      */
-    struct join {
-        static std::string to_string(const std::string& e) {
+    struct Join {
+        static std::string ToString(const std::string& e) {
             return e;
         }
 
-        template <typename... ARGS>
-        static std::string to_string(const char* arg, ARGS... args) {
-            return to_string(std::string(arg), args...);
+        template <typename... Args>
+        static std::string ToString(const char* arg, Args... args) {
+            return ToString(std::string(arg), args...);
         }
 
-        template <typename... ARGS>
-        static std::string to_string(const std::string& arg1, const std::string& arg2, ARGS... args) {
-            return to_string(arg1 + arg2, args...);
+        template <typename... Args>
+        static std::string ToString(const std::string& arg1, const std::string& arg2, Args... args) {
+            return ToString(arg1 + arg2, args...);
         }
 
-        template <typename... ARGS>
-        static std::string to_string(const std::string& arg1, const char* arg2, ARGS... args) {
-            return to_string(arg1 + arg2, args...);
+        template <typename... Args>
+        static std::string ToString(const std::string& arg1, const char* arg2, Args... args) {
+            return ToString(arg1 + arg2, args...);
         }
 
-        template <typename ARG, typename... ARGS>
-        static std::string to_string(const std::string& arg, const ARG& arg2, ARGS... args) {
-            return to_string(arg + std::to_string(arg2), args...);
+        template <typename ARG, typename... Args>
+        static std::string ToString(const std::string& arg, const ARG& arg2, Args... args) {
+            return ToString(arg + std::to_string(arg2), args...);
         }
 
-        template <typename ARG, typename... ARGS>
-        static std::string to_string(const ARG& arg, ARGS... args) {
-            return to_string(std::to_string(arg), args...);
+        template <typename ARG, typename... Args>
+        static std::string ToString(const ARG& arg, Args... args) {
+            return ToString(std::to_string(arg), args...);
         }
     };
 
@@ -154,21 +154,21 @@ namespace quadmat {
      * @tparam EX type of exception to throw. Must have a constructor that accepts a std::string
      */
     template <typename EX = std::invalid_argument>
-    struct throwing_error_consumer {
-        explicit throwing_error_consumer(std::string prefix = std::string()) : prefix(std::move(prefix)) {}
+    struct ThrowingErrorConsumer {
+        explicit ThrowingErrorConsumer(std::string prefix = std::string()) : prefix(std::move(prefix)) {}
 
-        void set_prefix(const std::string &new_prefix) {
+        void SetPrefix(const std::string &new_prefix) {
             prefix = new_prefix;
         }
 
-        template <typename... ARGS>
-        void error(ARGS... args) {
-            throw EX(prefix + join::to_string(args...));
+        template <typename... Args>
+        void Error(Args... args) {
+            throw EX(prefix + Join::ToString(args...));
         }
 
-        template <typename... ARGS>
-        void warning(ARGS... args) {
-            error(args...);
+        template <typename... Args>
+        void Warning(Args... args) {
+            Error(args...);
         }
 
         std::string prefix;
@@ -177,19 +177,19 @@ namespace quadmat {
     /**
      * A simple error consumer that ignores everything.
      */
-    struct ignoring_error_consumer {
-        explicit ignoring_error_consumer(const std::string& = std::string()) {}
+    struct IgnoringErrorConsumer {
+        explicit IgnoringErrorConsumer(const std::string& = std::string()) {}
 
-        void set_prefix(const std::string &) {
+        void SetPrefix(const std::string &) {
         }
 
-        template <typename... ARGS>
-        void error(ARGS... args) {
+        template <typename... Args>
+        void Error(Args... args) {
         }
 
-        template <typename... ARGS>
-        void warning(ARGS... args) {
-            error(args...);
+        template <typename... Args>
+        void Warning(Args... args) {
+            Error(args...);
         }
     };
 
@@ -198,18 +198,18 @@ namespace quadmat {
      *
      * All instances of this will be removed in the future.
      */
-    class not_implemented : public std::invalid_argument {
+    class NotImplemented : public std::invalid_argument {
     public:
-        explicit not_implemented(const std::string &s) : invalid_argument(std::string("not implemented: ") + s) {}
+        explicit NotImplemented(const std::string &s) : invalid_argument(std::string("not implemented: ") + s) {}
     };
 
     /**
      * Thrown when incompatible nodes are pair-computed. For example, two leaf blocks with different sized indices.
      */
-    class node_type_mismatch : public std::invalid_argument {
+    class NodeTypeMismatch : public std::invalid_argument {
     public:
-        node_type_mismatch() : invalid_argument("node mismatch") {}
-        explicit node_type_mismatch(const std::string &s): invalid_argument("node mismatch: " + s) {}
+        NodeTypeMismatch() : invalid_argument("node mismatch") {}
+        explicit NodeTypeMismatch(const std::string &s): invalid_argument("node mismatch: " + s) {}
     };
 }
 

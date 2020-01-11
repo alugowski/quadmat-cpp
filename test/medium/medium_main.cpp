@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #define CATCH_CONFIG_MAIN
@@ -8,7 +8,7 @@
 
 using namespace quadmat;
 
-TEST_CASE("Matrix Generation"){
-matrix<double> m = quadmat::identity<double>(10);
-REQUIRE(m.get_shape() == shape_t{10, 10});
+TEST_CASE("Matrix Generation") {
+    Matrix<double> m = Identity<double>(10);
+    REQUIRE(m.GetShape() == Shape{10, 10});
 }

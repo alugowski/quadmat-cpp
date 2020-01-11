@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Adam Lugowski
+// Copyright (C) 2019-2020 Adam Lugowski
 // All Rights Reserved.
 
 #ifndef QUADMAT_BLOCK_H
@@ -14,10 +14,10 @@ namespace quadmat {
      * @tparam T value type, eg. double
      */
     template<typename T>
-    class block {
+    class Block {
     public:
-        explicit block() = default;
-        virtual ~block() = default;
+        explicit Block() = default;
+        virtual ~Block() = default;
     };
 }
 
