@@ -4,8 +4,6 @@
 #ifndef QUADMAT_QUADMAT_H
 #define QUADMAT_QUADMAT_H
 
-#include <iostream>
-
 namespace quadmat {
 }
 

@@ -4,6 +4,8 @@
 #ifndef QUADMAT_TESTING_UTILITIES_H
 #define QUADMAT_TESTING_UTILITIES_H
 
+#include <iostream>
+
 #include "quadmat/quadmat.h"
 #include "tuple_dumper.h"
 

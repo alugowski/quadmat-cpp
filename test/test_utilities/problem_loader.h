@@ -19,9 +19,7 @@
     namespace fs = ghc::filesystem;
 #endif
 
-// TODO: figure out how to set the working directory through CMake
-static const std::string kTestCwd = "/Users/enos/projects/quadmat/test/";
-static const std::string kTestMatrixDir = kTestCwd + "matrices/";
+static const std::string kTestMatrixDir = TEST_MATRIX_DIR;  // configured in CMake
 static const std::string kUnitTestMatrixDir = kTestMatrixDir + "unit/";
 
 /**
