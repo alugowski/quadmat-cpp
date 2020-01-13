@@ -53,7 +53,7 @@ namespace quadmat {
 
         std::shared_ptr<InnerBlock<T, Config>> CreateInner(int pos) override {
             std::shared_ptr<InnerBlock<T, Config>> ret =
-                    std::make_shared<InnerBlock<T, Config>>(this->discriminating_bit_ >> 1);
+                    quadmat::allocate_shared<Config, InnerBlock<T, Config>>(this->discriminating_bit_ >> 1);
             children_[pos] = ret;
             return ret;
         }

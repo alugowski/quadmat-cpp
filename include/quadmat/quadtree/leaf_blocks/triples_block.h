@@ -193,7 +193,7 @@ namespace quadmat {
          */
         std::shared_ptr<PermutationVectorType> GetSortPermutation() const
         {
-            auto p = std::make_shared<PermutationVectorType>(rows_.size());
+            auto p = quadmat::allocate_shared_temp<Config, PermutationVectorType>(rows_.size());
             std::iota(p->begin(), p->end(), 0);
             std::sort(p->begin(), p->end(),
                       [&](size_t i, size_t j) {

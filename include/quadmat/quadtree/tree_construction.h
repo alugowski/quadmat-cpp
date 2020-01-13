@@ -76,7 +76,7 @@ namespace quadmat {
 
         // subdivision is required
         const Index discriminating_bit = GetChildDiscriminatingBit(parent_discriminating_bit);
-        auto ret = std::make_shared<InnerBlock<T, Config>>(discriminating_bit);
+        auto ret = quadmat::allocate_shared<Config, InnerBlock<T, Config>>(discriminating_bit);
 
         // partition east and west children by column
         std::partition(perm_begin, perm_end,
@@ -148,7 +148,7 @@ namespace quadmat {
      */
     template <typename T, typename IT, typename Config = DefaultConfig>
     TreeNode<T, Config> Subdivide(const std::shared_ptr<TriplesBlock<T, IT, Config>> block, const Shape& shape) {
-        auto permutation = std::make_shared<typename TriplesBlock<T, IT, Config>::PermutationVectorType>(block->GetNnn());
+        auto permutation = quadmat::allocate_shared<Config, typename TriplesBlock<T, IT, Config>::PermutationVectorType>(block->GetNnn());
         std::iota(permutation->begin(), permutation->end(), 0);
         return SubdivideImpl(block,
                              Offset{0, 0},

@@ -19,14 +19,14 @@ namespace quadmat {
          *
          * @param shape number of rows and columns.
          */
-        explicit Matrix(const Shape& shape) : shape_(shape), root_bc_(std::make_shared<single_block_container < T, Config>>(shape)) {}
+        explicit Matrix(const Shape& shape) : shape_(shape), root_bc_(quadmat::allocate_shared<Config, single_block_container < T, Config>>(shape)) {}
 
         /**
          * Construct a matrix with a particular node
          * @param root_node
          * @param shape
          */
-        Matrix(const Shape& shape, const TreeNode<T, Config>& root_node) : shape_(shape), root_bc_(std::make_shared<single_block_container < T, Config>>(shape, root_node)) {}
+        Matrix(const Shape& shape, const TreeNode<T, Config>& root_node) : shape_(shape), root_bc_(quadmat::allocate_shared<Config, single_block_container < T, Config>>(shape, root_node)) {}
 
         /**
          * @return the shape of this matrix
@@ -81,7 +81,7 @@ namespace quadmat {
         Matrix<T, Config> ret{shape};
 
         // copy tuples into a triples block
-        auto triples = std::make_shared<TriplesBlock<T, Index, Config>>();
+        auto triples = quadmat::allocate_shared<Config, TriplesBlock<T, Index, Config>>();
         triples->Add(gen);
 
         // get a quadmat quadtree by subdividing the triples block

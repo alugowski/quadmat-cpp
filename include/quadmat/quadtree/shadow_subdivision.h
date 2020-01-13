@@ -52,7 +52,7 @@ namespace quadmat {
             auto end_column = leaf->ColumnsEnd();
 
             std::shared_ptr<InnerBlock<T, Config>> ret =
-                    std::make_shared<InnerBlock<T, Config>>(discriminating_bit);
+                    quadmat::allocate_shared<Config, InnerBlock<T, Config>>(discriminating_bit);
 
             // create shadow block children
             for (InnerPosition child_pos : kAllInnerPositions) {

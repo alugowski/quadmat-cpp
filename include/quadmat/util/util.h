@@ -268,6 +268,26 @@ namespace quadmat {
     inline Index GetChildDiscriminatingBit(const Index parent_discriminating_bit) {
         return parent_discriminating_bit > 1 ? parent_discriminating_bit >> 1 : 1; // NOLINT(hicpp-signed-bitwise)
     }
+
+    /**
+     * Allocate a shared_ptr using the default allocator.
+     *
+     * This method only exists because std::allocate_shared requires repeating long template types.
+     */
+    template <typename Config, typename T, typename... Args>
+    inline std::shared_ptr<T> allocate_shared(Args&&... args) {
+        return std::allocate_shared<T>(typename Config::template Allocator<T>(), args...);
+    }
+
+    /**
+     * Allocate a shared_ptr using the temporary allocator.
+     *
+     * This method only exists because std::allocate_shared requires repeating long template types.
+     */
+    template <typename Config, typename T, typename... Args>
+    inline std::shared_ptr<T> allocate_shared_temp(Args&&... args) {
+        return std::allocate_shared<T>(typename Config::template TempAllocator<T>(), args...);
+    }
 }
 
 #endif //QUADMAT_UTIL_H

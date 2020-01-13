@@ -222,9 +222,9 @@ namespace quadmat {
             LeafIndex shadow_type = GetLeafIndexType(shape);
 
             return std::visit(overloaded{
-                    [&](int64_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int64_t, Config>(std::make_shared<WindowShadowBlock<int64_t, DcscBlock<T, IT, Config>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
-                    [&](int32_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int32_t, Config>(std::make_shared<WindowShadowBlock<int32_t, DcscBlock<T, IT, Config>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
-                    [&](int16_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int16_t, Config>(std::make_shared<WindowShadowBlock<int16_t, DcscBlock<T, IT, Config>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
+                    [&](int64_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int64_t, Config>(quadmat::allocate_shared<Config, WindowShadowBlock<int64_t, DcscBlock<T, IT, Config>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
+                    [&](int32_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int32_t, Config>(quadmat::allocate_shared<Config, WindowShadowBlock<int32_t, DcscBlock<T, IT, Config>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
+                    [&](int16_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int16_t, Config>(quadmat::allocate_shared<Config, WindowShadowBlock<int16_t, DcscBlock<T, IT, Config>>>(base_dcsc, begin_column, end_column, offsets, shape)); },
             }, shadow_type);
         }
 
@@ -244,9 +244,9 @@ namespace quadmat {
             LeafIndex shadow_type = GetLeafIndexType(shadow_shape);
 
             return std::visit(overloaded{
-                    [&](int64_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int64_t, Config>(std::make_shared<WindowShadowBlock<int64_t, DcscBlock<T, IT, Config>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
-                    [&](int32_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int32_t, Config>(std::make_shared<WindowShadowBlock<int32_t, DcscBlock<T, IT, Config>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
-                    [&](int16_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int16_t, Config>(std::make_shared<WindowShadowBlock<int16_t, DcscBlock<T, IT, Config>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
+                    [&](int64_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int64_t, Config>(quadmat::allocate_shared<Config, WindowShadowBlock<int64_t, DcscBlock<T, IT, Config>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
+                    [&](int32_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int32_t, Config>(quadmat::allocate_shared<Config, WindowShadowBlock<int32_t, DcscBlock<T, IT, Config>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
+                    [&](int16_t dim) -> LeafNode<T, Config> { return LeafCategory<T, int16_t, Config>(quadmat::allocate_shared<Config, WindowShadowBlock<int16_t, DcscBlock<T, IT, Config>>>(base_dcsc, shadow_begin_column, shadow_end_column, shadow_offsets, shadow_shape)); },
             }, shadow_type);
         }
 
@@ -332,7 +332,8 @@ namespace quadmat {
             // cap off the columns
             col_ptr_.emplace_back(row_ind_.size());
 
-            return std::make_shared<DcscBlock<T, IT, Config>>(
+            return std::allocate_shared<DcscBlock<T, IT, Config>>(
+                    typename Config::template Allocator<DcscBlock<T, IT, Config>>(),
                     std::move(col_ind_),
                     std::move(col_ptr_),
                     std::move(row_ind_),
