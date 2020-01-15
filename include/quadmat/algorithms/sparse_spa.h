@@ -16,6 +16,9 @@ namespace quadmat {
     template <typename IT, typename Semiring, typename Config=DefaultConfig>
     class SparseSpa {
     public:
+        using IndexType = IT;
+        using ValueType = typename Semiring::ReduceType;
+
         /**
          * @param size ignored here. Used in dense SpA.
          */

@@ -6,7 +6,7 @@ test/matrices/medium/Multiply/gitignored*
 .idea/
 
 # CMake temporaries
-cmake-build-debug/
+cmake-build-*/
 
 # Compiled Object files
 *.slo
