@@ -11,10 +11,13 @@
 namespace quadmat {
 
     /**
-     * A sparse SpA is essentially a map.
+     * A SpA implemented using an ordered map.
+     *
+     * The primary benefit of this over DenseSpa is that MapSpa is O(k) where k is the number of non-null elements
+     * added to the spa. DenseSpa is O(n) where n is the size of the spa, regardless of how many elements are set.
      */
     template <typename IT, typename Semiring, typename Config=DefaultConfig>
-    class SparseSpa {
+    class MapSpa {
     public:
         using IndexType = IT;
         using ValueType = typename Semiring::ReduceType;
@@ -22,7 +25,7 @@ namespace quadmat {
         /**
          * @param size ignored here. Used in dense SpA.
          */
-        explicit SparseSpa(size_t size, const Semiring& semiring = Semiring()) : semiring_(semiring) {}
+        explicit MapSpa(size_t size, const Semiring& semiring = Semiring()) : semiring_(semiring) {}
 
         /**
          * Update the SpA with (row, value) pairs, i.e. an entire column.

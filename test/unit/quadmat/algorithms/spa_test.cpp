@@ -11,7 +11,7 @@ using Catch::Matchers::Equals;
 
 TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
         (DenseSpa<Index, PlusTimesSemiring<double>>),
-        (SparseSpa<Index, PlusTimesSemiring<double>>)) {
+        (MapSpa<Index, PlusTimesSemiring<double>>)) {
 
     SECTION("Basic") {
         int size = 10;

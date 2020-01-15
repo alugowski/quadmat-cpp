@@ -201,19 +201,19 @@ BENCHMARK(BM_ScatterRoofline)->Ranges(k32bitLarge);
 
 // 16-bit spa
 BENCHMARK_TEMPLATE(BM_SpaScatterOnly, DenseSpa<int16_t, PlusTimesSemiring<double>>)->Ranges(k16bit);
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, SparseSpa<int16_t, PlusTimesSemiring<double>>)->Ranges(k16bit);
+BENCHMARK_TEMPLATE(BM_SpaScatterOnly, MapSpa<int16_t, PlusTimesSemiring<double>>)->Ranges(k16bit);
 
 // 32-bit spa
 BENCHMARK_TEMPLATE(BM_SpaScatterOnly, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, SparseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
+BENCHMARK_TEMPLATE(BM_SpaScatterOnly, MapSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
 BENCHMARK_TEMPLATE(BM_SpaScatterOnly, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, SparseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_SpaScatterOnly, MapSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
 
 // Full use of the spa, including reading back results and clearing the spa.
 BENCHMARK_TEMPLATE(BM_Spa, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_Spa, SparseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
+BENCHMARK_TEMPLATE(BM_Spa, MapSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
 BENCHMARK_TEMPLATE(BM_Spa, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
-BENCHMARK_TEMPLATE(BM_Spa, SparseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_Spa, MapSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
 
 
 #pragma clang diagnostic pop
