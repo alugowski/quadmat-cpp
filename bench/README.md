@@ -9,3 +9,5 @@ If your `benchmark/` and `googletest/` are empty, use the following to fetch the
 ```bash
 git submodule update --init 
 ```
+
+Use `--benchmark_counters_tabular=true` argument for nice table output.

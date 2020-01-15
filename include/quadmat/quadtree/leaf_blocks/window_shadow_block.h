@@ -22,6 +22,7 @@ namespace quadmat {
         using ValueType = typename ShadowedLeaf::ValueType;
         using IndexType = IT;
         using ConfigType = typename ShadowedLeaf::ConfigType;
+        using ShadowedLeafType = ShadowedLeaf;
 
         WindowShadowBlock(
                 const std::shared_ptr<ShadowedLeaf> &base,
