@@ -55,6 +55,7 @@ TEST_CASE("I/O - Matrix Market") {
                                         "invalid_bad_format.mtx",
                                         "invalid_bad_object.mtx",
                                         "invalid_bad_symmetry.mtx",
+                                        "invalid_bad_value.mtx",
                                         "invalid_complex.mtx",
                                         "invalid_hermitian.mtx",
                                         "invalid_indices_out_of_range_1.mtx",

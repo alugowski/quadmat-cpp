@@ -140,7 +140,9 @@ public:
     };
 
     Iterator begin() {
-        return Iterator(this, false);
+        Iterator ret(this, false);
+        ret++; // load first chunk so it's ready for first dereference
+        return ret;
     }
 
     Iterator end() {

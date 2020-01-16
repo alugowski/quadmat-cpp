@@ -4,6 +4,9 @@
 #ifndef QUADMAT_SIMPLE_MATRIX_MARKET_H
 #define QUADMAT_SIMPLE_MATRIX_MARKET_H
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+#include <charconv>
+#endif
 #include <fstream>
 #include <mutex>
 #include <sstream>
@@ -183,7 +186,7 @@ namespace quadmat {
          */
         template <typename Config = DefaultConfig>
         Matrix<T, Config> Load(std::istream& instream, const T& pattern_value = 1) {
-            load_successful_ = LoadImpl(instream, pattern_value);
+            load_successful_ = LoadImpl<Config>(instream, pattern_value);
 
             return MatrixFromTuples<T, Config>(shape_, loaded_tuples_.size(), loaded_tuples_);
         }
@@ -216,9 +219,9 @@ namespace quadmat {
         }
 
     protected:
-        bool LoadImpl(std::istream& instream, const T& pattern_value) {
-            bool has_warnings = false;
 
+        template <typename Config = DefaultConfig>
+        bool LoadImpl(std::istream& instream, const T& pattern_value) {
             // read the header
             MatrixMarketHeader header;
             if (!header.ReadHeader(instream, ec_)) {
@@ -247,42 +250,7 @@ namespace quadmat {
             }
 
             // read the tuples
-            size_t line_num = header.lines_read;
-            while (!instream.eof()) {
-                std::string line;
-                std::getline(instream, line);
-                line_num++;
-
-                if (line.empty()) {
-                    break;
-                }
-
-                std::istringstream iss(line);
-
-                Index row;
-                Index col;
-
-                iss >> row >> col;
-
-                if (row < 1 || row > shape_.nrows) {
-                    ec_.Warning("line ", line_num, ": row index out of range");
-                    has_warnings = true;
-                    continue;
-                }
-                if (col < 1 || col > shape_.ncols) {
-                    ec_.Warning("line ", line_num, ": column index out of range");
-                    has_warnings = true;
-                    continue;
-                }
-
-                if (header.field == MatrixMarketHeader::pattern) {
-                    loaded_tuples_.emplace_back(row - 1, col - 1, pattern_value);
-                } else {
-                    T value;
-                    iss >> value;
-                    loaded_tuples_.emplace_back(row - 1, col - 1, value);
-                }
-            }
+            bool has_warnings = ReadTuples<Config>(header, instream, pattern_value);
 
             // sanity check length of what we read
             if (loaded_tuples_.size() != header.nnz) {
@@ -295,6 +263,166 @@ namespace quadmat {
             return !has_warnings;
         }
 
+#if !defined(QUADMAT_PARSE_NO_FROMCHARS) && defined(__cplusplus) && __cplusplus >= 201703L
+        /**
+         * Parse a string into an int.
+         *
+         * This version uses C++17's from_chars functionality which is faster than strtoll() but less available.
+         *
+         * @param pos field start
+         * @param end field end
+         * @param val outparameter where parsed value is written
+         * @param left_trim if true then any whitespace is first trimmed
+         * @return pointer to the first character after this field, or nullptr if there was a parsing error
+         */
+        const char* ReadInt(const char* pos, const char* end, Index& val, bool left_trim) const noexcept {
+            if (left_trim) {
+                pos = pos + std::strspn(pos, " ");
+            }
+
+            std::from_chars_result result = std::from_chars(pos, end, val);
+            if (result.ec != std::errc()) {
+                return nullptr;
+            }
+
+            return result.ptr;
+        }
+#else
+        /**
+         * Parse a string into an int.
+         *
+         * This version uses strtoll which is widely available.
+         *
+         * @param pos field start
+         * @param end field end
+         * @param val outparameter where parsed value is written
+         * @param left_trim if true then any whitespace is first trimmed
+         * @return pointer to the first character after this field, or nullptr if there was a parsing error
+         */
+        const char* ReadInt(const char* pos, const char* end, Index& val, bool left_trim) const noexcept {
+            char *ret;
+            val = std::strtoll(pos, &ret, 10);
+
+            if (ret == pos) {
+                return nullptr;
+            }
+            return ret;
+        }
+#endif
+        /**
+         * Parse a string into a double.
+         *
+         * This version uses strtod which is widely available.
+         *
+         * A version of from_chars that parses doubles sill has limited compiler support and is not yet
+         * implemented here.
+         *
+         * @param pos field start
+         * @param end field end
+         * @param val outparameter where parsed value is written
+         * @param left_trim if true then any whitespace is first trimmed
+         * @return pointer to the first character after this field, or nullptr if there was a parsing error
+         */
+        const char* ReadDouble(const char* pos, const char* end, T& val, bool left_trim) const noexcept {
+            char *ret;
+            val = std::strtod(pos, &ret);
+
+            if (ret == pos) {
+                return nullptr;
+            }
+            return ret;
+        }
+
+        /**
+         * Find the next line.
+         *
+         * @param pos position
+         * @param end iteration limit
+         * @return pos advanced such that it points to one past the next newline, or end if no newline found
+         */
+        const char* AdvanceToNextLine(const char* pos, const char* end) {
+            while (pos != end && *pos != '\n') {
+                ++pos;
+            }
+
+            if (pos != end) {
+                ++pos;
+            }
+            return pos;
+        }
+
+        /**
+         * Read tuples. Attempts to take advantage of as many fast parsing practices as possible.
+         * See the bench_parse benchmark.
+         *
+         * The input stream is chunked into relatively large blocks. Line and field separators are found efficiently,
+         * fields are parsed using the fastest integer and double parsing methods available.
+         *
+         * @tparam Config
+         * @param header already parsed header
+         * @param instream stream to read from. This method is single pass.
+         * @param pattern_value value to use if the file is a pattern file (i.e. lines do not specify a value)
+         * @return true if any lines have a warning
+         */
+        template <typename Config = DefaultConfig>
+        bool ReadTuples(const MatrixMarketHeader& header, std::istream& instream, const T& pattern_value) {
+            bool has_warnings = false;
+
+            size_t line_num = header.lines_read;
+
+            // Chunk the input into 1MB blocks
+            // This allows disk I/O to be fast because it reads a large chunk at a time.
+            StreamChunker<typename Config::template TempAllocator<char>> chunker(instream, 1u << 20u, '\n');
+            for (auto chunk : chunker) {
+
+                const char* pos = chunk.data();
+                const char* end = pos + chunk.size();
+
+                while (pos != end && pos != nullptr) {
+                    const char* line_start = pos;
+
+                    Index row, col;
+
+                    pos = ReadInt(pos, end, row, false);
+                    if (pos == nullptr || row < 1 || row > shape_.nrows) {
+                        ec_.Warning("line ", line_num, ": row index out of range");
+                        has_warnings = true;
+                        pos = AdvanceToNextLine(line_start, end);
+                        continue;
+                    }
+
+                    pos = ReadInt(pos, end, col, true);
+                    if (pos == nullptr || col < 1 || col > shape_.ncols) {
+                        ec_.Warning("line ", line_num, ": column index out of range");
+                        has_warnings = true;
+                        pos = AdvanceToNextLine(line_start, end);
+                        continue;
+                    }
+
+                    if (header.field == MatrixMarketHeader::pattern) {
+                        loaded_tuples_.emplace_back(row - 1, col - 1, pattern_value);
+                    } else {
+                        T value;
+                        pos = ReadDouble(pos, end, value, true);
+                        if (pos == nullptr) {
+                            ec_.Warning("line ", line_num, ": error parsing value");
+                            has_warnings = true;
+                            pos = AdvanceToNextLine(line_start, end);
+                        }
+                        loaded_tuples_.emplace_back(row - 1, col - 1, value);
+                    }
+
+                    // ignore trailing whitespace
+                    pos = AdvanceToNextLine(pos, end);
+                }
+            }
+
+            return has_warnings;
+        }
+
+        /**
+         * If the loaded file has been specified as symmetric than duplicate tuples accordingly.
+         */
         void ExpandSymmetry(const MatrixMarketHeader& header) {
             switch (header.symmetry) {
                 case MatrixMarketHeader::general:
