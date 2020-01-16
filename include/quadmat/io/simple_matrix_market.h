@@ -13,6 +13,7 @@
 #include "quadmat/matrix.h"
 #include "quadmat/quadtree/tree_visitors.h"
 #include "quadmat/util/base_iterators.h"
+#include "quadmat/util/stream_chunker.h"
 #include "quadmat/util/types.h"
 
 namespace quadmat {
