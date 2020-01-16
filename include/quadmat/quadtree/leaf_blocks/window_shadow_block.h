@@ -69,7 +69,7 @@ namespace quadmat {
             explicit ColumnIterator(const WindowShadowBlock<IT, ShadowedLeaf>* shadow_block, const typename ShadowedLeaf::ColumnIterator& iter, bool advance_ok = true) : shadow_block_(shadow_block), iter_(iter) {
                 if (advance_ok) {
                     // It's possible that the given iter points at a column that doesn't have any rows that fit the window.
-                    advance_to_next_nonempty_col();
+                    AdvanceToNextNonemptyCol();
                 } // else it's a column point lookup and AreRowsInWindow() is called by the caller
             }
             ColumnIterator(const ColumnIterator& rhs) : shadow_block_(rhs.shadow_block_), iter_(rhs.iter_), cached_rows_begin_(rhs.cached_rows_begin_), cached_rows_end_(rhs.cached_rows_end_) {}
@@ -118,13 +118,13 @@ namespace quadmat {
                 // there might still not be any values in the window if the window is in an empty part of the column
                 // however the column does now have valid iterators, so we can dereference and do a search
                 cached_rows_begin_ = std::lower_bound(ref.rows_begin, ref.rows_end, shadow_block_->row_begin_);
-              cached_rows_end_ = std::upper_bound(cached_rows_begin_, ref.rows_end, shadow_block_->row_inclusive_end_);
+                cached_rows_end_ = std::upper_bound(cached_rows_begin_, ref.rows_end, shadow_block_->row_inclusive_end_);
 
                 return cached_rows_begin_ != cached_rows_end_;
             }
 
         private:
-            void advance_to_next_nonempty_col() {
+            void AdvanceToNextNonemptyCol() {
                 while (iter_ != shadow_block_->end_column_ && !AreRowsInWindow()) {
                     ++iter_;
                 }

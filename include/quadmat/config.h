@@ -30,14 +30,14 @@ namespace quadmat {
          *
          * This is a constant here, but may not be const in other Configs.
          */
-        static const size_t DenseSpaMaxCount = 100 * 1024 * 1024;
+        static const std::size_t DenseSpaMaxCount = 100 * 1024 * 1024;
 
         /**
          * Largest size of a dense SpA's array. Larger problems use a sparse SpA.
          *
          * This is a constant here, but may not be const in other Configs.
          */
-        static const size_t DenseSpaMaxBytes = 10  * 1024 * 1024;
+        static const std::size_t DenseSpaMaxBytes = 10  * 1024 * 1024;
 
         /**
          * Decide whether to use a dense or sparse SpA.
@@ -52,9 +52,30 @@ namespace quadmat {
          * @return true if a dense SpA should be used, false if a sparse SpA should be used.
          */
         template <typename T>
-        static bool ShouldUseDenseSpa(size_t nrows) {
+        static bool ShouldUseDenseSpa(Index nrows) {
             // choose based on count or size in bytes
             return nrows <= DenseSpaMaxCount && nrows * sizeof(T) <= DenseSpaMaxBytes;
+        }
+
+        /**
+         * Whether or not to have a particular DCSC block use a column bitmask optimization.
+         *
+         * A common operation in matrix multiply is looking up columns in the A block. This operation has a low
+         * hit rate. DCSC indices are generally slow, while a bitmask lookup is very fast. If memory is available
+         * it may be worth to use a bitmask to mark whether columns are empty or not to speed up the common miss case.
+         *
+         * @param ncols number of columns in the block
+         * @param num_nn_cols number of non-empty columns
+         * @return true if it's ok to use a bitmask
+         */
+        static bool ShouldUseDcscBoolMask(Index ncols, std::size_t num_nn_cols) {
+            std::size_t num_mask_bytes = ncols / 8;
+
+            double column_fill_fraction = static_cast<double>(num_nn_cols) / ncols;
+
+            return num_mask_bytes < 1u << 22u      // Only if (dense) mask doesn't use too much memory
+                   && num_nn_cols > 1              // Only if block is not empty, where the regular search is fast
+                   && column_fill_fraction < 0.9;  // Only if block is not nearly full, as mask only speeds up misses
         }
 
         /**

@@ -49,8 +49,9 @@ namespace quadmat {
         DcscBlock(std::vector<IT, typename Config::template Allocator<IT>>&& col_ind,
                   std::vector<BlockNnn, typename Config::template Allocator<BlockNnn>>&& col_ptr,
                   std::vector<IT, typename Config::template Allocator<IT>>&& row_ind,
-                  std::vector<T, typename Config::template Allocator<T>>&& values) :
-            col_ind_(col_ind), col_ptr_(col_ptr), row_ind_(row_ind), values_(values) {}
+                  std::vector<T, typename Config::template Allocator<T>>&& values,
+                  std::vector<bool, typename Config::template Allocator<bool>>&& col_ind_mask) :
+            col_ind_(col_ind), col_ptr_(col_ptr), row_ind_(row_ind), values_(values), col_ind_mask_(col_ind_mask) {}
 
         /**
          * Iterator type for iterating over this block's tuples
@@ -173,6 +174,13 @@ namespace quadmat {
          * @return column iterator pointing at col, or ColumnsEnd()
          */
         ColumnIterator GetColumn(IT col) const {
+            if (!col_ind_mask_.empty()) {
+                // using mask optimization
+                if (col >= col_ind_mask_.size() || !col_ind_mask_[col]) {
+                    return ColumnsEnd();
+                }
+            }
+
             auto pos = std::lower_bound(begin(col_ind_), end(col_ind_), col);
             if (pos == end(col_ind_) || *pos != col) {
                 return ColumnsEnd();
@@ -194,7 +202,7 @@ namespace quadmat {
 
         [[nodiscard]] BlockSizeInfo GetSize() const {
             return BlockSizeInfo{
-                col_ind_.size() * sizeof(IT) + col_ptr_.size() * sizeof(BlockNnn) + row_ind_.size() * sizeof(IT),
+                col_ind_.size() * sizeof(IT) + col_ptr_.size() * sizeof(BlockNnn) + row_ind_.size() * sizeof(IT) + col_ind_mask_.size() / 8,
                 values_.size() * sizeof(T),
                 sizeof(DcscBlock<T, IT, Config>),
                 values_.size()
@@ -255,6 +263,11 @@ namespace quadmat {
         const std::vector<BlockNnn, typename Config::template Allocator<BlockNnn>> col_ptr_;
         const std::vector<IT, typename Config::template Allocator<IT>> row_ind_;
         const std::vector<T, typename Config::template Allocator<T>> values_;
+
+        /**
+         * An optional bitfield for column existence testing. Speeds up GetColumn().
+         */
+        const std::vector<bool, typename Config::template Allocator<bool>> col_ind_mask_;
     };
 
     /**
@@ -273,7 +286,6 @@ namespace quadmat {
          * Create a DCSC block from (column, row)-ordered tuples. Single pass.
          *
          * @tparam Gen tuple generator template type
-         * @param nrows number of rows in this block
          * @param ncols number of columns in this block
          * @param nnn estimated number of nonzeros in this block.
          * @param col_ordered_gen tuple generator. **Must return tuples ordered by column, row**
@@ -332,12 +344,24 @@ namespace quadmat {
             // cap off the columns
             col_ptr_.emplace_back(row_ind_.size());
 
+            // create a lookup mask, if appropriate
+            std::vector<bool, typename Config::template Allocator<bool>> col_ind_mask_;
+
+            Index ncols = col_ind_.empty() ? 0 : col_ind_.back() + 1;
+            if (ncols > 0 && Config::ShouldUseDcscBoolMask(ncols, col_ind_.size())) {
+                col_ind_mask_.resize(ncols);
+                for (const auto& col : col_ind_) {
+                    col_ind_mask_[col] = true;
+                }
+            }
+
             return std::allocate_shared<DcscBlock<T, IT, Config>>(
                     typename Config::template Allocator<DcscBlock<T, IT, Config>>(),
                     std::move(col_ind_),
                     std::move(col_ptr_),
                     std::move(row_ind_),
-                    std::move(values_)
+                    std::move(values_),
+                    std::move(col_ind_mask_)
                     );
         }
 
