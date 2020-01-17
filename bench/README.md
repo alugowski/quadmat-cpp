@@ -46,24 +46,25 @@ Load Average: 2.62, 2.79, 2.61
 -----------------------------------------------------------------------------------------------
 Benchmark                                          Time             CPU   Iterations      Bytes
 -----------------------------------------------------------------------------------------------
-BM_ScanSpeed                                16634453 ns     16575548 ns           42 3.16302G/s
-BM_FindLineBreaks_strchr                    32272829 ns     32226773 ns           22 1.62687G/s
-BM_FindLineBreaks_find_first_of_char        36833886 ns     36781895 ns           19  1.4254G/s
-BM_FindLineBreaks_find_first_of_str         48736669 ns     48355625 ns           16 1084.23M/s
-BM_FindLineBreaks_getline                  340889182 ns    340512000 ns            2 153.971M/s
-BM_LineTokenize_strpbrk/space_only              84.9 ns         84.7 ns      8131215 495.763M/s
-BM_LineTokenize_strpbrk/space_tab                113 ns          112 ns      6274707 373.646M/s
-BM_IntFieldParse_from_chars                     22.8 ns         22.8 ns     31087761 307.048M/s
-BM_IntFieldParse_atol                           42.7 ns         42.7 ns     16518706 164.021M/s
-BM_IntFieldParse_stoll                          62.1 ns         61.9 ns     11306005 113.033M/s
-BM_IntFieldParse_strtoll                        45.4 ns         45.3 ns     15507139  154.37M/s
-BM_DoubleFieldParse_strtod                      79.7 ns         79.5 ns      8792755 176.033M/s
-BM_LineParse_istringstream                      1961 ns         1953 ns       360735 21.5044M/s
-BM_LineParse_sscanf                              712 ns          711 ns       934480 59.0656M/s
-BM_LineParse_strtok_and_strtoll                  282 ns          281 ns      2452595 149.296M/s
-BM_LineParse_strtoll                             218 ns          218 ns      3254406 193.102M/s
-BM_LineParse_from_chars_strtod/space_only        170 ns          170 ns      4163742 247.344M/s
-BM_LineParse_from_chars_strtod/space_tab         177 ns          177 ns      4007626 237.791M/s
-BM_BlockParse_istringstream               2070970782 ns   2067699000 ns            1 25.3561M/s
-BM_BlockParse_from_chars_strtod            230779056 ns    230515667 ns            3 227.441M/s
+BM_ScanSpeed                                16548076 ns     16498024 ns           41 3.17789G/s
+BM_ChunkedScanSpeed                         40672226 ns     40634176 ns           17 1.29026G/s
+BM_FindLineBreaks_strchr                    30845601 ns     30828955 ns           22 1.70064G/s
+BM_FindLineBreaks_find_first_of_char        35178593 ns     35148750 ns           20 1.49163G/s
+BM_FindLineBreaks_find_first_of_str         32520784 ns     32476333 ns           21 1.61437G/s
+BM_FindLineBreaks_getline                  328721338 ns    328544000 ns            2 159.579M/s
+BM_LineTokenize_strpbrk/space_only              82.5 ns         82.4 ns      7955449 509.696M/s
+BM_LineTokenize_strpbrk/space_tab                110 ns          110 ns      6414192 380.868M/s
+BM_LineTokenize_strtok                          92.9 ns         92.9 ns      7537824 452.242M/s
+BM_IntFieldParse_from_chars                     21.9 ns         21.9 ns     31953986 319.748M/s
+BM_IntFieldParse_atol                           41.3 ns         41.3 ns     17087716 169.557M/s
+BM_IntFieldParse_stoll                          61.6 ns         61.5 ns     11828320 113.871M/s
+BM_IntFieldParse_strtoll                        46.8 ns         46.6 ns     15113535 150.177M/s
+BM_DoubleFieldParse_strtod                      82.9 ns         82.6 ns      9246539 169.559M/s
+BM_LineParse_istringstream                      2011 ns         1996 ns       358831 21.0466M/s
+BM_LineParse_sscanf                              755 ns          747 ns      1036055 56.2176M/s
+BM_LineParse_strtoll                             247 ns          240 ns      3171425 175.324M/s
+BM_LineParse_from_chars_strtod/space_only        189 ns          184 ns      3370960 227.985M/s
+BM_LineParse_from_chars_strtod/space_tab         174 ns          174 ns      4019431 241.667M/s
+BM_BlockParse_istringstream               2220819065 ns   2190635000 ns            1 23.9332M/s
+BM_BlockParse_from_chars_strtod            253545326 ns    249363000 ns            3 210.251M/s
 ```

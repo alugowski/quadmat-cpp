@@ -215,22 +215,19 @@ static void BM_LineTokenize_strpbrk(benchmark::State& state, const char* sep) {
         for (const auto& line : kLines) {
             row_start = line.c_str();
             row_end = std::strpbrk(row_start, sep);
-            if (!row_end)
-            {
+            if (!row_end) {
                 break; // error testing
             }
 
             col_start = row_end + std::strspn(row_end, sep); // skip separator
             col_end = std::strpbrk(col_start, sep);
-            if (!col_end)
-            {
+            if (!col_end) {
                 break; // error testing
             }
 
             value_start = col_end + std::strspn(col_end, sep); // skip separator
             value_end = std::strpbrk(value_start, sep);
-            if (value_end)
-            {
+            if (value_end) {
                 // value_end is always NULL in this benchmark
                 break; // error testing
             }
@@ -248,6 +245,61 @@ static void BM_LineTokenize_strpbrk(benchmark::State& state, const char* sep) {
 
 BENCHMARK_CAPTURE(BM_LineTokenize_strpbrk, space_only, " ");
 BENCHMARK_CAPTURE(BM_LineTokenize_strpbrk, space_tab, " \t");
+
+/**
+ * Tokenize line using strtok
+ *
+ * This benchmark serves to only provide a performance context because strtok is unusable:
+ *  - strtok() is not thread safe.
+ *  - strtok_r() is thread safe, but only available on POSIX systems. It is _not_ in the std namespace.
+ *  - strtok_s() is standard C11, but Windows has an older incompatible version.
+ */
+static void BM_LineTokenize_strtok(benchmark::State& state) {
+    static const char* kSepWithinLine = " "; // delimiters for fields within a line.
+
+    std::size_t num_bytes = 0;
+
+    // reserve space for a copy of the line because strtok makes modifications.
+    std::size_t max_length = 0;
+    for (const auto& line : kLines) {
+        max_length = std::max(max_length, line.size());
+    }
+    std::vector<char> line_buffer(max_length + 1);
+    char* line_copy = &line_buffer[0];
+
+    for (auto _ : state) {
+        for (const auto& line : kLines) {
+            // Copy the original string so that strtok can modify it
+            // This copy is extra work that makes the method appear slower but it's unavoidable.
+            std::strcpy(line_copy, line.c_str());
+
+            char *row_s = std::strtok(line_copy, kSepWithinLine);
+            if (!row_s) {
+                break; // error testing
+            }
+
+            char *col_s = std::strtok(nullptr, kSepWithinLine);
+            if (!col_s) {
+                break; // error testing
+            }
+
+            char *val_s = std::strtok(nullptr, kSepWithinLine);
+            if (!val_s) {
+                break; // error testing
+            }
+
+            benchmark::DoNotOptimize(row_s);
+            benchmark::DoNotOptimize(col_s);
+            benchmark::DoNotOptimize(val_s);
+
+            num_bytes += line.size();
+        }
+    }
+
+    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+}
+
+BENCHMARK(BM_LineTokenize_strtok);
 
 #if defined(__cplusplus) && __cplusplus >= 201703L
 /**
@@ -447,76 +499,6 @@ static void BM_LineParse_sscanf(benchmark::State& state) {
 }
 
 BENCHMARK(BM_LineParse_sscanf);
-
-#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
-/**
- * Parse a line using strtok_r and strtol variants.
- *
- * Compared to just using strtol() this method has the advantage of clearly identifying and separating fields.
- *
- * It has many disadvantages:
- *  - strtok() is not thread safe.
- *  - strtok_r() is thread safe, but not available on all platforms. It is on POSIX. Note it's _not_ in std.
- *  - strtok_s() is standard C11, but Windows has an older incompatible version.
- *
- * This benchmark serves to provide a performance context only.
- */
-static void BM_LineParse_strtok_and_strtoll(benchmark::State& state) {
-    static const char* kSepWithinLine = " "; // delimiters for fields within a line.
-
-    std::size_t num_bytes = 0;
-
-    int64_t row, col;
-    double value;
-
-    // reserve a space for a copy of the line because strtok_r makes modifications.
-    std::size_t max_length = 0;
-    for (const auto& line : kLines) {
-        max_length = std::max(max_length, line.size());
-    }
-    std::vector<char> line_buffer(max_length + 1);
-    char* line_copy = &line_buffer[0];
-
-    for (auto _ : state) {
-        for (const auto& line : kLines) {
-            // Copy the original string so that strtok_r can modify it
-            // This copy is extra work that makes the method appear slower but it's unavoidable.
-            std::strcpy(line_copy, line.c_str());
-
-            char *saveptr;
-
-            char *row_s = strtok_r(line_copy, kSepWithinLine, &saveptr);
-            if (row_s)
-            {
-                row = std::strtoll(row_s, nullptr, 10);
-            }
-
-            char *col_s = strtok_r(nullptr, kSepWithinLine, &saveptr);
-            if (col_s)
-            {
-                col = std::strtoll(col_s, nullptr, 10);
-            }
-
-            char *val_s = strtok_r(nullptr, kSepWithinLine, &saveptr);
-            if (val_s)
-            {
-                value = std::strtod(col_s, nullptr);
-            }
-
-            benchmark::DoNotOptimize(row);
-            benchmark::DoNotOptimize(col);
-            benchmark::DoNotOptimize(value);
-
-            num_bytes += line.size();
-        }
-    }
-
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
-}
-
-BENCHMARK(BM_LineParse_strtok_and_strtoll);
-
-#endif
 
 /**
  * Parse a line using strtoll and strtod.
