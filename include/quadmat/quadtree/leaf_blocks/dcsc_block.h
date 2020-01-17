@@ -365,17 +365,26 @@ namespace quadmat {
             // cap off the columns
             col_ptr_.emplace_back(row_ind_.size());
 
+            // save memory
+            col_ind_.shrink_to_fit();
+            col_ptr_.shrink_to_fit();
+            row_ind_.shrink_to_fit();
+            values_.shrink_to_fit();
+
             // create a lookup mask, if appropriate
             std::vector<bool, typename Config::template Allocator<bool>> col_ind_mask_;
 
             Index ncols = col_ind_.empty() ? 0 : col_ind_.back() + 1;
             if (ncols > 0 && Config::ShouldUseDcscBoolMask(ncols, col_ind_.size())) {
                 col_ind_mask_.resize(ncols);
+
+                // mark non-empty columns in the mask
                 for (const auto& col : col_ind_) {
                     col_ind_mask_[col] = true;
                 }
             }
 
+            // construction complete
             return std::allocate_shared<DcscBlock<T, IT, Config>>(
                     typename Config::template Allocator<DcscBlock<T, IT, Config>>(),
                     std::move(col_ind_),
