@@ -23,6 +23,9 @@ namespace quadmat {
         // For each column j in block b
         Spa spa(result_shape.nrows, semiring);
 
+        // reusable reference to column i in block a
+        typename LeafTypeA::ColumnRef a_i_column = a->ConstructReusableColumnRef();
+
         auto b_columns = b->GetColumns();
 
         for (auto b_j = b_columns.begin(); b_j != b_columns.end(); ++b_j) {
@@ -35,11 +38,8 @@ namespace quadmat {
             // For each element i in j
             while (b_j_row != b_j_row_end) {
                 // look up column j in block a
-                auto a_i = a->GetColumn(*b_j_row);
-
-                if (a_i != a->ColumnsEnd()) {
+                if (a->GetColumn(*b_j_row, a_i_column)) {
                     // perform the multiply and add in the SpA
-                    auto a_i_column = *a_i;
                     spa.Scatter(a_i_column.rows_begin, a_i_column.rows_end, a_i_column.values_begin, *b_j_value);
                 }
 

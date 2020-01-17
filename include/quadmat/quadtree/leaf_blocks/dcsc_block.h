@@ -136,9 +136,9 @@ namespace quadmat {
             value_type operator*() const {
                 return {
                     .col = block_->col_ind_[this->i_],
-                    .rows_begin = block_->row_ind_.begin() + block_->col_ptr_[this->i_],
-                    .rows_end = block_->row_ind_.begin() + block_->col_ptr_[this->i_ + 1],
-                    .values_begin = block_->values_.begin() + block_->col_ptr_[this->i_],
+                    .rows_begin = block_->row_ind_.cbegin() + block_->col_ptr_[this->i_],
+                    .rows_end = block_->row_ind_.cbegin() + block_->col_ptr_[this->i_ + 1],
+                    .values_begin = block_->values_.cbegin() + block_->col_ptr_[this->i_],
                 };
             }
 
@@ -168,24 +168,45 @@ namespace quadmat {
         }
 
         /**
-         * Get an iterator to a particular column.
+         * Construct an instance of ColumnRef that can then be passed go GetColumn.
+         */
+        ColumnRef ConstructReusableColumnRef() const {
+            return {
+                .col = 0,
+                .rows_begin = RowIterator(),
+                .rows_end = RowIterator(),
+                .values_begin = ValueIterator(),
+            };
+        }
+
+        /**
+         * Point lookup a column. Column may be empty.
          *
          * @param col column to look up
-         * @return column iterator pointing at col, or ColumnsEnd()
+         * @param ref ColumnRef to update to this column, if not empty
+         * @return true if the column is found and ref is valid
          */
-        ColumnIterator GetColumn(IT col) const {
+        bool GetColumn(IT col, ColumnRef& ref) const noexcept {
             if (!col_ind_mask_.empty()) {
                 // using mask optimization
                 if (col >= col_ind_mask_.size() || !col_ind_mask_[col]) {
-                    return ColumnsEnd();
+                    return false;
                 }
             }
 
             auto pos = std::lower_bound(begin(col_ind_), end(col_ind_), col);
             if (pos == end(col_ind_) || *pos != col) {
-                return ColumnsEnd();
+                return false;
             }
-            return ColumnIterator(this, pos - begin(col_ind_));
+
+            auto ptr_idx = pos - begin(col_ind_);
+
+            ref.col = col;
+            ref.rows_begin = row_ind_.cbegin() + col_ptr_[ptr_idx];
+            ref.rows_end = row_ind_.cbegin() + col_ptr_[ptr_idx + 1];
+            ref.values_begin = values_.cbegin() + col_ptr_[ptr_idx];
+
+            return true;
         }
 
         /**

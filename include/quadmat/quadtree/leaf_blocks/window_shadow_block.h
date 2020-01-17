@@ -45,6 +45,8 @@ namespace quadmat {
             OffsetIterator<typename ShadowedLeaf::RowIterator> rows_begin;
             OffsetIterator<typename ShadowedLeaf::RowIterator> rows_end;
             typename ShadowedLeaf::ValueIterator values_begin;
+
+            typename ShadowedLeaf::ColumnRef base_ref;
         };
 
         /**
@@ -157,26 +159,49 @@ namespace quadmat {
         }
 
         /**
-         * Get an iterator to a particular column.
+         * Construct an instance of ColumnRef that can then be passed go GetColumn.
+         */
+        ColumnRef ConstructReusableColumnRef() const {
+            return {
+                .col = 0,
+                .rows_begin = OffsetIterator<typename ShadowedLeaf::RowIterator>(typename ShadowedLeaf::RowIterator(), -offsets_.row_offset),
+                .rows_end = OffsetIterator<typename ShadowedLeaf::RowIterator>(typename ShadowedLeaf::RowIterator(), -offsets_.row_offset),
+                .values_begin = typename ShadowedLeaf::ValueIterator(),
+                .base_ref = shadowed_block_->ConstructReusableColumnRef(),
+            };
+        }
+
+        /**
+         * Point lookup a column. Column may be empty.
          *
          * @param col column to look up
          * @return column iterator pointing at col, or ColumnsEnd()
          */
-        ColumnIterator GetColumn(IT col) const {
-            const typename ShadowedLeaf::ColumnIterator base_iter = shadowed_block_->GetColumn(col + offsets_.col_offset);
-
-            if (base_iter == shadowed_block_->ColumnsEnd()) {
+        bool GetColumn(IT col, ColumnRef& ref) const noexcept {
+            if (!shadowed_block_->GetColumn(col + offsets_.col_offset, ref.base_ref)) {
                 // column not in base block
-                return end_iter_;
-            } else {
-                auto ret = ColumnIterator(this, base_iter, false);
-                if (ret.AreRowsInWindow()) {
-                    return ret;
-                } else {
-                    // column is in base block, but has no tuples in the window
-                    return end_iter_;
-                }
+                return false;
             }
+
+            // check if there are any tuples in the window
+
+            // a fast check to see if the row range falls outside the window
+            if (ref.base_ref.rows_begin == ref.base_ref.rows_end ||
+                *ref.base_ref.rows_begin > row_inclusive_end_ ||
+                *(ref.base_ref.rows_end - 1) < row_begin_) {
+                return false;
+            }
+
+            // Narrow the row iterators to the window
+            auto rows_begin = std::lower_bound(ref.base_ref.rows_begin, ref.base_ref.rows_end, row_begin_);
+            auto rows_end = std::upper_bound(rows_begin, ref.base_ref.rows_end, row_inclusive_end_);
+
+            ref.col = static_cast<IT>(col - offsets_.col_offset);
+            ref.rows_begin.SetBaseIterator(rows_begin);
+            ref.rows_end.SetBaseIterator(rows_end);
+            ref.values_begin = ref.base_ref.values_begin + (rows_begin - ref.base_ref.rows_begin);
+
+            return rows_begin != rows_end;
         }
 
         /**
