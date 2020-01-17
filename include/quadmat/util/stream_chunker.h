@@ -14,7 +14,7 @@ namespace quadmat {
  *
  * @tparam ByteStream input stream type
  */
-template <typename CharAllocator, typename ByteStream=std::istream>
+template <typename CharAllocator=std::allocator<char>, typename ByteStream=std::istream>
 class StreamChunker {
 public:
     using Chunk = std::vector<char, CharAllocator>;

@@ -372,7 +372,7 @@ namespace quadmat {
 
             // Chunk the input into 1MB blocks
             // This allows disk I/O to be fast because it reads a large chunk at a time.
-            StreamChunker<typename Config::template TempAllocator<char>> chunker(instream, 1u << 20u, '\n');
+            StreamChunker<typename Config::template Allocator<char>> chunker(instream, 1u << 20u, '\n');
             for (auto chunk : chunker) {
 
                 const char* pos = chunk.data();

@@ -13,6 +13,8 @@
 #include <charconv>
 #endif
 
+#include "quadmat/util/stream_chunker.h"
+
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "cert-err58-cpp"
 
@@ -84,6 +86,34 @@ static void BM_ScanSpeed(benchmark::State& state) {
 }
 
 BENCHMARK(BM_ScanSpeed);
+
+/**
+ * Find the roofline scanning speed when reading input using StreamChunker.
+ *
+ * Add up every byte. Simulates touching every byte once.
+ */
+static void BM_ChunkedScanSpeed(benchmark::State& state) {
+    std::size_t num_bytes = 0;
+
+    for (auto _ : state) {
+        std::istringstream iss{kLineBlock};
+        quadmat::StreamChunker chunker(iss, 1u << 20u);
+
+        auto sum = kLineBlock[0];
+        for (const auto& chunk : chunker) {
+            for (const char &c : chunk) {
+                sum += c;
+            }
+        }
+
+        benchmark::DoNotOptimize(sum);
+        num_bytes += kLineBlock.size();
+    }
+
+    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+}
+
+BENCHMARK(BM_ChunkedScanSpeed);
 
 /**
  * Find line breaks using strchr
