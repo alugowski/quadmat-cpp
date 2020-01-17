@@ -31,7 +31,7 @@ TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
         {
             std::vector<Index> test_rows;
             std::vector<double> test_values;
-            spa.EmplaceBackResult(test_rows, test_values);
+            spa.Gather(test_rows, test_values);
 
             REQUIRE_THAT(test_rows, Equals(original_rows));
             REQUIRE_THAT(test_values, Equals(original_values));
@@ -44,7 +44,7 @@ TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
         {
             std::vector<Index> test_rows;
             std::vector<double> test_values;
-            spa.EmplaceBackResult(test_rows, test_values);
+            spa.Gather(test_rows, test_values);
 
             REQUIRE_THAT(test_rows, Equals(original_rows));
             REQUIRE_THAT(test_values, Equals(doubled_values));
@@ -57,7 +57,7 @@ TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
         {
             std::vector<Index> test_rows;
             std::vector<double> test_values;
-            spa.EmplaceBackResult(test_rows, test_values);
+            spa.Gather(test_rows, test_values);
 
             REQUIRE(test_rows.empty());
             REQUIRE(test_values.empty());
@@ -70,7 +70,7 @@ TEMPLATE_TEST_CASE("SpA", "", // NOLINT(cert-err58-cpp)
         {
             std::vector<Index> test_rows;
             std::vector<double> test_values;
-            spa.EmplaceBackResult(test_rows, test_values);
+            spa.Gather(test_rows, test_values);
 
             REQUIRE_THAT(test_rows, Equals(original_rows));
             REQUIRE_THAT(test_values, Equals(doubled_values));

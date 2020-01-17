@@ -80,7 +80,7 @@ namespace quadmat {
          * @param values vector to write values
          */
         template <typename RowVector, typename ValueVector>
-        void EmplaceBackResult(RowVector& row_ind, ValueVector& values) {
+        void Gather(RowVector& row_ind, ValueVector& values) {
             for (auto it : m_) {
                 row_ind.emplace_back(it.first);
                 values.emplace_back(it.second);

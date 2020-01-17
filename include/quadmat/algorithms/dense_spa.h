@@ -82,8 +82,7 @@ namespace quadmat {
         }
 
         /**
-         * Copy the contents of the SpA to a row index vector and a values vector. Contents are copied using emplace_back().
-         * Copy is ordered by row.
+         * Copy the contents of the SpA to a row index vector and a values vector, ordered by row.
          *
          * @tparam RowVector
          * @tparam ValueVector
@@ -91,7 +90,7 @@ namespace quadmat {
          * @param values vector to write values
          */
         template <typename RowVector, typename ValueVector>
-        void EmplaceBackResult(RowVector& row_ind, ValueVector& values) {
+        void Gather(RowVector& row_ind, ValueVector& values) {
             std::sort(w_.begin(), w_.end());
 
             for (auto i : w_) {
@@ -112,7 +111,7 @@ namespace quadmat {
          */
         void Clear() {
             for (auto i : w_) {
-                x_[i] = typename Semiring::ReduceType();
+                x_[i] = ValueType();
                 mark_[i] = false;
             }
             w_.clear();
@@ -127,7 +126,7 @@ namespace quadmat {
          *
          * Size is spa size, i.e. number of rows in output matrix.
          */
-        std::vector<typename Semiring::ReduceType, typename Config::template TempAllocator<typename Semiring::ReduceType>> x_;
+        std::vector<ValueType, typename Config::template TempAllocator<ValueType>> x_;
 
 
         /**

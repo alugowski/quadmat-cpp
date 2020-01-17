@@ -351,7 +351,7 @@ namespace quadmat {
             col_ind_.emplace_back(col);
             col_ptr_.emplace_back(row_ind_.size());
 
-            spa.EmplaceBackResult(row_ind_, values_);
+            spa.Gather(row_ind_, values_);
         }
 
         /**

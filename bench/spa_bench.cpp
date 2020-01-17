@@ -104,7 +104,7 @@ static void BM_Spa(benchmark::State& state) {
             spa.Scatter(begin(indices), end(indices), begin(values), beta);
             num_updates += indices.size();
         }
-        spa.EmplaceBackResult(out_rows, out_values);
+        spa.Gather(out_rows, out_values);
         spa.Clear();
 
         benchmark::DoNotOptimize(out_rows.data());
