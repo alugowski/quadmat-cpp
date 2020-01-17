@@ -240,15 +240,18 @@ public:
     using IndexType = typename BlockType::IndexType;
     using ValueType = typename BlockType::ValueType;
 
-    explicit DcscBlockIndex(std::shared_ptr<BlockType> block_ptr) : block_ptr_(std::move(block_ptr)), block_(*(block_ptr_.get())) {}
+    explicit DcscBlockIndex(std::shared_ptr<BlockType> block_ptr)
+        : block_ptr_(std::move(block_ptr)), block_(*(block_ptr_.get())) {
+        column_ref_ = block_.ConstructReusableColumnRef();
+    }
 
     [[nodiscard]] std::size_t GetBytesUsed() const {
         auto size_info = block_.GetSize();
         return size_info.index_bytes - sizeof(IndexType) * block_.GetNnn();
     }
 
-    [[nodiscard]] bool IsColumnEmpty(const IndexType col) const {
-        return block_.GetColumn(col) == block_.ColumnsEnd();
+    [[nodiscard]] bool IsColumnEmpty(const IndexType col) {
+        return !block_.GetColumn(col, column_ref_);
     }
 
     /**
@@ -277,6 +280,7 @@ public:
 private:
     std::shared_ptr<BlockType> block_ptr_;
     const BlockType& block_;
+    typename BlockType::ColumnRef column_ref_;
 };
 
 /**
@@ -289,15 +293,18 @@ public:
     using ValueType = typename BlockType::ValueType;
     using DcscType = typename BlockType::ShadowedLeafType;
 
-    explicit ShadowedDcscBlockIndex(std::shared_ptr<BlockType> block_ptr) : block_ptr_(std::move(block_ptr)), block_(*(block_ptr_.get())) {}
+    explicit ShadowedDcscBlockIndex(std::shared_ptr<BlockType> block_ptr)
+        : block_ptr_(std::move(block_ptr)), block_(*(block_ptr_.get())) {
+        column_ref_ = block_.ConstructReusableColumnRef();
+    }
 
     [[nodiscard]] std::size_t GetBytesUsed() const {
         auto size_info = block_.GetSize();
         return size_info.index_bytes;
     }
 
-    [[nodiscard]] bool IsColumnEmpty(const IndexType col) const {
-        return block_.GetColumn(col) == block_.ColumnsEnd();
+    [[nodiscard]] bool IsColumnEmpty(const IndexType col) {
+        return !block_.GetColumn(col, column_ref_);
     }
 
     /**
@@ -320,6 +327,7 @@ public:
 private:
     std::shared_ptr<BlockType> block_ptr_;
     const BlockType& block_;
+    typename BlockType::ColumnRef column_ref_;
 };
 
 /**
@@ -337,7 +345,7 @@ static void BM_LookupHit(benchmark::State& state) {
     const auto problem = GenerateLookupProblem<IndexType>(num_columns, fill_fraction, lookup_fraction);
 
     // construct implementation
-    const Impl impl = Impl::Factory(problem);
+    Impl impl = Impl::Factory(problem);
 
     std::size_t num_lookups = 0;
     std::size_t num_hits = 0;
