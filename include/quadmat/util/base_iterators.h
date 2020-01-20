@@ -193,10 +193,6 @@ namespace quadmat {
             return *(this->i_) + offset_;
         }
 
-        BaseIter GetBaseIterator() const {
-            return this->i_;
-        }
-
         void SetBaseIterator(BaseIter new_value) {
             this->i_ = new_value;
         }

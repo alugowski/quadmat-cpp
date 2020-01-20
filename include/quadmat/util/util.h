@@ -275,7 +275,7 @@ namespace quadmat {
      * This method only exists because std::allocate_shared requires repeating long template types.
      */
     template <typename Config, typename T, typename... Args>
-    inline std::shared_ptr<T> allocate_shared(Args&&... args) {
+    std::shared_ptr<T> allocate_shared(Args&&... args) {
         return std::allocate_shared<T>(typename Config::template Allocator<T>(), args...);
     }
 
@@ -285,8 +285,72 @@ namespace quadmat {
      * This method only exists because std::allocate_shared requires repeating long template types.
      */
     template <typename Config, typename T, typename... Args>
-    inline std::shared_ptr<T> allocate_shared_temp(Args&&... args) {
+    std::shared_ptr<T> allocate_shared_temp(Args&&... args) {
         return std::allocate_shared<T>(typename Config::template TempAllocator<T>(), args...);
+    }
+
+    /**
+     * @see TightenBounds()
+     *
+     * Implemented with std::lower_bound and std::upper_bound binary searches.
+     */
+    template<typename Iterator>
+    typename Iterator::difference_type TightenBoundsStdLib(Iterator &first, Iterator &last,
+                             const typename Iterator::value_type &low, const typename Iterator::value_type &high) {
+        Iterator tight_first = std::lower_bound(first, last, low);
+        last = std::upper_bound(tight_first, last, high);
+
+        auto offset = tight_first - first;
+        first = tight_first;
+
+        return offset;
+    }
+
+    /**
+     * @see TightenBounds()
+     *
+     * Implemented with a counting linear search. Good for when (last - first) is small.
+     */
+    template<typename Iterator>
+    typename Iterator::difference_type TightenBoundsCounting(Iterator &first, Iterator &last,
+                               const typename Iterator::value_type &low, const typename Iterator::value_type &high) {
+        int smaller = 0;
+        int larger = 0;
+
+        for (Iterator it = first; it != last; ++it) {
+            smaller += (*it < low);
+            larger += (*it <= high);
+        }
+
+        last = first + larger;
+        first += smaller;
+
+        return smaller;
+    }
+
+    /**
+     * Advance `first` to point at the first instance of `low`, or if not present,
+     * the smallest element > low.
+     *
+     * Backtrack `last` to point at the last instance of `high`, or if not present,
+     * the largest element < high.
+     *
+     * If there are no elements between low and high inclusive then first == last.
+     *
+     * @tparam Iterator RandomAccessIterator
+     * @param first iterator on a sorted container. points at <= low, such as begin()
+     * @param last iterator on a sorted container. points at >= high, such as end()
+     * @param low
+     * @param high
+     */
+    template<typename Iterator>
+    typename Iterator::difference_type TightenBounds(Iterator &first, Iterator &last,
+                       const typename Iterator::value_type &low, const typename Iterator::value_type &high) {
+        if (last - first < 256) {
+            return TightenBoundsCounting(first, last, low, high);
+        } else {
+            return TightenBoundsStdLib(first, last, low, high);
+        }
     }
 }
 

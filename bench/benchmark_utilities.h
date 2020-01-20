@@ -20,16 +20,14 @@ T RandomValue() {
 /**
  * Generate a vector of random ints from a random uniform distribution.
  *
- * Simulates the row indices of a column.
+ * Simulates the column or row indices in a dcsc block.
  */
-template <typename IT>
-std::vector<IT> GenerateUniformIndices(std::size_t spa_size, double fill_fraction, int seed = 0, bool sorted = true) {
-    std::size_t length = spa_size * fill_fraction;
-
-    std::vector<IT> ret(length);
+template <typename T>
+std::vector<T> GenerateUniform(std::size_t length, const T& min_val, const T& max_val, int seed = 0, bool sorted = true) {
+    std::vector<T> ret(length);
 
     auto rng = std::mt19937(seed);
-    std::uniform_int_distribution<int32_t> dist {0, IT(spa_size - 1)};
+    std::uniform_int_distribution<T> dist {min_val, max_val};
 
     auto gen = [&dist, &rng](){
         return dist(rng);
@@ -43,6 +41,18 @@ std::vector<IT> GenerateUniformIndices(std::size_t spa_size, double fill_fractio
     }
 
     return ret;
+}
+
+/**
+ * Generate a vector of random ints from a random uniform distribution.
+ *
+ * Simulates the row indices of a column.
+ */
+template <typename IT>
+std::vector<IT> GenerateUniformIndices(std::size_t spa_size, double fill_fraction, int seed = 0, bool sorted = true) {
+    std::size_t length = spa_size * fill_fraction;
+
+    return GenerateUniform<IT>(length, 0, IT(spa_size - 1), seed, sorted);
 }
 
 /**

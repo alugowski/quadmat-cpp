@@ -114,6 +114,59 @@ TEST_CASE("Vector Sorting and Permutation") {
         StableShuffle(std::begin(vec), std::end(vec));
         REQUIRE_THAT(vec, Equals(vec_shuffled));
     }
+
+    SECTION("TightenBounds") {
+        static const std::initializer_list<int> haystack_init = {0, 0, 1, 4, 4, 4, 6, 7, 9};
+        static const std::initializer_list<int> extra_needles = {-2, -1, 8, 10, 11};
+        std::vector<int> haystack = haystack_init;
+
+        // for every pair of needles in the haystack
+        auto low = GENERATE(values(haystack_init), values(extra_needles));
+        auto high = GENERATE(values(haystack_init), values(extra_needles));
+
+        if (low > high) {
+            std::swap(low, high);
+        }
+
+        // find the needles
+        auto expected_first = std::lower_bound(haystack.begin(), haystack.end(), low);
+        auto expected_last = std::upper_bound(haystack.begin(), haystack.end(), high);
+
+        // try every possible offset of the first and last iterators
+        for (auto first_offset = 0; first_offset <= (expected_first - haystack.begin()); first_offset++) {
+            for (auto last_offset = 0; last_offset <= (haystack.end() - expected_last); last_offset++) {
+
+                // test all implementations
+                // if we were testing a class we could use TEMPLATE_TEST_CASE, but that doesn't work here
+                for (auto version = 0; version < 3; version++) {
+
+                    auto test_first = haystack.begin() + first_offset;
+                    auto test_last = haystack.end() - last_offset;
+
+                    switch (version) {
+                        case 0:
+                            quadmat::TightenBoundsStdLib(test_first, test_last, low, high);
+                            break;
+                        case 1:
+                            quadmat::TightenBoundsCounting(test_first, test_last, low, high);
+                            break;
+                        case 2:
+                            quadmat::TightenBounds(test_first, test_last, low, high);
+                            break;
+                        default:
+                            REQUIRE(false);
+                    }
+
+                    if (expected_first == expected_last) {
+                        REQUIRE(test_first == test_last);
+                    } else {
+                        REQUIRE(test_first == expected_first);
+                        REQUIRE(test_last == expected_last);
+                    }
+                }
+            }
+        }
+    }
 }
 
 TEST_CASE("Slicing") {

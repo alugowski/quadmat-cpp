@@ -119,8 +119,9 @@ namespace quadmat {
 
                 // there might still not be any values in the window if the window is in an empty part of the column
                 // however the column does now have valid iterators, so we can dereference and do a search
-                cached_rows_begin_ = std::lower_bound(ref.rows_begin, ref.rows_end, shadow_block_->row_begin_);
-                cached_rows_end_ = std::upper_bound(cached_rows_begin_, ref.rows_end, shadow_block_->row_inclusive_end_);
+                cached_rows_begin_ = ref.rows_begin;
+                cached_rows_end_ = ref.rows_end;
+                TightenBounds(cached_rows_begin_, cached_rows_end_, shadow_block_->row_begin_, shadow_block_->row_inclusive_end_);
 
                 return cached_rows_begin_ != cached_rows_end_;
             }
@@ -192,16 +193,15 @@ namespace quadmat {
                 return false;
             }
 
-            // Narrow the row iterators to the window
-            auto rows_begin = std::lower_bound(ref.base_ref.rows_begin, ref.base_ref.rows_end, row_begin_);
-            auto rows_end = std::upper_bound(rows_begin, ref.base_ref.rows_end, row_inclusive_end_);
+            // Tighten the row iterators to the window
+            auto rows_offset = TightenBounds(ref.base_ref.rows_begin, ref.base_ref.rows_end, row_begin_, row_inclusive_end_);
 
             ref.col = static_cast<IT>(col - offsets_.col_offset);
-            ref.rows_begin.SetBaseIterator(rows_begin);
-            ref.rows_end.SetBaseIterator(rows_end);
-            ref.values_begin = ref.base_ref.values_begin + (rows_begin - ref.base_ref.rows_begin);
+            ref.rows_begin.SetBaseIterator(ref.base_ref.rows_begin);
+            ref.rows_end.SetBaseIterator(ref.base_ref.rows_end);
+            ref.values_begin = ref.base_ref.values_begin + rows_offset;
 
-            return rows_begin != rows_end;
+            return ref.base_ref.rows_begin != ref.base_ref.rows_end;
         }
 
         /**

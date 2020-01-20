@@ -133,7 +133,7 @@ namespace quadmat {
             ColumnIterator(const DcscBlock<T, IT, Config>* block, BlockNnn i) : BaseIndexedRandomAccessIterator<BlockNnn, ColumnIterator>(i), block_(block) {}
             ColumnIterator(const ColumnIterator& rhs) : BaseIndexedRandomAccessIterator<BlockNnn, ColumnIterator>(rhs.i_), block_(rhs.block_) {}
 
-            value_type operator*() const {
+            value_type operator*() const noexcept {
                 return {
                     .col = block_->col_ind_[this->i_],
                     .rows_begin = block_->row_ind_.cbegin() + block_->col_ptr_[this->i_],
