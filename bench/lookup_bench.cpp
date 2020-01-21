@@ -242,7 +242,6 @@ public:
 
     explicit DcscBlockIndex(std::shared_ptr<BlockType> block_ptr)
         : block_ptr_(std::move(block_ptr)), block_(*(block_ptr_.get())) {
-        column_ref_ = block_.ConstructReusableColumnRef();
     }
 
     [[nodiscard]] std::size_t GetBytesUsed() const {
@@ -251,7 +250,7 @@ public:
     }
 
     [[nodiscard]] bool IsColumnEmpty(const IndexType col) {
-        return !block_.GetColumn(col, column_ref_);
+        return !block_.GetColumn(col).IsColFound();
     }
 
     /**
@@ -280,7 +279,6 @@ public:
 private:
     std::shared_ptr<BlockType> block_ptr_;
     const BlockType& block_;
-    typename BlockType::ColumnRef column_ref_;
 };
 
 /**
@@ -295,7 +293,6 @@ public:
 
     explicit ShadowedDcscBlockIndex(std::shared_ptr<BlockType> block_ptr)
         : block_ptr_(std::move(block_ptr)), block_(*(block_ptr_.get())) {
-        column_ref_ = block_.ConstructReusableColumnRef();
     }
 
     [[nodiscard]] std::size_t GetBytesUsed() const {
@@ -304,7 +301,7 @@ public:
     }
 
     [[nodiscard]] bool IsColumnEmpty(const IndexType col) {
-        return !block_.GetColumn(col, column_ref_);
+        return !block_.GetColumn(col).IsColFound();
     }
 
     /**
@@ -327,7 +324,6 @@ public:
 private:
     std::shared_ptr<BlockType> block_ptr_;
     const BlockType& block_;
-    typename BlockType::ColumnRef column_ref_;
 };
 
 /**

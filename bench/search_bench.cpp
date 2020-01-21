@@ -291,12 +291,9 @@ static void BM_GetColumn(benchmark::State& state) {
     auto block_ptr = Impl::Factory(problem);
     auto& block = *block_ptr;
 
-    auto ref = block.ConstructReusableColumnRef();
-
     for (auto _ : state) {
         for (const auto& needle : problem.point_needles) {
-            auto result = block.GetColumn(needle, ref);
-            benchmark::DoNotOptimize(ref);
+            auto result = block.GetColumn(needle);
             benchmark::DoNotOptimize(result);
         }
 

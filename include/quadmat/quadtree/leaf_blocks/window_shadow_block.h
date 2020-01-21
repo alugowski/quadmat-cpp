@@ -45,8 +45,6 @@ namespace quadmat {
             OffsetIterator<typename ShadowedLeaf::RowIterator> rows_begin;
             OffsetIterator<typename ShadowedLeaf::RowIterator> rows_end;
             typename ShadowedLeaf::ValueIterator values_begin;
-
-            typename ShadowedLeaf::ColumnRef base_ref;
         };
 
         /**
@@ -160,48 +158,64 @@ namespace quadmat {
         }
 
         /**
-         * Construct an instance of ColumnRef that can then be passed go GetColumn.
+         * Reference to a single column, as looked up by a point lookup such as GetColumn()
          */
-        ColumnRef ConstructReusableColumnRef() const {
-            return {
-                .col = 0,
-                .rows_begin = OffsetIterator<typename ShadowedLeaf::RowIterator>(typename ShadowedLeaf::RowIterator(), -offsets_.row_offset),
-                .rows_end = OffsetIterator<typename ShadowedLeaf::RowIterator>(typename ShadowedLeaf::RowIterator(), -offsets_.row_offset),
-                .values_begin = typename ShadowedLeaf::ValueIterator(),
-                .base_ref = shadowed_block_->ConstructReusableColumnRef(),
-            };
-        }
+        struct PointLookupResult {
+            typename ShadowedLeaf::PointLookupResult base_ref;
+            const Index& row_offset;
+
+            [[nodiscard]] bool IsColFound() const {
+                return base_ref.IsColFound();
+            }
+
+            auto GetRowsBegin() {
+                return NegativeOffsetReferenceIterator<typename ShadowedLeaf::RowIterator>(base_ref.GetRowsBegin(), row_offset);
+            }
+
+            auto GetRowsEnd() {
+                return NegativeOffsetReferenceIterator<typename ShadowedLeaf::RowIterator>(base_ref.GetRowsEnd(), row_offset);
+            }
+
+            typename ShadowedLeaf::ValueIterator& GetValuesBegin() {
+                return base_ref.GetValuesBegin();
+            }
+        };
 
         /**
          * Point lookup a column. Column may be empty.
          *
          * @param col column to look up
-         * @return column iterator pointing at col, or ColumnsEnd()
+         * @return a PointLookupResult
          */
-        bool GetColumn(IT col, ColumnRef& ref) const noexcept {
-            if (!shadowed_block_->GetColumn(col + offsets_.col_offset, ref.base_ref)) {
+        PointLookupResult GetColumn(IT col) const noexcept {
+            PointLookupResult ret{
+                .base_ref = shadowed_block_->GetColumn(col + offsets_.col_offset),
+                .row_offset = offsets_.row_offset,
+            };
+
+            if (!ret.base_ref.IsColFound()) {
                 // column not in base block
-                return false;
+                return ret;
             }
 
             // check if there are any tuples in the window
 
             // a fast check to see if the row range falls outside the window
-            if (ref.base_ref.rows_begin == ref.base_ref.rows_end ||
-                *ref.base_ref.rows_begin > row_inclusive_end_ ||
-                *(ref.base_ref.rows_end - 1) < row_begin_) {
-                return false;
+            if (ret.base_ref.GetRowsBegin() == ret.base_ref.GetRowsEnd() ||
+                *ret.base_ref.GetRowsBegin() > row_inclusive_end_ ||
+                *(ret.base_ref.GetRowsEnd() - 1) < row_begin_) {
+
+                ret.base_ref.col_found = false;
+                return ret;
             }
 
             // Tighten the row iterators to the window
-            auto rows_offset = TightenBounds(ref.base_ref.rows_begin, ref.base_ref.rows_end, row_begin_, row_inclusive_end_);
+            auto rows_iter_increment = TightenBounds(ret.base_ref.rows_begin, ret.base_ref.rows_end, row_begin_, row_inclusive_end_);
+            ret.base_ref.values_begin += rows_iter_increment;
 
-            ref.col = static_cast<IT>(col - offsets_.col_offset);
-            ref.rows_begin.SetBaseIterator(ref.base_ref.rows_begin);
-            ref.rows_end.SetBaseIterator(ref.base_ref.rows_end);
-            ref.values_begin = ref.base_ref.values_begin + rows_offset;
+            ret.base_ref.col_found = (ret.base_ref.rows_begin != ret.base_ref.rows_end);
 
-            return ref.base_ref.rows_begin != ref.base_ref.rows_end;
+            return ret;
         }
 
         /**

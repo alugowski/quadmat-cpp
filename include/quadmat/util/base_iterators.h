@@ -174,7 +174,7 @@ namespace quadmat {
     };
 
     /**
-     * Iterator that wraps another iterator and returns an offset version of the base iterator's values
+     * Iterator that wraps a base iterator and modifies all dereferenced values by adding an offset.
      */
     template <typename BaseIter>
     class OffsetIterator: public BaseIndexedRandomAccessIterator<BaseIter, OffsetIterator<BaseIter>> {
@@ -199,6 +199,30 @@ namespace quadmat {
 
     private:
         typename BaseIter::value_type offset_;
+    };
+
+    /**
+     * Iterator that wraps a reference to a base iterator and modifies all dereferenced values by subtracting an offset.
+     */
+    template <typename BaseIter>
+    class NegativeOffsetReferenceIterator: public BaseIndexedRandomAccessIterator<BaseIter&, NegativeOffsetReferenceIterator<BaseIter>> {
+    public:
+        using iterator_category = typename BaseIter::iterator_category;
+        using value_type = typename BaseIter::value_type;
+        using pointer = typename BaseIter::pointer;
+        using reference = typename BaseIter::reference;
+        using difference_type = typename BaseIter::difference_type;
+
+        NegativeOffsetReferenceIterator() = default;
+        explicit NegativeOffsetReferenceIterator(BaseIter& iter, const Index& offset) : BaseIndexedRandomAccessIterator<BaseIter&, NegativeOffsetReferenceIterator<BaseIter>>(iter), offset_(offset) {}
+        NegativeOffsetReferenceIterator(const NegativeOffsetReferenceIterator<BaseIter>& rhs) : BaseIndexedRandomAccessIterator<BaseIter&, NegativeOffsetReferenceIterator<BaseIter>>(rhs.i_), offset_(rhs.offset_) {}
+
+        value_type operator*() const {
+            return *(this->i_) - offset_;
+        }
+
+    private:
+        const Index& offset_;
     };
 
     /**

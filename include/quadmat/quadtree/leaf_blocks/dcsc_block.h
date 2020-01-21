@@ -168,45 +168,62 @@ namespace quadmat {
         }
 
         /**
-         * Construct an instance of ColumnRef that can then be passed go GetColumn.
+         * Reference to a single column, as looked up by a point lookup such as GetColumn()
          */
-        ColumnRef ConstructReusableColumnRef() const {
-            return {
-                .col = 0,
-                .rows_begin = RowIterator(),
-                .rows_end = RowIterator(),
-                .values_begin = ValueIterator(),
-            };
-        }
+        struct PointLookupResult {
+            bool col_found;
+            RowIterator rows_begin; // only set if IsColFound() == true
+            RowIterator rows_end; // only set if IsColFound() == true
+            ValueIterator values_begin; // only set if IsColFound() == true
+
+            [[nodiscard]] bool IsColFound() const {
+                return col_found;
+            }
+
+            RowIterator& GetRowsBegin() {
+                return rows_begin;
+            }
+
+            RowIterator& GetRowsEnd() {
+                return rows_end;
+            }
+
+            ValueIterator& GetValuesBegin() {
+                return values_begin;
+            }
+        };
 
         /**
          * Point lookup a column. Column may be empty.
          *
          * @param col column to look up
-         * @param ref ColumnRef to update to this column, if not empty
-         * @return true if the column is found and ref is valid
+         * @return a PointLookupResult
          */
-        bool GetColumn(IT col, ColumnRef& ref) const noexcept {
+        PointLookupResult GetColumn(IT col) const noexcept {
             if (!col_ind_mask_.empty()) {
                 // using mask optimization
                 if (col >= col_ind_mask_.size() || !col_ind_mask_[col]) {
-                    return false;
+                    return {
+                        .col_found = false,
+                    };
                 }
             }
 
             auto pos = std::lower_bound(begin(col_ind_), end(col_ind_), col);
             if (pos == end(col_ind_) || *pos != col) {
-                return false;
+                return {
+                    .col_found = false,
+                };
             }
 
             auto ptr_idx = pos - begin(col_ind_);
 
-            ref.col = col;
-            ref.rows_begin = row_ind_.cbegin() + col_ptr_[ptr_idx];
-            ref.rows_end = row_ind_.cbegin() + col_ptr_[ptr_idx + 1];
-            ref.values_begin = values_.cbegin() + col_ptr_[ptr_idx];
-
-            return true;
+            return {
+                .col_found = true,
+                .rows_begin = row_ind_.cbegin() + col_ptr_[ptr_idx],
+                .rows_end = row_ind_.cbegin() + col_ptr_[ptr_idx + 1],
+                .values_begin = values_.cbegin() + col_ptr_[ptr_idx],
+            };
         }
 
         /**
