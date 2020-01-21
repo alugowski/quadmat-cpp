@@ -5,8 +5,6 @@
 
 #include <vector>
 
-#include "benchmark_utilities.h"
-
 // ClangTidy doesn't identify template uses
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
@@ -33,11 +31,11 @@ static void BM_Example(benchmark::State& state) {
         num_elements += vec.size();
     }
 
-    state.counters["Elements"] = benchmark::Counter(num_elements, benchmark::Counter::kIsRate);
-    state.counters["Bytes"] = benchmark::Counter(double(sizeof(vec[0]) * num_elements), benchmark::Counter::kIsRate);
+    state.counters["elements_per_second"] = benchmark::Counter(num_elements, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(sizeof(vec[0]) * num_elements);
 }
 
-BENCHMARK(BM_Example)->Range(8, 1u << 15u);
+BENCHMARK(BM_Example)->ArgNames({"vec_size"})->Range(8, 1u << 15u);
 
 
 #pragma clang diagnostic pop // static

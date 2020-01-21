@@ -10,10 +10,14 @@ using namespace quadmat;
 
 #include "../test/test_utilities/problems.h"
 
+// ClangTidy complains about static fields
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cert-err58-cpp"
+
 /**
  * Read problems
  */
-static const auto kMultiplyProblems = GetFsMultiplyProblems("medium"); // NOLINT(cert-err58-cpp)
+static const auto kMultiplyProblems = GetFsMultiplyProblems("medium");
 
 static FsMultiplyProblem FindProblem(const std::string& problem_name) {
     auto pos = std::find_if(std::begin(kMultiplyProblems), std::end(kMultiplyProblems),
@@ -73,16 +77,20 @@ static void BM_TripleProduct(benchmark::State& state, const std::string& problem
 }
 
 // Common configurations of all the parameters.
-const std::vector<std::pair<int64_t, int64_t>> kLeafSplitThresholdRanges = {{16u << 10u, 8u << 20u}}; // NOLINT(cert-err58-cpp)
+static void LeafSplitThresholdArguments(benchmark::internal::Benchmark* b) {
+    b->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Range(16u << 10u, 8u << 20u);
+}
 
 // Multiply benchmarks use medium test problems. These problems are large and are not included in Git.
 // See test/README.md for how to generate these problems.
-BENCHMARK_CAPTURE(BM_Multiply, row_perm_torus_50, std::string("gitignored - row perm of 3D torus scale 50"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
-BENCHMARK_CAPTURE(BM_Multiply, row_perm_torus_RP_50, std::string("gitignored - row perm of 3D torus (RP) scale 50"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
-BENCHMARK_CAPTURE(BM_Multiply, square_torus_50, std::string("gitignored - 3D torus squared scale 50"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
-BENCHMARK_CAPTURE(BM_Multiply, square_torus_RP_50, std::string("gitignored - 3D torus (rand perm) squared scale 50"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
-BENCHMARK_CAPTURE(BM_Multiply, square_ER_10, std::string("gitignored - ER squared scale 10"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
+BENCHMARK_CAPTURE(BM_Multiply, row_perm_torus_50, std::string("gitignored - row perm of 3D torus scale 50"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, row_perm_torus_RP_50, std::string("gitignored - row perm of 3D torus (RP) scale 50"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, square_torus_50, std::string("gitignored - 3D torus squared scale 50"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, square_torus_RP_50, std::string("gitignored - 3D torus (rand perm) squared scale 50"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, square_ER_10, std::string("gitignored - ER squared scale 10"))->Apply(LeafSplitThresholdArguments);
 
-BENCHMARK_CAPTURE(BM_TripleProduct, submatrix_ER_10, std::string("gitignored - submatrix of ER scale 10"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
+BENCHMARK_CAPTURE(BM_TripleProduct, submatrix_ER_10, std::string("gitignored - submatrix of ER scale 10"))->Apply(LeafSplitThresholdArguments);
+
+#pragma clang diagnostic pop
 
 BENCHMARK_MAIN();

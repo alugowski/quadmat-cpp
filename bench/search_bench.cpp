@@ -361,6 +361,7 @@ public:
 // -------------------------------------------------------------------------
 
 static void SearchArguments(benchmark::internal::Benchmark* b) {
+    b->ArgName("haystack_size");
     for (auto haystack_size : {
         8u,
         64u,
@@ -371,7 +372,7 @@ static void SearchArguments(benchmark::internal::Benchmark* b) {
         1u << 11u,
         1u << 12u,
         1u << 15u}) {
-        b->Args({haystack_size});
+        b->Arg(haystack_size);
     }
 }
 
@@ -387,6 +388,7 @@ BENCHMARK_TEMPLATE(BM_Search, Search_bsearch)->Apply(SearchArguments);
 BENCHMARK_TEMPLATE(BM_Search, SearchBranchless)->Apply(SearchArguments);
 
 static void NarrowingArguments(benchmark::internal::Benchmark* b) {
+    b->ArgNames({"haystack_size", "offset"});
     for (int haystack_size = 8; haystack_size <= 1u << 15u; haystack_size *= 8) {
         for (int offset = 64; offset <= 1024; offset *= 2) {
             if (offset < haystack_size) {

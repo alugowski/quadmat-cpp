@@ -82,7 +82,7 @@ static void BM_ScanSpeed(benchmark::State& state) {
         num_bytes += kLineBlock.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
 }
 
 BENCHMARK(BM_ScanSpeed);
@@ -110,7 +110,7 @@ static void BM_ChunkedScanSpeed(benchmark::State& state) {
         num_bytes += kLineBlock.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
 }
 
 BENCHMARK(BM_ChunkedScanSpeed);
@@ -118,7 +118,7 @@ BENCHMARK(BM_ChunkedScanSpeed);
 /**
  * Find line breaks using strchr
  */
-static void BM_FindLineBreaks_strchr(benchmark::State& state) {
+static void BM_SplitLines_strchr(benchmark::State& state) {
     std::size_t num_bytes = 0;
 
     for (auto _ : state) {
@@ -131,15 +131,15 @@ static void BM_FindLineBreaks_strchr(benchmark::State& state) {
         num_bytes += kLineBlock.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
 }
 
-BENCHMARK(BM_FindLineBreaks_strchr);
+BENCHMARK(BM_SplitLines_strchr);
 
 /**
  * Find line breaks using string::find_first_of (needle is single character variant)
  */
-static void BM_FindLineBreaks_find_first_of_char(benchmark::State& state) {
+static void BM_SplitLines_find_first_of_char(benchmark::State& state) {
     std::size_t num_bytes = 0;
 
     for (auto _ : state) {
@@ -152,15 +152,15 @@ static void BM_FindLineBreaks_find_first_of_char(benchmark::State& state) {
         num_bytes += kLineBlock.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
 }
 
-BENCHMARK(BM_FindLineBreaks_find_first_of_char);
+BENCHMARK(BM_SplitLines_find_first_of_char);
 
 /**
  * Find line breaks using string::find_first_of (needle is string variant)
  */
-static void BM_FindLineBreaks_find_first_of_str(benchmark::State& state) {
+static void BM_SplitLines_find_first_of_str(benchmark::State& state) {
     std::size_t num_bytes = 0;
 
     for (auto _ : state) {
@@ -173,15 +173,15 @@ static void BM_FindLineBreaks_find_first_of_str(benchmark::State& state) {
         num_bytes += kLineBlock.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
 }
 
-BENCHMARK(BM_FindLineBreaks_find_first_of_str);
+BENCHMARK(BM_SplitLines_find_first_of_str);
 
 /**
  * Find lines using std::getline()
  */
-static void BM_FindLineBreaks_getline(benchmark::State& state) {
+static void BM_SplitLines_getline(benchmark::State& state) {
     std::size_t num_bytes = 0;
 
     for (auto _ : state) {
@@ -196,16 +196,17 @@ static void BM_FindLineBreaks_getline(benchmark::State& state) {
         num_bytes += kLineBlock.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
 }
 
-BENCHMARK(BM_FindLineBreaks_getline);
+BENCHMARK(BM_SplitLines_getline);
 
 /**
  * Tokenize line using strpbrk and strspn.
  */
 static void BM_LineTokenize_strpbrk(benchmark::State& state, const char* sep) {
     std::size_t num_bytes = 0;
+    std::size_t num_lines = 0;
 
     const char *row_start, *row_end;
     const char *col_start, *col_end;
@@ -238,9 +239,11 @@ static void BM_LineTokenize_strpbrk(benchmark::State& state, const char* sep) {
 
             num_bytes += line.size();
         }
+        num_lines += kLines.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["lines_tokenized_per_second"] = benchmark::Counter(num_lines, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK_CAPTURE(BM_LineTokenize_strpbrk, space_only, " ");
@@ -254,10 +257,9 @@ BENCHMARK_CAPTURE(BM_LineTokenize_strpbrk, space_tab, " \t");
  *  - strtok_r() is thread safe, but only available on POSIX systems. It is _not_ in the std namespace.
  *  - strtok_s() is standard C11, but Windows has an older incompatible version.
  */
-static void BM_LineTokenize_strtok(benchmark::State& state) {
-    static const char* kSepWithinLine = " "; // delimiters for fields within a line.
-
+static void BM_LineTokenize_strtok(benchmark::State& state, const char* sep) {
     std::size_t num_bytes = 0;
+    std::size_t num_lines = 0;
 
     // reserve space for a copy of the line because strtok makes modifications.
     std::size_t max_length = 0;
@@ -270,20 +272,21 @@ static void BM_LineTokenize_strtok(benchmark::State& state) {
     for (auto _ : state) {
         for (const auto& line : kLines) {
             // Copy the original string so that strtok can modify it
-            // This copy is extra work that makes the method appear slower but it's unavoidable.
+            // This copy is extra work that makes the method appear slightly slower but it's unavoidable.
+            // This also highlights another drawback of strtok(): you can't use it on const arrays.
             std::strcpy(line_copy, line.c_str());
 
-            char *row_s = std::strtok(line_copy, kSepWithinLine);
+            char *row_s = std::strtok(line_copy, sep);
             if (!row_s) {
                 break; // error testing
             }
 
-            char *col_s = std::strtok(nullptr, kSepWithinLine);
+            char *col_s = std::strtok(nullptr, sep);
             if (!col_s) {
                 break; // error testing
             }
 
-            char *val_s = std::strtok(nullptr, kSepWithinLine);
+            char *val_s = std::strtok(nullptr, sep);
             if (!val_s) {
                 break; // error testing
             }
@@ -294,12 +297,16 @@ static void BM_LineTokenize_strtok(benchmark::State& state) {
 
             num_bytes += line.size();
         }
+
+        num_lines += kLines.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["lines_tokenized_per_second"] = benchmark::Counter(num_lines, benchmark::Counter::kIsRate);
 }
 
-BENCHMARK(BM_LineTokenize_strtok);
+BENCHMARK_CAPTURE(BM_LineTokenize_strtok, space_only, " ");
+BENCHMARK_CAPTURE(BM_LineTokenize_strtok, space_tab, " \t");
 
 #if defined(__cplusplus) && __cplusplus >= 201703L
 /**
@@ -307,6 +314,7 @@ BENCHMARK(BM_LineTokenize_strtok);
  */
 static void BM_IntFieldParse_from_chars(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
 
     for (auto _ : state) {
         for (const auto& field : kIntStrings) {
@@ -318,9 +326,11 @@ static void BM_IntFieldParse_from_chars(benchmark::State& state) {
             benchmark::DoNotOptimize(value);
             num_bytes += field.size();
         }
+        num_fields += kIntStrings.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_IntFieldParse_from_chars);
@@ -334,6 +344,7 @@ BENCHMARK(BM_IntFieldParse_from_chars);
  */
 static void BM_IntFieldParse_atol(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
 
     for (auto _ : state) {
         for (const auto& field : kIntStrings) {
@@ -341,9 +352,11 @@ static void BM_IntFieldParse_atol(benchmark::State& state) {
             benchmark::DoNotOptimize(value);
             num_bytes += field.size();
         }
+        num_fields += kIntStrings.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_IntFieldParse_atol);
@@ -353,21 +366,23 @@ BENCHMARK(BM_IntFieldParse_atol);
  */
 static void BM_IntFieldParse_stoll(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
 
     errno = 0;
     for (auto _ : state) {
         for (const auto& field : kIntStrings) {
             int64_t value = std::stoll(field, nullptr, 10);
             if (errno != 0) {
-                errno = 0;
                 break; // error checking
             }
             benchmark::DoNotOptimize(value);
             num_bytes += field.size();
         }
+        num_fields += kIntStrings.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_IntFieldParse_stoll);
@@ -377,24 +392,79 @@ BENCHMARK(BM_IntFieldParse_stoll);
  */
 static void BM_IntFieldParse_strtoll(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
 
     errno = 0;
     for (auto _ : state) {
         for (const auto& field : kIntStrings) {
             int64_t value = std::strtoll(field.c_str(), nullptr, 10);
             if (errno != 0) {
-                errno = 0;
                 break; // error checking
             }
             benchmark::DoNotOptimize(value);
             num_bytes += field.size();
         }
+        num_fields += kIntStrings.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_IntFieldParse_strtoll);
+
+/**
+ * Convert a single field from string to int using sscanf.
+ *
+ * sscanf should be avoided because it does not report all conversion errors.
+ */
+static void BM_IntFieldParse_sscanf(benchmark::State& state) {
+    std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
+
+    for (auto _ : state) {
+        for (const auto& field : kIntStrings) {
+            int64_t value;
+            if (sscanf(field.c_str(), "%lld", &value) != 1) { // NOLINT(cert-err34-c)
+                break; // error checking
+            }
+            benchmark::DoNotOptimize(value);
+            num_bytes += field.size();
+        }
+        num_fields += kIntStrings.size();
+    }
+
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
+}
+
+BENCHMARK(BM_IntFieldParse_sscanf);
+
+/**
+ * Convert a single field from string to int using istringstream.
+ */
+static void BM_IntFieldParse_istringstream(benchmark::State& state) {
+    std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
+
+    for (auto _ : state) {
+        for (const auto& field : kIntStrings) {
+            int64_t value;
+
+            std::istringstream iss(field);
+            iss >> value;
+
+            benchmark::DoNotOptimize(value);
+            num_bytes += field.size();
+        }
+        num_fields += kIntStrings.size();
+    }
+
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
+}
+
+BENCHMARK(BM_IntFieldParse_istringstream);
 
 #if false && defined(__cplusplus) && __cplusplus >= 201703L
 /**
@@ -404,6 +474,7 @@ BENCHMARK(BM_IntFieldParse_strtoll);
  */
 static void BM_DoubleFieldParse_from_chars(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
 
     for (auto _ : state) {
         for (const auto& field : kDoubleStrings) {
@@ -415,9 +486,11 @@ static void BM_DoubleFieldParse_from_chars(benchmark::State& state) {
             benchmark::DoNotOptimize(value);
             num_bytes += field.size();
         }
+        num_fields += kDoubleStrings.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_DoubleFieldParse_from_chars);
@@ -428,30 +501,86 @@ BENCHMARK(BM_DoubleFieldParse_from_chars);
  */
 static void BM_DoubleFieldParse_strtod(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
 
     errno = 0;
     for (auto _ : state) {
         for (const auto& field : kDoubleStrings) {
             double value = std::strtod(field.c_str(), nullptr);
             if (errno != 0) {
-                errno = 0;
                 break; // error checking
             }
             benchmark::DoNotOptimize(value);
             num_bytes += field.size();
         }
+        num_fields += kDoubleStrings.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_DoubleFieldParse_strtod);
+
+/**
+ * Convert a single field from string to double using sscanf.
+ *
+ * sscanf should be avoided because it does not report all conversion errors.
+ */
+static void BM_DoubleFieldParse_sscanf(benchmark::State& state) {
+    std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
+
+    for (auto _ : state) {
+        for (const auto& field : kDoubleStrings) {
+            double value;
+            if (sscanf(field.c_str(), "%lf", &value) != 1) { // NOLINT(cert-err34-c)
+                break; // error checking
+            }
+            benchmark::DoNotOptimize(value);
+            num_bytes += field.size();
+        }
+        num_fields += kDoubleStrings.size();
+    }
+
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
+}
+
+BENCHMARK(BM_DoubleFieldParse_sscanf);
+
+/**
+ * Convert a single field from string to double using istringstream.
+ */
+static void BM_DoubleFieldParse_istringstream(benchmark::State& state) {
+    std::size_t num_bytes = 0;
+    std::size_t num_fields = 0;
+
+    for (auto _ : state) {
+        for (const auto& field : kDoubleStrings) {
+            double value;
+
+            std::istringstream iss(field);
+            iss >> value;
+
+            benchmark::DoNotOptimize(value);
+            num_bytes += field.size();
+        }
+        num_fields += kDoubleStrings.size();
+    }
+
+    state.SetBytesProcessed(num_bytes);
+    state.counters["fields_converted_per_second"] = benchmark::Counter(num_fields, benchmark::Counter::kIsRate);
+}
+
+BENCHMARK(BM_DoubleFieldParse_istringstream);
 
 /**
  * Parse a line using istringstream
  */
 static void BM_LineParse_istringstream(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_lines = 0;
 
     int64_t row, col;
     double value;
@@ -467,9 +596,11 @@ static void BM_LineParse_istringstream(benchmark::State& state) {
 
             num_bytes += line.size();
         }
+        num_lines += kLines.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["lines_parsed_per_second"] = benchmark::Counter(num_lines, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_LineParse_istringstream);
@@ -479,6 +610,7 @@ BENCHMARK(BM_LineParse_istringstream);
  */
 static void BM_LineParse_sscanf(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_lines = 0;
 
     int64_t row, col;
     double value;
@@ -493,9 +625,11 @@ static void BM_LineParse_sscanf(benchmark::State& state) {
 
             num_bytes += line.size();
         }
+        num_lines += kLines.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["lines_parsed_per_second"] = benchmark::Counter(num_lines, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_LineParse_sscanf);
@@ -507,6 +641,7 @@ BENCHMARK(BM_LineParse_sscanf);
  */
 static void BM_LineParse_strtoll(benchmark::State& state) {
     std::size_t num_bytes = 0;
+    std::size_t num_lines = 0;
 
     int64_t row, col;
     double value;
@@ -521,7 +656,6 @@ static void BM_LineParse_strtoll(benchmark::State& state) {
             value = std::strtod(end, nullptr);
 
             if (errno != 0) {
-                errno = 0;
                 break; // error checking
             }
 
@@ -531,9 +665,11 @@ static void BM_LineParse_strtoll(benchmark::State& state) {
 
             num_bytes += line.size();
         }
+        num_lines += kLines.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["lines_parsed_per_second"] = benchmark::Counter(num_lines, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK(BM_LineParse_strtoll);
@@ -543,6 +679,7 @@ BENCHMARK(BM_LineParse_strtoll);
  */
 static void BM_LineParse_from_chars_strtod(benchmark::State& state, const char* sep) {
     std::size_t num_bytes = 0;
+    std::size_t num_lines = 0;
 
     int64_t row, col;
     double value;
@@ -567,7 +704,6 @@ static void BM_LineParse_from_chars_strtod(benchmark::State& state, const char* 
             // strtod does its own leading whitespace skipping
             value = std::strtod(col_result.ptr, nullptr);
             if (errno != 0) {
-                errno = 0;
                 break; // error checking
             }
 
@@ -577,9 +713,11 @@ static void BM_LineParse_from_chars_strtod(benchmark::State& state, const char* 
 
             num_bytes += line.size();
         }
+        num_lines += kLines.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
+    state.counters["lines_parsed_per_second"] = benchmark::Counter(num_lines, benchmark::Counter::kIsRate);
 }
 
 BENCHMARK_CAPTURE(BM_LineParse_from_chars_strtod, space_only, " ");
@@ -610,7 +748,7 @@ static void BM_BlockParse_istringstream(benchmark::State& state) {
         num_bytes += kLineBlock.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
 }
 
 BENCHMARK(BM_BlockParse_istringstream);
@@ -648,7 +786,6 @@ static void BM_BlockParse_from_chars_strtod(benchmark::State& state) {
             char* value_end;
             value = std::strtod(col_result.ptr, &value_end);
             if (errno != 0) {
-                errno = 0;
                 break; // error checking
             }
 
@@ -668,7 +805,7 @@ static void BM_BlockParse_from_chars_strtod(benchmark::State& state) {
         num_bytes += kLineBlock.size();
     }
 
-    state.counters["Bytes"] = benchmark::Counter(num_bytes, benchmark::Counter::kIsRate);
+    state.SetBytesProcessed(num_bytes);
 }
 
 BENCHMARK(BM_BlockParse_from_chars_strtod);

@@ -126,43 +126,80 @@ static void BM_Spa(benchmark::State& state) {
 // *Large are large spa configurations. Only test smaller fill rates because
 //   a) large matrices are likely to have smaller fill rates anyway
 //   b) the tests would otherwise take too long
-const std::pair<int64_t, int64_t> kSpaSizeRange16 = {1u << 10u, 1u << 15u};
-const std::pair<int64_t, int64_t> kSpaSizeRange32Small = {1u << 10u, 1u << 22u};
-const std::pair<int64_t, int64_t> kSpaSizeRange32Large = {1u << 22u, 1u << 26u};
 
-const std::pair<int64_t, int64_t> kFillFractionNumeratorRangeSmall = {1, 1000}; // 0.1% to 100%
-const std::pair<int64_t, int64_t> kFillFractionNumeratorRangeLarge = {1, 50}; // 0.1% to 1%
+const auto kFillFractionNumeratorRangeSmall = {1, 10, 50, 500, 1000}; // 0.1% to 100%
+const auto kFillFractionNumeratorRangeLarge = {1, 10, 50}; // 0.1% to 5%
 
-const std::pair<int64_t, int64_t> kHowManySmall = {10, 10};
-const std::pair<int64_t, int64_t> kHowManyLarge = {2, 2};
+const auto kNumVecsSmall = 10;
+const auto kNumVecsLarge = 2;
 
-const std::vector<std::pair<int64_t, int64_t>> k16bit = {kSpaSizeRange16, kFillFractionNumeratorRangeSmall, kHowManySmall};
-const std::vector<std::pair<int64_t, int64_t>> k32bitSmall = {kSpaSizeRange32Small, kFillFractionNumeratorRangeSmall, kHowManySmall};
-const std::vector<std::pair<int64_t, int64_t>> k32bitLarge = {kSpaSizeRange32Large, kFillFractionNumeratorRangeLarge, kHowManyLarge};
+static void SpaArguments16Bit(benchmark::internal::Benchmark* b) {
+    b->ArgNames({"spa_size", "fill_frac*1000", "num_vecs"});
+
+    for (auto spa_size : {
+        1u << 10u,
+        1u << 12u,
+        1u << 15u
+    }) {
+        for (auto fill_frac_numerator : kFillFractionNumeratorRangeSmall) {
+            auto num_vecs = kNumVecsSmall;
+
+            b->Args({spa_size, fill_frac_numerator, num_vecs});
+        }
+    }
+}
+
+static void SpaArguments32Bit(benchmark::internal::Benchmark *b) {
+    b->ArgNames({"spa_size", "fill_frac*1000", "num_vecs"});
+
+    // Small-spa configurations. This means a higher fill rate can be tested
+    for (auto spa_size : {
+        1u << 10u,
+        1u << 14u,
+        1u << 18u,
+        1u << 20u,
+        1u << 22u,
+    }) {
+        for (auto fill_frac_numerator : kFillFractionNumeratorRangeSmall) {
+            auto num_vecs = kNumVecsSmall;
+
+            b->Args({spa_size, fill_frac_numerator, num_vecs});
+        }
+    }
+
+    // Large spa configurations. Only test smaller fill rates because
+    //   a) large matrices are likely to have smaller fill rates anyway
+    //   b) the tests would otherwise take too long
+    for (auto spa_size : {
+        1u << 24u,
+        1u << 26u,
+    }) {
+        for (auto fill_frac_numerator : kFillFractionNumeratorRangeLarge) {
+            auto num_vecs = kNumVecsLarge;
+
+            b->Args({spa_size, fill_frac_numerator, num_vecs});
+        }
+    }
+}
 
 // Roofline benchmark to see what the system is capable of best case
-BENCHMARK(BM_ScatterRoofline)->Ranges(k32bitSmall);
-BENCHMARK(BM_ScatterRoofline)->Ranges(k32bitLarge);
+BENCHMARK(BM_ScatterRoofline)->Apply(SpaArguments32Bit);
 
 // Just the scatter operation but with the overhead of the spa
 // For dense spa the scatter is the same, but it needs to keep track of which entries have been accessed
 // For sparse spa, there is no relation.
 
 // 16-bit spa
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, DenseSpa<int16_t, PlusTimesSemiring<double>>)->Ranges(k16bit);
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, MapSpa<int16_t, PlusTimesSemiring<double>>)->Ranges(k16bit);
+BENCHMARK_TEMPLATE(BM_SpaScatterOnly, DenseSpa<int16_t, PlusTimesSemiring<double>>)->Apply(SpaArguments16Bit);
+BENCHMARK_TEMPLATE(BM_SpaScatterOnly, MapSpa<int16_t, PlusTimesSemiring<double>>)->Apply(SpaArguments16Bit);
 
 // 32-bit spa
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, MapSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
-BENCHMARK_TEMPLATE(BM_SpaScatterOnly, MapSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_SpaScatterOnly, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Apply(SpaArguments32Bit);
+BENCHMARK_TEMPLATE(BM_SpaScatterOnly, MapSpa<int32_t, PlusTimesSemiring<double>>)->Apply(SpaArguments32Bit);
 
 // Full use of the spa, including reading back results and clearing the spa.
-BENCHMARK_TEMPLATE(BM_Spa, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_Spa, MapSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_Spa, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
-BENCHMARK_TEMPLATE(BM_Spa, MapSpa<int32_t, PlusTimesSemiring<double>>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_Spa, DenseSpa<int32_t, PlusTimesSemiring<double>>)->Apply(SpaArguments32Bit);
+BENCHMARK_TEMPLATE(BM_Spa, MapSpa<int32_t, PlusTimesSemiring<double>>)->Apply(SpaArguments32Bit);
 
 
 #pragma clang diagnostic pop

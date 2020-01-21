@@ -368,44 +368,59 @@ static void BM_LookupHit(benchmark::State& state) {
 #pragma ide diagnostic ignored "cert-err58-cpp"
 
 // Common configurations of all the parameters.
-const std::pair<int64_t, int64_t> kNumColumns32Small = {1u << 16u, 1u << 22u};
-const std::pair<int64_t, int64_t> kNumColumns32Large = {1u << 22u, 1u << 26u};
+static void LookupArguments(benchmark::internal::Benchmark *b) {
+    const auto kColNNNs = {1u << 8u, 1u << 10u, 1u << 12u, 1u << 14u, 1u << 16u};
 
-const std::pair<int64_t, int64_t> kColNNNs = {1u << 8u, 1u << 14u};
+    b->ArgNames({"num_columns", "num_nn_columns", "lookup_frac*1000"});
 
-const std::pair<int64_t, int64_t> kLookupFractionNumeratorRangeSmall = {8, 1000}; // 0.8% to 100%
-const std::pair<int64_t, int64_t> kLookupFractionNumeratorRangeLarge = {1, 8}; // 0.1% to 0.8%
+    // Small-spa configurations. This means a higher fill rate can be tested
+    for (auto num_columns : {
+        1u << 16u,
+        1u << 20u,
+        1u << 22u,
+    }) {
+        for (auto num_nn_columns : kColNNNs) {
+            for (auto lookup_frac : {10, 50, 500, 1000}) {
+                b->Args({num_columns, num_nn_columns, lookup_frac});
+            }
+        }
+    }
 
-const std::vector<std::pair<int64_t, int64_t>> k32bitSmall = {kNumColumns32Small, kColNNNs, kLookupFractionNumeratorRangeSmall};
-const std::vector<std::pair<int64_t, int64_t>> k32bitLarge = {kNumColumns32Large, kColNNNs, kLookupFractionNumeratorRangeLarge};
+    // Large spa configurations. Only test smaller fill rates because
+    //   a) large matrices are likely to have smaller fill rates anyway
+    //   b) the tests would otherwise take too long
+    for (auto num_columns : {
+        1u << 24u,
+        1u << 26u,
+    }) {
+        for (auto num_nn_columns : kColNNNs) {
+            for (auto lookup_frac : {1, 5, 10}) {
+                b->Args({num_columns, num_nn_columns, lookup_frac});
+            }
+        }
+    }
+}
 
 // bitmask hit testing
-BENCHMARK_TEMPLATE(BM_LookupHit, VectorBoolIndex<int32_t>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_LookupHit, VectorBoolIndex<int32_t>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_LookupHit, VectorBoolIndex<int32_t>)->Apply(LookupArguments);
 
 // CSC-style indexing
-BENCHMARK_TEMPLATE(BM_LookupHit, CscIndex<int32_t>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_LookupHit, CscIndex<int32_t>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_LookupHit, CscIndex<int32_t>)->Apply(LookupArguments);
 
 // DCSC-style indexing
-BENCHMARK_TEMPLATE(BM_LookupHit, DcscIndex<int32_t>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_LookupHit, DcscIndex<int32_t>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_LookupHit, DcscIndex<int32_t>)->Apply(LookupArguments);
 
 // ordered map indexing
-BENCHMARK_TEMPLATE(BM_LookupHit, MapIndex<std::map<int32_t, MapValue>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_LookupHit, MapIndex<std::map<int32_t, MapValue>>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_LookupHit, MapIndex<std::map<int32_t, MapValue>>)->Apply(LookupArguments);
 
 // unordered map indexing
-BENCHMARK_TEMPLATE(BM_LookupHit, MapIndex<std::unordered_map<int32_t, MapValue>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_LookupHit, MapIndex<std::unordered_map<int32_t, MapValue>>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_LookupHit, MapIndex<std::unordered_map<int32_t, MapValue>>)->Apply(LookupArguments);
 
 // benchmark quadmat dcsc blocks
-BENCHMARK_TEMPLATE(BM_LookupHit, DcscBlockIndex<DcscBlock<double, int32_t>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_LookupHit, DcscBlockIndex<DcscBlock<double, int32_t>>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_LookupHit, DcscBlockIndex<DcscBlock<double, int32_t>>)->Apply(LookupArguments);
 
 // benchmark quadmat window shadow block on top of dcsc block
-BENCHMARK_TEMPLATE(BM_LookupHit, ShadowedDcscBlockIndex<WindowShadowBlock<int32_t, DcscBlock<double, int32_t>>>)->Ranges(k32bitSmall);
-BENCHMARK_TEMPLATE(BM_LookupHit, ShadowedDcscBlockIndex<WindowShadowBlock<int32_t, DcscBlock<double, int32_t>>>)->Ranges(k32bitLarge);
+BENCHMARK_TEMPLATE(BM_LookupHit, ShadowedDcscBlockIndex<WindowShadowBlock<int32_t, DcscBlock<double, int32_t>>>)->Apply(LookupArguments);
 
 #pragma clang diagnostic pop // static
 #pragma clang diagnostic pop // bad unused method detection
