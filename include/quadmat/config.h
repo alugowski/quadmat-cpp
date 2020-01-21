@@ -23,7 +23,7 @@ namespace quadmat {
          *
          * This is a constant here, but may not be const in other Configs.
          */
-        static const BlockNnn LeafSplitThreshold = 10 * 1024;
+        static inline BlockNnn LeafSplitThreshold = 2u << 20u;
 
         /**
          * Maximum number of entries in a dense SpA. Larger problems use a sparse SpA.

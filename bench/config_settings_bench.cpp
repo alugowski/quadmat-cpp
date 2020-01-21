@@ -1,0 +1,88 @@
+// Copyright (C) 2019-2020 Adam Lugowski
+// All Rights Reserved.
+
+#include <iostream>
+#include <benchmark/benchmark.h>
+
+#include "quadmat/quadmat.h"
+
+using namespace quadmat;
+
+#include "../test/test_utilities/problems.h"
+
+/**
+ * Read problems
+ */
+static const auto kMultiplyProblems = GetFsMultiplyProblems("medium"); // NOLINT(cert-err58-cpp)
+
+static FsMultiplyProblem FindProblem(const std::string& problem_name) {
+    auto pos = std::find_if(std::begin(kMultiplyProblems), std::end(kMultiplyProblems),
+              [&](const FsMultiplyProblem & problem) -> bool { return problem.description == problem_name; });
+
+    if (pos == std::end(kMultiplyProblems)) {
+        return {};
+    } else {
+        return *pos;
+    }
+}
+
+/**
+ * Test effect of LeafSplitThreshold on matrix multiply
+ */
+static void BM_Multiply(benchmark::State& state, const std::string& problem_name) {
+    auto problem = FindProblem(problem_name);
+
+    quadmat::DefaultConfig::LeafSplitThreshold = state.range(0);
+
+    std::ifstream a_stream{problem.a_path};
+    auto a = MatrixMarket::Load(a_stream);
+
+    std::ifstream b_stream{problem.b_path};
+    auto b = MatrixMarket::Load(b_stream);
+
+    for (auto _ : state) {
+        // multiply
+        auto result = Multiply<PlusTimesSemiring<double>>(a, b);
+        benchmark::DoNotOptimize(result);
+    }
+}
+
+/**
+ * Test effect of LeafSplitThreshold on matrix triple product
+ */
+static void BM_TripleProduct(benchmark::State& state, const std::string& problem_name) {
+    auto problem = FindProblem(problem_name);
+
+    quadmat::DefaultConfig::LeafSplitThreshold = state.range(0);
+
+    std::ifstream a_stream{problem.a_path};
+    auto a = MatrixMarket::Load(a_stream);
+
+    std::ifstream b_stream{problem.b_path};
+    auto b = MatrixMarket::Load(b_stream);
+
+    std::ifstream c_stream{problem.c_path};
+    auto c = MatrixMarket::Load(c_stream);
+
+    for (auto _ : state) {
+        // multiply
+        auto result_ab = Multiply<PlusTimesSemiring<double>>(a, b);
+        auto result = Multiply<PlusTimesSemiring<double>>(result_ab, c);
+        benchmark::DoNotOptimize(result);
+    }
+}
+
+// Common configurations of all the parameters.
+const std::vector<std::pair<int64_t, int64_t>> kLeafSplitThresholdRanges = {{16u << 10u, 8u << 20u}}; // NOLINT(cert-err58-cpp)
+
+// Multiply benchmarks use medium test problems. These problems are large and are not included in Git.
+// See test/README.md for how to generate these problems.
+BENCHMARK_CAPTURE(BM_Multiply, row_perm_torus_50, std::string("gitignored - row perm of 3D torus scale 50"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
+BENCHMARK_CAPTURE(BM_Multiply, row_perm_torus_RP_50, std::string("gitignored - row perm of 3D torus (RP) scale 50"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
+BENCHMARK_CAPTURE(BM_Multiply, square_torus_50, std::string("gitignored - 3D torus squared scale 50"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
+BENCHMARK_CAPTURE(BM_Multiply, square_torus_RP_50, std::string("gitignored - 3D torus (rand perm) squared scale 50"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
+BENCHMARK_CAPTURE(BM_Multiply, square_ER_10, std::string("gitignored - ER squared scale 10"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
+
+BENCHMARK_CAPTURE(BM_TripleProduct, submatrix_ER_10, std::string("gitignored - submatrix of ER scale 10"))->Unit(benchmark::kMillisecond)->ArgName("LeafSplitThreshold")->Ranges(kLeafSplitThresholdRanges); // NOLINT(cert-err58-cpp)
+
+BENCHMARK_MAIN();
