@@ -83,13 +83,13 @@ static void LeafSplitThresholdArguments(benchmark::internal::Benchmark* b) {
 
 // Multiply benchmarks use medium test problems. These problems are large and are not included in Git.
 // See test/README.md for how to generate these problems.
-BENCHMARK_CAPTURE(BM_Multiply, row_perm_torus_50, std::string("gitignored - row perm of 3D torus scale 50"))->Apply(LeafSplitThresholdArguments);
-BENCHMARK_CAPTURE(BM_Multiply, row_perm_torus_RP_50, std::string("gitignored - row perm of 3D torus (RP) scale 50"))->Apply(LeafSplitThresholdArguments);
-BENCHMARK_CAPTURE(BM_Multiply, square_torus_50, std::string("gitignored - 3D torus squared scale 50"))->Apply(LeafSplitThresholdArguments);
-BENCHMARK_CAPTURE(BM_Multiply, square_torus_RP_50, std::string("gitignored - 3D torus (rand perm) squared scale 50"))->Apply(LeafSplitThresholdArguments);
-BENCHMARK_CAPTURE(BM_Multiply, square_ER_10, std::string("gitignored - ER squared scale 10"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, row_perm_3Dtorus_50, std::string("row_perm 3Dtorus scale 50"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, row_perm_3DtorusRP_50, std::string("row_perm 3DtorusRP scale 50"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, square_3Dtorus_50, std::string("square 3Dtorus scale 50"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, square_3DtorusRP_50, std::string("square 3DtorusRP scale 50"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_Multiply, square_ER_12, std::string("square ER scale 12"))->Apply(LeafSplitThresholdArguments);
 
-BENCHMARK_CAPTURE(BM_TripleProduct, submatrix_ER_10, std::string("gitignored - submatrix of ER scale 10"))->Apply(LeafSplitThresholdArguments);
+BENCHMARK_CAPTURE(BM_TripleProduct, submatrix_ER_12, std::string("submatrix ER scale 12"))->Apply(LeafSplitThresholdArguments);
 
 #pragma clang diagnostic pop
 

@@ -70,7 +70,7 @@ def generate_3d_torus_matrix(n_axis):
     return generate_torus_matrix(dim=3, n_axis=n_axis)
 
 
-def generate_er_matrix(m, n, nnn, dedupe=True):
+def generate_er_matrix(m, n, nnn, dedupe=True, values_1=False):
     """
     Generate an Erdos-Renyi matrix.
 
@@ -81,6 +81,7 @@ def generate_er_matrix(m, n, nnn, dedupe=True):
     @param nnn number of non-nulls
     @type nnn int
     @param dedupe if False then there may be multiple entries with the same row, column index
+    @param values_1 if True then the values are all set to 1. dedupe will cause values to be equal to the dupe count
 
     @returns a scipy.sparse matrix
     """
@@ -92,7 +93,9 @@ def generate_er_matrix(m, n, nnn, dedupe=True):
 
     if dedupe:
         ret.sum_duplicates()
-        ret.data.fill(1)
+
+        if values_1:
+            ret.data.fill(1)
 
     return ret
 
@@ -132,3 +135,11 @@ def generate_submatrix_extraction(shape, divisor=2):
 
     return left, right
 
+
+def randomly_permute(mat):
+    """
+    Randomly permute the rows and columns of a matrix.
+    """
+    np.random.seed(0)
+    perm = generate_permutation_matrix(mat.get_shape()[0])
+    return perm * mat * perm.transpose()
