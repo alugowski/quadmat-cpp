@@ -50,8 +50,10 @@ namespace quadmat {
                   std::vector<BlockNnn, typename Config::template Allocator<BlockNnn>>&& col_ptr,
                   std::vector<IT, typename Config::template Allocator<IT>>&& row_ind,
                   std::vector<T, typename Config::template Allocator<T>>&& values,
-                  std::vector<bool, typename Config::template Allocator<bool>>&& col_ind_mask) :
-            col_ind_(col_ind), col_ptr_(col_ptr), row_ind_(row_ind), values_(values), col_ind_mask_(col_ind_mask) {}
+                  std::vector<bool, typename Config::template Allocator<bool>>&& col_ind_mask,
+                  std::vector<BlockNnn, typename Config::template Allocator<BlockNnn>>&& csc_col_ptr) :
+            col_ind_(col_ind), col_ptr_(col_ptr), row_ind_(row_ind), values_(values),
+            col_ind_mask_(col_ind_mask), csc_col_ptr_(csc_col_ptr) {}
 
         /**
          * Iterator type for iterating over this block's tuples
@@ -200,6 +202,19 @@ namespace quadmat {
          * @return a PointLookupResult
          */
         PointLookupResult GetColumn(IT col) const noexcept {
+            if (!csc_col_ptr_.empty()) {
+                // using CSC index
+                bool in_range = col < (csc_col_ptr_.size() - 1);
+                auto first = in_range ? csc_col_ptr_[col] : 0;
+                auto last = in_range ? csc_col_ptr_[col + 1] : 0;
+                return {
+                    .col_found = first != last,
+                    .rows_begin = row_ind_.cbegin() + first,
+                    .rows_end = row_ind_.cbegin() + last,
+                    .values_begin = values_.cbegin() + first,
+                };
+            }
+
             if (!col_ind_mask_.empty()) {
                 // using mask optimization
                 if (col >= col_ind_mask_.size() || !col_ind_mask_[col]) {
@@ -306,6 +321,11 @@ namespace quadmat {
          * An optional bitfield for column existence testing. Speeds up GetColumn().
          */
         const std::vector<bool, typename Config::template Allocator<bool>> col_ind_mask_;
+
+        /**
+         * An optional CSC column pointer array. Speeds up GetColumn().
+         */
+        const std::vector<BlockNnn, typename Config::template Allocator<BlockNnn>> csc_col_ptr_;
     };
 
     /**
@@ -388,11 +408,29 @@ namespace quadmat {
             row_ind_.shrink_to_fit();
             values_.shrink_to_fit();
 
+            // create a CSC index, if appropriate
+            std::vector<BlockNnn, typename Config::template Allocator<BlockNnn>> csc_col_ptr;
+
+            Index ncols = col_ind_.empty() ? 0 : col_ind_.back() + 1;
+            if (ncols > 0 && Config::ShouldUseCscIndex(ncols, col_ind_.size())) {
+                csc_col_ptr.resize(ncols + 1);
+
+                // We have at least one column. Break out the first iteration so that
+                // each loop iteration can be independent.
+                std::fill(&csc_col_ptr[0], &csc_col_ptr[1], col_ptr_[0]);
+                for (int i = 1; i < col_ind_.size(); ++i) {
+                    BlockNnn prev_col = col_ind_[i - 1];
+                    BlockNnn col = col_ind_[i];
+                    std::fill(&csc_col_ptr[prev_col + 1], &csc_col_ptr[col + 1], col_ptr_[i]);
+                }
+
+                csc_col_ptr.back() = col_ptr_.back();
+            }
+
             // create a lookup mask, if appropriate
             std::vector<bool, typename Config::template Allocator<bool>> col_ind_mask_;
 
-            Index ncols = col_ind_.empty() ? 0 : col_ind_.back() + 1;
-            if (ncols > 0 && Config::ShouldUseDcscBoolMask(ncols, col_ind_.size())) {
+            if (csc_col_ptr.empty() && ncols > 0 && Config::ShouldUseDcscBoolMask(ncols, col_ind_.size())) {
                 col_ind_mask_.resize(ncols);
 
                 // mark non-empty columns in the mask
@@ -408,7 +446,8 @@ namespace quadmat {
                     std::move(col_ptr_),
                     std::move(row_ind_),
                     std::move(values_),
-                    std::move(col_ind_mask_)
+                    std::move(col_ind_mask_),
+                    std::move(csc_col_ptr)
                     );
         }
 

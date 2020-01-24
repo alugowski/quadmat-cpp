@@ -79,6 +79,23 @@ namespace quadmat {
         }
 
         /**
+         * Whether or not to have a particular DCSC block use a dense CSC index optimization.
+         *
+         * A common operation in matrix multiply is looking up columns in the A block, something a CSC index is very
+         * fast at.
+         *
+         * @param ncols number of columns in the block
+         * @param num_nn_cols number of non-empty columns
+         * @return true if it's ok to use a bitmask
+         */
+        static bool ShouldUseCscIndex(Index ncols, std::size_t num_nn_cols) {
+            std::size_t num_bytes = ncols * sizeof(BlockNnn);
+
+            return num_bytes < 1u << 26u      // Only if dense index doesn't use too much memory
+                   && num_nn_cols > 1;        // Only if block is not empty, where the regular search is fast
+        }
+
+        /**
          * Default allocator, and for long-lived objects
          */
         template <typename T>
