@@ -52,8 +52,12 @@ namespace quadmat {
                   std::vector<T, typename Config::template Allocator<T>>&& values,
                   std::vector<bool, typename Config::template Allocator<bool>>&& col_ind_mask,
                   std::vector<BlockNnn, typename Config::template Allocator<BlockNnn>>&& csc_col_ptr) :
-            col_ind_(col_ind), col_ptr_(col_ptr), row_ind_(row_ind), values_(values),
-            col_ind_mask_(col_ind_mask), csc_col_ptr_(csc_col_ptr) {}
+            col_ind_(std::move(col_ind)),
+            col_ptr_(std::move(col_ptr)),
+            row_ind_(std::move(row_ind)),
+            values_(std::move(values)),
+            col_ind_mask_(std::move(col_ind_mask)),
+            csc_col_ptr_(std::move(csc_col_ptr)) {}
 
         /**
          * Iterator type for iterating over this block's tuples
