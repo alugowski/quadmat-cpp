@@ -59,6 +59,10 @@ namespace quadmat {
                 Offset child_offsets = ret->GetChildOffsets(child_pos, {0, 0});
                 Shape child_shape = ret->GetChildShape(child_pos, node_shape);
 
+                if (child_shape.ncols <= 0 || child_shape.nrows <= 0) {
+                    continue;
+                }
+
                 switch (child_pos) {
                     case NW:
                     case SW:

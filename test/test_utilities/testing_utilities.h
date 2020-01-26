@@ -294,10 +294,22 @@ public:
 
         // verify child shapes
         Shape nw_shape = inner->GetChildShape(NW, info_.shape);
+        Shape ne_shape = inner->GetChildShape(NE, info_.shape);
+        Shape sw_shape = inner->GetChildShape(SW, info_.shape);
         Shape se_shape = inner->GetChildShape(SE, info_.shape);
-        if (nw_shape.nrows + se_shape.nrows != info_.shape.nrows ||
-            nw_shape.ncols + se_shape.ncols != info_.shape.ncols) {
+        if (nw_shape.nrows + sw_shape.nrows != info_.shape.nrows ||
+            ne_shape.nrows + se_shape.nrows != info_.shape.nrows ||
+            nw_shape.ncols + ne_shape.ncols != info_.shape.ncols ||
+            sw_shape.ncols + se_shape.ncols != info_.shape.ncols) {
             return "child dimensions don't match inner block";
+        }
+
+        // ensure there are no blocks outside dimensions
+        if ((ne_shape.ncols <= 0 && !std::holds_alternative<std::monostate>(inner->GetChild(NE))) ||
+            (se_shape.ncols <= 0 && !std::holds_alternative<std::monostate>(inner->GetChild(SE))) ||
+            (sw_shape.nrows <= 0 && !std::holds_alternative<std::monostate>(inner->GetChild(SW))) ||
+            (se_shape.nrows <= 0 && !std::holds_alternative<std::monostate>(inner->GetChild(SE)))) {
+            return "child outside dimensions";
         }
 
         // recurse on children

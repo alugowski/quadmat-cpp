@@ -95,6 +95,10 @@ namespace quadmat {
                 return iter_ == rhs.iter_;
             }
 
+            bool operator<(const ColumnIterator& rhs) const {
+                return iter_ < rhs.iter_;
+            }
+
             /**
              * @return iterator to the base column
              */
@@ -219,13 +223,12 @@ namespace quadmat {
         }
 
         /**
-         * @param col column to look up
+         * @param col column to look up. Use Index type because value could be larger than can fit in IT
          * @return column iterator point at col, or if there is no such column, the next larger column (or ColumnsEnd())
          */
-        ColumnIterator GetColumnLowerBound(IT col) const {
+        ColumnIterator GetColumnLowerBound(Index col) const {
             const typename ShadowedLeaf::ColumnIterator base_iter = shadowed_block_->GetColumnLowerBound(col + offsets_.col_offset);
-
-            if (base_iter == shadowed_block_->ColumnsEnd()) {
+            if (end_column_ <= base_iter) {
                 return end_iter_;
             } else {
                 return ColumnIterator(this, base_iter);

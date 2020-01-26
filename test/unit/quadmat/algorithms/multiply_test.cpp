@@ -186,19 +186,53 @@ TEST_CASE("Multiply") {
 
             Matrix<double> ret{{10, 10}};
 
-            // setup multiply job
-            SpawnMultiplyJob<PlusTimesSemiring<double>, DefaultConfig> job(
+            {
+                // setup multiply job
+                SpawnMultiplyJob<PlusTimesSemiring<double>, DefaultConfig> job(
                     PairSet<double, double, DefaultConfig>{
                         matrix_inner_10x10.GetRootBC()->GetChild(0),
-                            empty_matrix_10x10.GetRootBC()->GetChild(0),
-                            matrix_inner_10x10.GetShape(),
-                            empty_matrix_10x10.GetShape(),
+                        empty_matrix_10x10.GetRootBC()->GetChild(0),
+                        matrix_inner_10x10.GetShape(),
+                        empty_matrix_10x10.GetShape(),
                         matrix_inner_10x10.GetRootBC()->GetDiscriminatingBit(),
                         empty_matrix_10x10.GetRootBC()->GetDiscriminatingBit()
                     },
                     ret.GetRootBC(), 0, {0, 0}, ret.GetShape());
 
-            REQUIRE_THROWS_AS(job.Run(false), NodeTypeMismatch);
+                REQUIRE_THROWS_AS(job.Run(false), NodeTypeMismatch);
+            }
+
+            {
+                // zero dimension test
+                SpawnMultiplyJob<PlusTimesSemiring<double>, DefaultConfig> job_zero_row(
+                    PairSet<double, double, DefaultConfig>{
+                        matrix_inner_10x10.GetRootBC()->GetChild(0),
+                        empty_matrix_10x10.GetRootBC()->GetChild(0),
+                        matrix_inner_10x10.GetShape(),
+                        empty_matrix_10x10.GetShape(),
+                        matrix_inner_10x10.GetRootBC()->GetDiscriminatingBit(),
+                        empty_matrix_10x10.GetRootBC()->GetDiscriminatingBit()
+                    },
+                    ret.GetRootBC(), 0, {0, 0}, Shape{0, 10});
+
+                REQUIRE_THROWS_AS(job_zero_row.Run(false), NodeTypeMismatch);
+            }
+
+            {
+                // zero dimension test
+                SpawnMultiplyJob<PlusTimesSemiring<double>, DefaultConfig> job_zero_col(
+                    PairSet<double, double, DefaultConfig>{
+                        matrix_inner_10x10.GetRootBC()->GetChild(0),
+                        empty_matrix_10x10.GetRootBC()->GetChild(0),
+                        matrix_inner_10x10.GetShape(),
+                        empty_matrix_10x10.GetShape(),
+                        matrix_inner_10x10.GetRootBC()->GetDiscriminatingBit(),
+                        empty_matrix_10x10.GetRootBC()->GetDiscriminatingBit()
+                    },
+                    ret.GetRootBC(), 0, {0, 0}, Shape{10, 0});
+
+                REQUIRE_THROWS_AS(job_zero_col.Run(false), NodeTypeMismatch);
+            }
         }
     }
 }

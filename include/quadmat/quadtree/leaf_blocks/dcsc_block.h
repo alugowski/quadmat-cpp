@@ -245,11 +245,13 @@ namespace quadmat {
          * @param col column to look up
          * @return column iterator point at col, or if there is no such column, the next larger column (or ColumnsEnd())
          */
-        ColumnIterator GetColumnLowerBound(IT col) const {
-            auto pos = std::lower_bound(begin(col_ind_), end(col_ind_), col);
-            if (pos == end(col_ind_)) {
+        ColumnIterator GetColumnLowerBound(Index col) const {
+            if (col_ind_.empty() || col > col_ind_.back()) {
+                // Also handle cases where the column is larger than can fit in IT.
                 return ColumnsEnd();
             }
+
+            auto pos = std::lower_bound(begin(col_ind_), end(col_ind_), static_cast<IT>(col));
             return ColumnIterator(this, pos - begin(col_ind_));
         }
 

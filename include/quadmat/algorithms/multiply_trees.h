@@ -213,6 +213,11 @@ namespace quadmat {
             }
 
             // sanity check
+            if (dest_shape.ncols <= 0 || dest_shape.nrows <= 0) {
+                throw NodeTypeMismatch("dest dimensions <= 0");
+            }
+
+            // sanity check
             if ((status & HAS_MISMATCHED_DIMS) == HAS_MISMATCHED_DIMS) {
                 throw NodeTypeMismatch();
             }

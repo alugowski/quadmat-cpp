@@ -20,11 +20,15 @@ std::vector<MultiplyProblem<T, IT>> GetMultiplyProblems() {
 
         const auto& orig = ret.back();
 
-        // add a version blown-up to 32-bits
-        ret.push_back(ExpandMultiplyProblem(orig, 10000));
+        if (orig.description.rfind("square ER", 0) == 0 || orig.description.find("graph") != std::string::npos) {
+            // add a version blown-up to 32-bits
+            ret.push_back(ExpandMultiplyProblem(orig, 10000));
 
-        // add a version blown-up to require sparse SpA
-        ret.push_back(ExpandMultiplyProblem(orig, 5000000));
+            if (orig.description.find("graph") != std::string::npos) {
+                // add a version blown-up to require sparse SpA
+                ret.push_back(ExpandMultiplyProblem(orig, 5000000));
+            }
+        }
     }
 
     return ret;
