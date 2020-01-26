@@ -31,6 +31,9 @@ def generate_unit_test_problems():
     """
     # multiply
     mpg.generate_kg_square_problem(basedir=unit_test_multiply_matrix_dir)
+    
+    mpg.generate_er_problems(basedir=unit_test_multiply_matrix_dir, scale=3)
+    mpg.generate_torus_problems(basedir=unit_test_multiply_matrix_dir, scale=3)
 
 
 def generate_medium_test_problems():
