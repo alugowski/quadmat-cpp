@@ -21,6 +21,45 @@ struct ConfigSplit4 : public DefaultConfig {
 };
 
 /**
+ * A config that forces use of a CSC index
+ */
+struct ConfigUseCscIndex : public DefaultConfig {
+    static bool ShouldUseDcscBoolMask(Index ncols, std::size_t num_nn_cols) {
+        return false;
+    }
+
+    static bool ShouldUseCscIndex(Index ncols, std::size_t num_nn_cols) {
+        return true;
+    }
+};
+
+/**
+ * A config that forces use of a boolean mask index
+ */
+struct ConfigUseBoolMaskIndex : public DefaultConfig {
+    static bool ShouldUseDcscBoolMask(Index ncols, std::size_t num_nn_cols) {
+        return true;
+    }
+
+    static bool ShouldUseCscIndex(Index ncols, std::size_t num_nn_cols) {
+        return false;
+    }
+};
+
+/**
+ * A config that forbids indexing
+ */
+struct ConfigNoIndex : public DefaultConfig {
+    static bool ShouldUseDcscBoolMask(Index ncols, std::size_t num_nn_cols) {
+        return false;
+    }
+
+    static bool ShouldUseCscIndex(Index ncols, std::size_t num_nn_cols) {
+        return false;
+    }
+};
+
+/**
  * Utility function to identify whether or not a node is a leaf.
  *
  * @param node
