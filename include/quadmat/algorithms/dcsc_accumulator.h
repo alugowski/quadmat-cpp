@@ -59,6 +59,10 @@ namespace quadmat {
          */
         template <class Semiring = PlusTimesSemiring<T>>
         std::shared_ptr<DcscBlock<T, IT, Config>> Collapse(const Semiring& semiring = Semiring()) {
+            if (children_.size() == 1) {
+                return children_.front();
+            }
+
             if (Config::template ShouldUseDenseSpa<T>(shape_.nrows)) {
                 return CollapseUsingSpA<DenseSpa<IT, Semiring, Config>, Semiring>(semiring);
             } else {
