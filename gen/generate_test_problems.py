@@ -43,10 +43,10 @@ def generate_medium_test_problems():
     These should be small enough to run in a second or two at most.
     """
 
-    for er_scale in (12, 14,):
+    for er_scale in (14, 15):
         mpg.generate_er_problems(basedir=medium_test_multiply_matrix_dir, scale=er_scale)
 
-    for torus_scale in (25, 50,):
+    for torus_scale in (50, 75):
         mpg.generate_torus_problems(basedir=medium_test_multiply_matrix_dir, scale=torus_scale)
 
 

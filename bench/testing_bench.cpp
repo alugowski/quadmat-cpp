@@ -83,9 +83,9 @@ BENCHMARK_CAPTURE(BM_Multiply, row_perm_3Dtorus_50, std::string("row_perm 3Dtoru
 BENCHMARK_CAPTURE(BM_Multiply, row_perm_3DtorusRP_50, std::string("row_perm 3DtorusRP scale 50"))->Apply(CommonArguments);
 BENCHMARK_CAPTURE(BM_Multiply, square_3Dtorus_50, std::string("square 3Dtorus scale 50"))->Apply(CommonArguments);
 BENCHMARK_CAPTURE(BM_Multiply, square_3DtorusRP_50, std::string("square 3DtorusRP scale 50"))->Apply(CommonArguments);
-BENCHMARK_CAPTURE(BM_Multiply, square_ER_12, std::string("square ER scale 12"))->Apply(CommonArguments);
+BENCHMARK_CAPTURE(BM_Multiply, square_ER_14, std::string("square ER scale 14"))->Apply(CommonArguments);
 
-BENCHMARK_CAPTURE(BM_TripleProduct, submatrix_ER_12, std::string("submatrix ER scale 12"))->Apply(CommonArguments);
+BENCHMARK_CAPTURE(BM_TripleProduct, submatrix_ER_14, std::string("submatrix ER scale 14"))->Apply(CommonArguments);
 
 #pragma clang diagnostic pop
 
