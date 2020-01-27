@@ -21,7 +21,7 @@ namespace quadmat {
          * @param size ignored here. Used in dense SpA.
          */
         explicit DenseSpa(size_t size, const Semiring& semiring = Semiring()) : semiring_(semiring), x_(size), mark_(size) {
-            w_.reserve(1024);
+            w_.reserve(10240);
         }
 
         /**
