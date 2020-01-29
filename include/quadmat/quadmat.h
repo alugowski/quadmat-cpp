@@ -18,6 +18,9 @@ namespace quadmat {
 #include "quadmat/quadtree/single_block_container.h"
 #include "quadmat/matrix.h"
 
+// executors
+#include "quadmat/executors/direct_task_queue.h"
+
 // generators
 #include "quadmat/generators/matrix_generators.h"
 #include "quadmat/generators/tuple_generators.h"

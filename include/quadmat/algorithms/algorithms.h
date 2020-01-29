@@ -30,8 +30,11 @@ namespace quadmat {
             GetMultiplyResultShape(a.GetShape(), b.GetShape())
         };
 
+        DirectTaskQueue<DefaultConfig> queue;
+
         // setup multiply job
-        SpawnMultiplyJob<Semiring, Config> job(
+        queue.Enqueue(quadmat::allocate_shared_temp<Config, MultiplyTask<Semiring, Config>>(
+                queue,
                 PairSet<typename Semiring::MapTypeA, typename Semiring::MapTypeB, Config>{
                         a.GetRootBC()->GetChild(0),
                     b.GetRootBC()->GetChild(0),
@@ -40,10 +43,7 @@ namespace quadmat {
                     a.GetRootBC()->GetDiscriminatingBit(),
                     b.GetRootBC()->GetDiscriminatingBit()
                     },
-                ret.GetRootBC(), 0, {0, 0}, ret.GetShape(), semiring);
-
-        // run multiply
-        job.Run();
+                ret.GetRootBC(), 0, Offset{0, 0}, ret.GetShape(), semiring));
 
         return ret;
     }

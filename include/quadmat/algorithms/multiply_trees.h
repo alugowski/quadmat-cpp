@@ -10,6 +10,7 @@
 #include "quadmat/quadtree/shadow_subdivision.h"
 #include "quadmat/algorithms/dcsc_accumulator.h"
 #include "quadmat/algorithms/multiply_leaves.h"
+#include "quadmat/executors/task.h"
 
 namespace quadmat {
 
@@ -177,26 +178,37 @@ namespace quadmat {
     };
 
     /**
-     * Constructs and organizes the tasks necessary to multiply two quadmat trees.
+     * Task that multiplies two quadmat trees. Spawns any necessary recursive tasks.
      *
      * @tparam Semiring semiring to use
      * @tparam Config configuration
      */
     template <class Semiring, typename Config = DefaultConfig>
-    class SpawnMultiplyJob {
+    class MultiplyTask : public Task {
     public:
         using AT = typename Semiring::MapTypeA;
         using BT = typename Semiring::MapTypeB;
         using RetT = typename Semiring::ReduceType;
 
-        SpawnMultiplyJob(
+        MultiplyTask(
+                TaskQueue& queue,
                 const PairSet<AT, BT, Config> &pair_set,
                 std::shared_ptr<BlockContainer<RetT, Config>> dest_bc,
                 int dest_position,
                 const Offset &dest_offsets,
                 const Shape& dest_shape,
                 const Semiring& semiring = Semiring())
-                : pair_set(pair_set), dest_bc(dest_bc), dest_position(dest_position), dest_offsets(dest_offsets), dest_shape(dest_shape), semiring(semiring) {
+                : queue_(queue), pair_set(pair_set), dest_bc(dest_bc), dest_position(dest_position), dest_offsets(dest_offsets), dest_shape(dest_shape), semiring(semiring) {
+        }
+
+        virtual ~MultiplyTask() {}
+
+        void Execute() override {
+            Run();
+        }
+
+        [[nodiscard]] int GetPriority() const override {
+            return 0;
         }
 
         /**
@@ -266,32 +278,31 @@ namespace quadmat {
                 }
 
                 // spawn single recursive job
-                SpawnMultiplyJob job(
+                queue_.Enqueue(quadmat::allocate_shared_temp<Config, MultiplyTask>(
+                        queue_,
                         recursive_pair_set,
                         dest_bc,
                         dest_position,
                         dest_offsets,
-                        dest_shape);
-
-                job.Run();
+                        dest_shape));
             } else {
                 // construct result
                 std::shared_ptr<InnerBlock<RetT, Config>> recursive_dest_block = dest_bc->CreateInner(dest_position);
 
                 // recurse
                 for (auto recursive_child_pos : kAllInnerPositions) {
-                    SpawnMultiplyJob job(
+                    queue_.Enqueue(quadmat::allocate_shared_temp<Config, MultiplyTask>(
+                            queue_,
                             recursive_pair_sets[recursive_child_pos],
                             recursive_dest_block,
                             recursive_child_pos,
                             recursive_dest_block->GetChildOffsets(recursive_child_pos, dest_offsets),
-                            recursive_dest_block->GetChildShape(recursive_child_pos, dest_shape));
-
-                    job.Run();
+                            recursive_dest_block->GetChildShape(recursive_child_pos, dest_shape)));
                 }
 
                 // clean up result
-                CleanRecurseResult(recursive_dest_block);
+                // TODO: bring this back with TBB because it has task dependencies
+//                CleanRecurseResult(recursive_dest_block);
             }
 
             return true;
@@ -450,7 +461,7 @@ namespace quadmat {
          */
         class ResultLeafVisitor {
         public:
-            explicit ResultLeafVisitor(const SpawnMultiplyJob<Semiring, Config>& job): job(job) {}
+            explicit ResultLeafVisitor(const MultiplyTask<Semiring, Config>& job): job(job) {}
 
             template <typename RetIT>
             bool operator()(RetIT retit) {
@@ -476,7 +487,7 @@ namespace quadmat {
             }
 
         protected:
-            const SpawnMultiplyJob<Semiring, Config>& job;
+            const MultiplyTask<Semiring, Config>& job;
         };
 
         /**
@@ -485,7 +496,7 @@ namespace quadmat {
         template <typename RetIT>
         class LeafCategoryPairMultiplyVisitor {
         public:
-            explicit LeafCategoryPairMultiplyVisitor(const SpawnMultiplyJob<Semiring, Config>& job, DcscAccumulator<RetT, RetIT, Config> &accumulator) : job(job), accumulator(accumulator) {}
+            explicit LeafCategoryPairMultiplyVisitor(const MultiplyTask<Semiring, Config>& job, DcscAccumulator<RetT, RetIT, Config> &accumulator) : job(job), accumulator(accumulator) {}
 
             /**
              * Unpack categories.
@@ -497,7 +508,7 @@ namespace quadmat {
 
         protected:
             DcscAccumulator<RetT, RetIT, Config>& accumulator;
-            const SpawnMultiplyJob<Semiring, Config>& job;
+            const MultiplyTask<Semiring, Config>& job;
         };
 
         /**
@@ -506,7 +517,7 @@ namespace quadmat {
         template <typename RetIT>
         class LeafPairMultiplyVisitor {
         public:
-            explicit LeafPairMultiplyVisitor(const SpawnMultiplyJob<Semiring, Config>& job, DcscAccumulator<RetT, RetIT, Config> &accumulator) : job(job), accumulator(accumulator) {}
+            explicit LeafPairMultiplyVisitor(const MultiplyTask<Semiring, Config>& job, DcscAccumulator<RetT, RetIT, Config> &accumulator) : job(job), accumulator(accumulator) {}
 
             /**
              * Visit concrete leaf types and perform multiplication.
@@ -524,7 +535,7 @@ namespace quadmat {
 
         protected:
             DcscAccumulator<RetT, RetIT, Config>& accumulator;
-            const SpawnMultiplyJob<Semiring, Config>& job;
+            const MultiplyTask<Semiring, Config>& job;
         };
 
     protected:
@@ -558,6 +569,11 @@ namespace quadmat {
          * Semiring to use.
          */
         const Semiring& semiring;
+
+        /**
+         * Task queue where to enqueue recursive tasks
+         */
+        TaskQueue& queue_;
     };
 }
 

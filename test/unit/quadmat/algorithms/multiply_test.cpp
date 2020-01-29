@@ -187,8 +187,11 @@ TEST_CASE("Multiply") {
             Matrix<double> ret{{10, 10}};
 
             {
+                DirectTaskQueue<DefaultConfig> queue;
+
                 // setup multiply job
-                SpawnMultiplyJob<PlusTimesSemiring<double>, DefaultConfig> job(
+                MultiplyTask<PlusTimesSemiring<double>, DefaultConfig> job(
+                    queue,
                     PairSet<double, double, DefaultConfig>{
                         matrix_inner_10x10.GetRootBC()->GetChild(0),
                         empty_matrix_10x10.GetRootBC()->GetChild(0),
@@ -203,8 +206,11 @@ TEST_CASE("Multiply") {
             }
 
             {
+                DirectTaskQueue<DefaultConfig> queue;
+
                 // zero dimension test
-                SpawnMultiplyJob<PlusTimesSemiring<double>, DefaultConfig> job_zero_row(
+                MultiplyTask<PlusTimesSemiring<double>, DefaultConfig> job_zero_row(
+                    queue,
                     PairSet<double, double, DefaultConfig>{
                         matrix_inner_10x10.GetRootBC()->GetChild(0),
                         empty_matrix_10x10.GetRootBC()->GetChild(0),
@@ -219,8 +225,11 @@ TEST_CASE("Multiply") {
             }
 
             {
+                DirectTaskQueue<DefaultConfig> queue;
+
                 // zero dimension test
-                SpawnMultiplyJob<PlusTimesSemiring<double>, DefaultConfig> job_zero_col(
+                MultiplyTask<PlusTimesSemiring<double>, DefaultConfig> job_zero_col(
+                    queue,
                     PairSet<double, double, DefaultConfig>{
                         matrix_inner_10x10.GetRootBC()->GetChild(0),
                         empty_matrix_10x10.GetRootBC()->GetChild(0),

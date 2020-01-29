@@ -2,8 +2,8 @@ project(benchmarks)
 
 # Add Google Benchmark project and its Google Test dependency.
 # Both are added as git submodules.
-add_subdirectory(googletest)
-add_subdirectory(benchmark)
+add_subdirectory(googletest EXCLUDE_FROM_ALL)
+add_subdirectory(benchmark EXCLUDE_FROM_ALL)
 
 # benchmark configuration fields to find good default values
 add_executable(bench_config_settings config_settings_bench.cpp ../test/test_utilities/problems.h)
