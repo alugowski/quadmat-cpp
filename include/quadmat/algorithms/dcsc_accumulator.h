@@ -63,7 +63,10 @@ namespace quadmat {
                 return children_.front();
             }
 
-            if (Config::template ShouldUseDenseSpa<T>(shape_.nrows)) {
+            int64_t max_estimated_flops = std::accumulate(std::begin(children_), std::end(children_), 0,
+                [](const int64_t val, const auto& child) -> int64_t { return val + child->GetNnn(); });
+
+            if (Config::template ShouldUseDenseSpa<T>(shape_.nrows, (double)max_estimated_flops)) {
                 return CollapseUsingSpA<DenseSpa<IT, Semiring, Config>, Semiring>(semiring);
             } else {
                 return CollapseUsingSpA<SparseSpa<IT, Semiring, Config>, Semiring>(semiring);

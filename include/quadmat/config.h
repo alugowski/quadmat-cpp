@@ -49,12 +49,14 @@ namespace quadmat {
          *
          * @tparam T type in the SpA
          * @param nrows size of the SpA
+         * @param max_estimated_flops an estimated upper bound on the number of expected FLOPs. Used so that we don't
+         *                            waste time using a large dense SpA on only a handful of operations.
          * @return true if a dense SpA should be used, false if a sparse SpA should be used.
          */
         template <typename T>
-        static bool ShouldUseDenseSpa(Index nrows) {
-            // choose based on count or size in bytes
-            return nrows <= DenseSpaMaxCount && nrows * sizeof(T) <= DenseSpaMaxBytes;
+        static bool ShouldUseDenseSpa(Index nrows, double max_estimated_flops) {
+            // choose based on expected fill rate, size in element count or size in bytes
+            return nrows * 0.001 < max_estimated_flops && nrows <= DenseSpaMaxCount && nrows * sizeof(T) <= DenseSpaMaxBytes;
         }
 
         /**

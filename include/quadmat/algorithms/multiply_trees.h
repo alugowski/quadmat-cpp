@@ -524,7 +524,9 @@ namespace quadmat {
              */
             template <typename LHS, typename RHS>
             void operator()(const std::shared_ptr<LHS>& lhs, const std::shared_ptr<RHS>& rhs) {
-                if (Config::template ShouldUseDenseSpa<RetT>(job.dest_shape.nrows)) {
+                double max_estimated_flops = static_cast<double>(lhs->GetNnn()) * static_cast<double>(rhs->GetNnn());
+
+                if (Config::template ShouldUseDenseSpa<RetT>(job.dest_shape.nrows, max_estimated_flops)) {
                     auto result = MultiplyPair<LHS, RHS, RetIT, Semiring, DenseSpa<RetIT, Semiring, Config>, Config>(lhs, rhs, job.dest_shape, job.semiring);
                     accumulator.Add(result);
                 } else {

@@ -26,7 +26,7 @@ std::vector<MultiplyProblem<T, IT>> GetMultiplyProblems() {
 
             if (orig.description.find("graph") != std::string::npos) {
                 // add a version blown-up to require sparse SpA
-                ret.push_back(ExpandMultiplyProblem(orig, 5000000));
+                ret.push_back(ExpandMultiplyProblem(orig, 500000));
             }
         }
     }
