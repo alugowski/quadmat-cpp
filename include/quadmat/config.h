@@ -76,7 +76,7 @@ namespace quadmat {
             double column_fill_fraction = static_cast<double>(num_nn_cols) / ncols;
 
             return num_mask_bytes < 1u << 22u      // Only if (dense) mask doesn't use too much memory
-                   && num_nn_cols > 1              // Only if block is not empty, where the regular search is fast
+                   && num_nn_cols > 8              // Only if block is not empty, where the regular search is fast
                    && column_fill_fraction < 0.9;  // Only if block is not nearly full, as mask only speeds up misses
         }
 
@@ -94,7 +94,7 @@ namespace quadmat {
             std::size_t num_bytes = ncols * sizeof(BlockNnn);
 
             return num_bytes < 1u << 26u      // Only if dense index doesn't use too much memory
-                   && num_nn_cols > 1;        // Only if block is not empty, where the regular search is fast
+                   && num_nn_cols > 8;        // Only if block is not empty, where the regular search is fast
         }
 
         /**
