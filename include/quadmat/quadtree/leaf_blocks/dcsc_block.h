@@ -278,7 +278,7 @@ namespace quadmat {
         /**
          * Create a shadow block that provides a view of a part of this leaf block
          */
-        static LeafNode<T, Config> GetShadowBlock(const std::shared_ptr<DcscBlock<T, IT, Config>>& base_dcsc, const Offset& offsets, const Shape& shape) {
+        static LeafNode<T, Config> GetShadowBlock(const std::shared_ptr<DcscBlock<T, IT, Config>> base_dcsc, const Offset& offsets, const Shape& shape) {
             // find the column range for the shadow
             auto begin_column_pos = std::lower_bound(begin(base_dcsc->col_ind_), end(base_dcsc->col_ind_), offsets.col_offset);
             auto begin_column = ColumnIterator(base_dcsc.get(), begin_column_pos - begin(base_dcsc->col_ind_));
@@ -305,7 +305,7 @@ namespace quadmat {
          * @param shadow_shape shape of the shadow block
          * @return a leaf tree node
          */
-        LeafNode<T, Config> GetShadowBlock(const std::shared_ptr<DcscBlock<T, IT, Config>>& base_dcsc,
+        LeafNode<T, Config> GetShadowBlock(const std::shared_ptr<DcscBlock<T, IT, Config>> base_dcsc,
                                            const ColumnIterator& shadow_begin_column, const ColumnIterator& shadow_end_column,
                                            const Offset& shadow_offsets, const Shape& shadow_shape) {
             LeafIndex shadow_type = GetLeafIndexType(shadow_shape);

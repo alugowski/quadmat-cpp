@@ -114,6 +114,7 @@ namespace quadmat {
      * Configuration for use with ThreadingBuildingBlocks.
      */
     class TbbConfig : public BasicConfig {
+    public:
         /**
          * Default allocator, and for long-lived objects
          */
@@ -131,7 +132,7 @@ namespace quadmat {
      * This is the config that will be used by QuadMat operations. If another config is desired then it should be
      * explicitly specified as a template parameter to those operations.
      */
-    using DefaultConfig = BasicConfig;
+    using DefaultConfig = TbbConfig;
 }
 
 #endif //QUADMAT_CONFIG_H

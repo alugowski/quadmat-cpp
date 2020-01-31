@@ -25,7 +25,7 @@ namespace quadmat {
         using ShadowedLeafType = ShadowedLeaf;
 
         WindowShadowBlock(
-                const std::shared_ptr<ShadowedLeaf> &base,
+                const std::shared_ptr<ShadowedLeaf> base,
                 const typename ShadowedLeaf::ColumnIterator& begin_column,
                 const typename ShadowedLeaf::ColumnIterator& end_column,
                 const Offset &offsets,

@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include "quadmat/quadtree/parallel_tree_destructor.h"
 #include "quadmat/quadtree/tree_nodes.h"
 #include "quadmat/config.h"
 
@@ -27,6 +28,20 @@ namespace quadmat {
          * @param shape
          */
         Matrix(const Shape& shape, const TreeNode<T, Config>& root_node) : shape_(shape), root_bc_(quadmat::allocate_shared<Config, single_block_container < T, Config>>(shape, root_node)) {}
+
+        /**
+         * Fast destruction of a quadtree.
+         *
+         * Destruction of a quadtree happens automatically via node destructors. This process is sequential and can
+         * take non-trivial time for large trees. This method parallelizes the process.
+         *
+         * WARNING: This method modifies the tree. Only use this method if nothing in the tree will be used again.
+         * If there is any chance a node is being used elsewhere then do not call this method as it may corrupt
+         * those other uses.
+         */
+        void ParallelDestroy(int p = 4) {
+            ParallelTreeDestructor<T, Config>::Destroy(std::static_pointer_cast<BlockContainer<T, Config>>(root_bc_), p);
+        }
 
         /**
          * @return the shape of this matrix

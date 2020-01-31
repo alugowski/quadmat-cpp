@@ -96,6 +96,9 @@ TEST_CASE("Multiply") {
 
                 // test the result
                 REQUIRE_THAT(result, MatrixEquals(problem.result));
+
+                // the entire result tree can be safely destroyed
+                result.ParallelDestroy(1);
             }
         }
     }
@@ -147,6 +150,9 @@ TEST_CASE("Multiply") {
 
                 // test the result
                 REQUIRE_THAT(result, MatrixEquals(problem.result, ConfigSplit4()));
+
+                // the entire result tree can be safely destroyed
+                result.ParallelDestroy(1);
             }
         }
     }
