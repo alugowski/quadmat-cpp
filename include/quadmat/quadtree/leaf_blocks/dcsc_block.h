@@ -402,9 +402,9 @@ namespace quadmat {
          *
          * No further calls to any methods in this class allowed after calling this method.
          *
-         * @return the constructed DcscBlock
+         * @return a unique_ptr to the constructed DcscBlock
          */
-        std::shared_ptr<DcscBlock<T, IT, Config>> Finish() {
+        auto Finish() {
             // cap off the columns
             col_ptr_.emplace_back(row_ind_.size());
 
@@ -446,8 +446,7 @@ namespace quadmat {
             }
 
             // construction complete
-            return std::allocate_shared<DcscBlock<T, IT, Config>>(
-                    typename Config::template Allocator<DcscBlock<T, IT, Config>>(),
+            return quadmat::allocate_unique<Config, DcscBlock<T, IT, Config>>(
                     std::move(col_ind_),
                     std::move(col_ptr_),
                     std::move(row_ind_),
@@ -455,6 +454,14 @@ namespace quadmat {
                     std::move(col_ind_mask_),
                     std::move(csc_col_ptr)
                     );
+        }
+
+        /**
+         * Alternative to Finish() but returns a shared_ptr.
+         * @return
+         */
+        std::shared_ptr<DcscBlock<T, IT, Config>> FinishShared() {
+            return ToShared(std::move(Finish()));
         }
 
     protected:

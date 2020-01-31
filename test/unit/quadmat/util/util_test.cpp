@@ -184,3 +184,73 @@ TEST_CASE("Numeric Utilities") {
         REQUIRE(GetChildDiscriminatingBit(1ul << 62ul) == 1ul << 61ul);
     }
 }
+
+/**
+ * Class to validate that constructors and destructors are called as expected
+ */
+struct ConstructorCounter {
+    static inline int contructor_call_count = 0;
+    static inline int destructor_call_count = 0;
+
+    ConstructorCounter() {
+        contructor_call_count++;
+    }
+
+    /**
+     * A constructor that throws an exception
+     */
+    explicit ConstructorCounter(const std::string&) {
+        contructor_call_count++;
+        throw std::exception();
+    }
+
+    ~ConstructorCounter() {
+        destructor_call_count++;
+    }
+};
+
+TEST_CASE("allocate_unique") {
+    SECTION("basic allocation / deletion") {
+        int pre_constructor_count = ConstructorCounter::contructor_call_count;
+        int pre_destructor_count = ConstructorCounter::destructor_call_count;
+
+        {
+            auto p = quadmat::allocate_unique<DefaultConfig, ConstructorCounter>();
+            REQUIRE(p.get() != nullptr);
+
+            REQUIRE(pre_constructor_count + 1 == ConstructorCounter::contructor_call_count);
+            REQUIRE(pre_destructor_count == ConstructorCounter::destructor_call_count);
+        }
+        REQUIRE(pre_destructor_count + 1 == ConstructorCounter::destructor_call_count);
+    }
+
+    SECTION("constructor throws") {
+        int pre_constructor_count = ConstructorCounter::contructor_call_count;
+        int pre_destructor_count = ConstructorCounter::destructor_call_count;
+
+        REQUIRE_THROWS(quadmat::allocate_unique<DefaultConfig, ConstructorCounter>("throws"));
+
+        REQUIRE(pre_constructor_count + 1 == ConstructorCounter::contructor_call_count);
+        REQUIRE(pre_destructor_count == ConstructorCounter::destructor_call_count);
+    }
+
+    SECTION("convert to shared") {
+        int pre_constructor_count = ConstructorCounter::contructor_call_count;
+        int pre_destructor_count = ConstructorCounter::destructor_call_count;
+
+        {
+            std::shared_ptr<ConstructorCounter> outer_shared;
+            {
+                auto p = quadmat::allocate_unique<DefaultConfig, ConstructorCounter>();
+
+                std::shared_ptr<ConstructorCounter> inner_shared = quadmat::ToShared(std::move(p));
+                REQUIRE(p.get() == nullptr);
+                REQUIRE(pre_destructor_count == ConstructorCounter::destructor_call_count);
+
+                outer_shared = inner_shared;
+            }
+            REQUIRE(pre_destructor_count == ConstructorCounter::destructor_call_count);
+        }
+        REQUIRE(pre_destructor_count + 1 == ConstructorCounter::destructor_call_count);
+    }
+}

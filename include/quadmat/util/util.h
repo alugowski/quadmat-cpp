@@ -198,6 +198,54 @@ namespace quadmat {
     }
 
     /**
+     * Deleter for std::unique_ptr and std::shared_ptr
+     */
+    template<typename Allocator>
+    struct Deleter {
+        explicit Deleter(const Allocator& alloc) : alloc_(alloc) { }
+
+        void operator()(typename std::allocator_traits<Allocator>::pointer p) const {
+            Allocator aa(alloc_);
+            std::allocator_traits<Allocator>::destroy(aa, std::addressof(*p));
+            std::allocator_traits<Allocator>::deallocate(aa, p, 1);
+        }
+
+    private:
+        Allocator alloc_;
+    };
+
+    /**
+     * Allocate a unique_ptr using the default allocator.
+     *
+     * This method exists because there is no std::allocate_unique.
+     */
+    template<typename Config, typename T, typename... Args>
+    std::unique_ptr<T, Deleter<typename Config::template Allocator<T>>> allocate_unique(Args &&... args) {
+        auto alloc = typename Config::template Allocator<T>();
+        using AllocTraits = std::allocator_traits<decltype(alloc)>;
+
+        auto ptr = AllocTraits::allocate(alloc, 1);
+        try {
+            AllocTraits::construct(alloc, std::addressof(*ptr), std::forward<Args>(args)...);
+            using D = Deleter<typename AllocTraits::allocator_type>;
+            return std::unique_ptr<T, D>(ptr, D(alloc));
+        }
+        catch (...) {
+            AllocTraits::deallocate(alloc, ptr, 1);
+            throw;
+        }
+    }
+
+    /**
+     * Convert a unique_ptr to a shared_ptr. Custom Deleter is maintained.
+     */
+    template<typename T, typename D>
+    std::shared_ptr<T> ToShared(std::unique_ptr<T, D>&& ptr)
+    {
+        return std::shared_ptr<T>(std::move(ptr));
+    }
+
+    /**
      * Allocate a shared_ptr using the default allocator.
      *
      * This method only exists because std::allocate_shared requires repeating long template types.

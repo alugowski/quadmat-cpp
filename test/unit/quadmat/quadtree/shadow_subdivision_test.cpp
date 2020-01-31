@@ -22,7 +22,7 @@ TEST_CASE("Shadow Subdivision") {
     const CannedMatrix<double, Index>& problem = kCannedMatrices[problem_num];
 
     SECTION(problem.description) {
-        auto block = DcscBlockFactory<double, Index>(problem.sorted_tuples.size(), problem.sorted_tuples).Finish();
+        auto block = DcscBlockFactory<double, Index>(problem.sorted_tuples.size(), problem.sorted_tuples).FinishShared();
         auto leaf_node = LeafNode<double>(block);
 
         auto shadow_inner = shadow_subdivide<double>(leaf_node, problem.shape, GetDiscriminatingBit(problem.shape) << 1); // NOLINT(hicpp-signed-bitwise)

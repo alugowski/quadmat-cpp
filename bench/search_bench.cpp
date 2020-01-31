@@ -316,7 +316,7 @@ public:
     /**
      * Factory method so that the implementation can be all const.
      */
-    static std::shared_ptr<BlockType> Factory(const SearchProblem<IndexType>& problem) {
+    static auto Factory(const SearchProblem<IndexType>& problem) {
         // create tuples
         std::vector<std::tuple<IndexType, IndexType, ValueType>> tuples;
         tuples.reserve(problem.haystack.size());
@@ -345,10 +345,10 @@ public:
     /**
      * Factory method so that the implementation can be all const.
      */
-    static std::shared_ptr<ShadowBlockType> Factory(const SearchProblem<IndexType>& problem) {
-        auto shadowed_block = DcscBlockConstructor<typename ShadowBlockType::ShadowedLeafType>::Factory(problem);
+    static std::unique_ptr<ShadowBlockType> Factory(const SearchProblem<IndexType>& problem) {
+        auto shadowed_block = ToShared(DcscBlockConstructor<typename ShadowBlockType::ShadowedLeafType>::Factory(problem));
 
-        return std::make_shared<ShadowBlockType>(
+        return std::make_unique<ShadowBlockType>(
                 shadowed_block,
                 shadowed_block->ColumnsBegin(),
                 shadowed_block->ColumnsEnd(),

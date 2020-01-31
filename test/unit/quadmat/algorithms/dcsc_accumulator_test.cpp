@@ -38,7 +38,7 @@ TEST_CASE("DCSC Accumulator") {
                 for (auto tuple_range : tuple_ranges) {
                     auto part = DcscBlockFactory<double, Index>(tuple_range.size(), tuple_range).Finish();
 
-                    accum.Add(part);
+                    accum.Add(ToShared(std::move(part)));
                 }
 
                 // collapse
@@ -91,9 +91,9 @@ TEST_CASE("DCSC Accumulator") {
                     TriplesBlock<double, Index> tb;
                     tb.Add(tuple_range);
 
-                    auto part = DcscBlockFactory<double, Index>(tuple_range.size(), tb.SortedTuples()).Finish();
+                    auto part = DcscBlockFactory<double, Index>(tuple_range.size(), tb.SortedTuples()).FinishShared();
 
-                  accum.Add(part);
+                    accum.Add(part);
                 }
 
                 // collapse
@@ -133,7 +133,7 @@ TEST_CASE("DCSC Accumulator") {
 
             // build component blocks
             auto part = DcscBlockFactory<double, Index>(problem_accumulated_tuples.size(),
-                                                        problem_accumulated_tuples).Finish();
+                                                        problem_accumulated_tuples).FinishShared();
 
             accum.Add(part);
             accum.Add(part);

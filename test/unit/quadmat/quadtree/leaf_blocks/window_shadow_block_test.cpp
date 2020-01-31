@@ -48,7 +48,7 @@ TEST_CASE("Window Shadow Block") {
     const CannedMatrix<double, Index>& problem = kCannedMatrices[problem_num];
 
     SECTION(problem.description) {
-        auto block = DcscBlockFactory<double, Index>(problem.sorted_tuples.size(), problem.sorted_tuples).Finish();
+        auto block = DcscBlockFactory<double, Index>(problem.sorted_tuples.size(), problem.sorted_tuples).FinishShared();
 
         std::vector<Window> windows{
             Window{"full", {0, 0}, {problem.shape.nrows, problem.shape.ncols}},
