@@ -13,8 +13,8 @@ namespace quadmat {
      */
     template <typename LeafTypeA, typename LeafTypeB, typename RetIT, class Semiring, class Spa, typename Config>
     std::shared_ptr<DcscBlock<typename Semiring::ReduceType, RetIT, Config>> MultiplyPair(
-            std::shared_ptr<LeafTypeA> a,
-            std::shared_ptr<LeafTypeB> b,
+            const LeafTypeA* const a,
+            const LeafTypeB* const b,
             const Shape& result_shape,
             const Semiring& semiring = Semiring()) {
 

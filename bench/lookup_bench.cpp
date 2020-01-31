@@ -240,7 +240,7 @@ public:
     using IndexType = typename BlockType::IndexType;
     using ValueType = typename BlockType::ValueType;
 
-    explicit DcscBlockIndex(std::shared_ptr<BlockType> block_ptr)
+    explicit DcscBlockIndex(std::shared_ptr<BlockType>&& block_ptr)
         : block_ptr_(std::move(block_ptr)), block_(*(block_ptr_.get())) {
     }
 
@@ -291,7 +291,7 @@ public:
     using ValueType = typename BlockType::ValueType;
     using DcscType = typename BlockType::ShadowedLeafType;
 
-    explicit ShadowedDcscBlockIndex(std::shared_ptr<BlockType> block_ptr)
+    explicit ShadowedDcscBlockIndex(std::shared_ptr<BlockType>&& block_ptr)
         : block_ptr_(std::move(block_ptr)), block_(*(block_ptr_.get())) {
     }
 

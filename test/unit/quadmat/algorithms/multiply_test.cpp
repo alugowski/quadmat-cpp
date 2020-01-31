@@ -47,7 +47,7 @@ TEST_CASE("Multiply") {
                     Index,
                     PlusTimesSemiring<double>,
                     SparseSpa<Index, PlusTimesSemiring<double>, DefaultConfig>,
-                    DefaultConfig>(a, b, result_shape);
+                    DefaultConfig>(a.get(), b.get(), result_shape);
 
             // test the result tuples
             {

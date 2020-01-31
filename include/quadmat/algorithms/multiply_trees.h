@@ -527,10 +527,10 @@ namespace quadmat {
                 double max_estimated_flops = static_cast<double>(lhs->GetNnn()) * static_cast<double>(rhs->GetNnn());
 
                 if (Config::template ShouldUseDenseSpa<RetT>(job.dest_shape.nrows, max_estimated_flops)) {
-                    auto result = MultiplyPair<LHS, RHS, RetIT, Semiring, DenseSpa<RetIT, Semiring, Config>, Config>(lhs, rhs, job.dest_shape, job.semiring);
+                    auto result = MultiplyPair<LHS, RHS, RetIT, Semiring, DenseSpa<RetIT, Semiring, Config>, Config>(lhs.get(), rhs.get(), job.dest_shape, job.semiring);
                     accumulator.Add(result);
                 } else {
-                    auto result = MultiplyPair<LHS, RHS, RetIT, Semiring, SparseSpa<RetIT, Semiring, Config>, Config>(lhs, rhs, job.dest_shape, job.semiring);
+                    auto result = MultiplyPair<LHS, RHS, RetIT, Semiring, SparseSpa<RetIT, Semiring, Config>, Config>(lhs.get(), rhs.get(), job.dest_shape, job.semiring);
                     accumulator.Add(result);
                 }
             }
