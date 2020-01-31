@@ -16,10 +16,10 @@ namespace quadmat {
      * @tparam Config
      */
     template<typename T, typename Config = DefaultConfig>
-    class single_block_container : public BlockContainer<T, Config> {
+    class SingleBlockContainer : public BlockContainer<T, Config> {
     public:
-        explicit single_block_container(const Shape& shape) : shape(shape) {}
-        single_block_container(const Shape& shape, const TreeNode<T, Config> &child) : shape(shape), child(child) {}
+        explicit SingleBlockContainer(const Shape& shape) : shape(shape) {}
+        SingleBlockContainer(const Shape& shape, const TreeNode<T, Config> &child) : shape(shape), child(child) {}
 
         [[nodiscard]] size_t GetNumChildren() const override {
             return 1;

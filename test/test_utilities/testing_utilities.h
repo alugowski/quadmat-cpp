@@ -502,7 +502,7 @@ template <typename T, typename Config = DefaultConfig>
 std::string SanityCheck(Matrix<T, Config>& mat, bool slow= true) {
     SanityCheckInfo info {
         .shape = mat.GetShape(),
-        .expected_discriminating_bit = single_block_container<T>(mat.GetShape()).GetDiscriminatingBit() >> 1,
+        .expected_discriminating_bit = SingleBlockContainer<T>(mat.GetShape()).GetDiscriminatingBit() >> 1,
         .check_tuples = slow,
     };
     return std::visit(SanityCheckVisitor<T, Config>(info), mat.GetRootBC()->GetChild(0));

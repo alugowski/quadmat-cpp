@@ -20,14 +20,14 @@ namespace quadmat {
          *
          * @param shape number of rows and columns.
          */
-        explicit Matrix(const Shape& shape) : shape_(shape), root_bc_(quadmat::allocate_shared<Config, single_block_container < T, Config>>(shape)) {}
+        explicit Matrix(const Shape& shape) : shape_(shape), root_bc_(quadmat::allocate_shared<Config, SingleBlockContainer <T, Config>>(shape)) {}
 
         /**
          * Construct a matrix with a particular node
          * @param root_node
          * @param shape
          */
-        Matrix(const Shape& shape, const TreeNode<T, Config>& root_node) : shape_(shape), root_bc_(quadmat::allocate_shared<Config, single_block_container < T, Config>>(shape, root_node)) {}
+        Matrix(const Shape& shape, const TreeNode<T, Config>& root_node) : shape_(shape), root_bc_(quadmat::allocate_shared<Config, SingleBlockContainer <T, Config>>(shape, root_node)) {}
 
         /**
          * Fast destruction of a quadtree.
@@ -80,7 +80,7 @@ namespace quadmat {
     protected:
         Shape shape_;
 
-        std::shared_ptr<single_block_container<T, Config>> root_bc_;
+        std::shared_ptr<SingleBlockContainer<T, Config>> root_bc_;
     };
 
     /**
